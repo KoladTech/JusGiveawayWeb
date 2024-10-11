@@ -1,0 +1,55 @@
+﻿.center-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.frame {
+    border-radius: 20px;
+    background-color: #F0F8FF;
+    padding: 10px;
+    border: 1px solid #D3D3D3;
+    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
+    margin: 10px;
+    text-align: center;
+}
+
+.vertical-stack-layout {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.stack-layout {
+    padding: 5px;
+    text-align: center;
+}
+
+.countdown-label {
+    font-size: 1.5em;
+    font-weight: bold;
+    display: block;
+}
+
+.countdown-unit {
+    font-size: 0.8em;
+    color: gray;
+    display: block;
+}
+
+.days-label {
+    color: #1E90FF;
+}
+
+.hours-label {
+    color: #32CD32;
+}
+
+.minutes-label {
+    color: #FFA500;
+}
+
+.seconds-label {
+    color: #FF6347;
+}

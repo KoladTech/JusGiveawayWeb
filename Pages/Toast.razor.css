@@ -1,0 +1,25 @@
+﻿.toast-notification {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background-color: rgba(211, 211, 211, 0.8);
+    color: #333;
+    padding: 5px;
+    border-radius: 5px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+    animation: slide-in 0.5s ease-in-out;
+}
+
+.toast-message {
+    margin-right: 10px;
+}
+
+@keyframes slide-in {
+    from {
+        transform: translateY(100%);
+    }
+
+    to {
+        transform: translateY(0);
+    }
+}

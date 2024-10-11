@@ -1,0 +1,93 @@
+﻿@page "/mainpage"
+
+
+<div class="phone-container">
+    <div class="phone-screen">
+        <!-- Top section with avatar and greeting -->
+        <div class="top-section">
+            <div class="avatar-container">
+                <img src="images/avatar_green.png" class="avatar-image" />
+                <div class="player-info">
+                    <span>Hello, @PlayerName</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Games label -->
+        <h2 class="games-title">Games</h2>
+
+        <!-- Game selection grid -->
+        <div class="games-grid">
+            <!-- First row -->
+            <div class="game-card">
+                <img src="images/info_icon.png" class="info-icon" alt="Info Icon" @onclick="ShowHeadsOrTailsInstructions" style="cursor: pointer;" />
+                <img src="images/kobo_front.png" class="game-image" />
+                <span class="game-label">Heads Or Tails</span>
+                <button @onclick="PlayHeadsOrTailsGame" class="play-button">Play</button>
+            </div>
+
+            <div class="game-card">
+                <img src="images/info_icon.png" class="info-icon" alt="Info Icon" @onclick="ShowHeadsOrTailsInstructions" style="cursor: pointer;" />
+                <img src="images/question_mark.png" class="game-image" />
+                <span class="game-label">Coming Soon</span>
+                <button class="play-button" disabled>Play</button>
+            </div>
+
+            <!-- Second row -->
+            <div class="game-card">
+                <img src="images/info_icon.png" class="info-icon" alt="Info Icon" @onclick="ShowHeadsOrTailsInstructions" style="cursor: pointer;" />
+                <img src="images/question_mark.png" class="game-image" />
+                <span class="game-label">Coming Soon</span>
+                <button class="play-button" disabled>Play</button>
+            </div>
+
+            <div class="game-card">
+                <img src="images/info_icon.png" class="info-icon" alt="Info Icon" @onclick="ShowHeadsOrTailsInstructions" style="cursor: pointer;" />
+                <img src="images/question_mark.png" class="game-image" />
+                <span class="game-label">Coming Soon</span>
+                <button class="play-button" disabled>Play</button>
+            </div>
+        </div>
+
+        <!-- Logout button -->
+        <button @onclick="Logout" class="logout-button">
+            <img src="images/logout_icon.png" class="logout-icon" />
+        </button>
+
+        <!-- Loading indicator (hidden initially) -->
+        @if (isLoading)
+        {
+            <div class="loading-indicator">
+                <span>Loading...</span>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    // Bindable properties and variables
+    private string PlayerName { get; set; } = "Player";
+
+    private bool isLoading = false;
+
+    // Event handlers
+    private void ShowHeadsOrTailsInstructions()
+    {
+        // Handle instructions button click for Heads or Tails
+    }
+
+    private void PlayHeadsOrTailsGame()
+    {
+        // Handle play button click for Heads or Tails
+    }
+
+    private void ShowComingSoonInstructions()
+    {
+        // Handle instructions button click for coming soon games
+    }
+
+    private void Logout()
+    {
+        // Handle logout button click
+    }
+}

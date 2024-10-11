@@ -1,0 +1,127 @@
+﻿/* Main container */
+.main-container {
+    max-width: 400px; /* Restrict to a phone-like width */
+    margin: 0 auto; /* Center align */
+    padding: 10px; /* Add some padding */
+    box-sizing: border-box; /* Include padding in width calculation */
+}
+
+/* Top section */
+.top-section {
+    margin-bottom: 30px; /* Reduced margin for better spacing */
+}
+
+.avatar-container {
+    display: flex;
+    align-items: center;
+}
+
+.avatar-image {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%; /* Circular image */
+}
+
+.info-icon {
+    position: absolute; /* Position the info icon absolutely */
+    top: 5px; /* Adjust the vertical offset from the top */
+    left: 5px; /* Adjust the horizontal offset from the left */
+    width: 25px; /* Set a specific width for the icon */
+    height: 25px; /* Set a specific height for the icon */
+    cursor: pointer; /* Change cursor to pointer to indicate interactivity */
+}
+
+.player-info {
+    margin-left: 10px;
+    font-size: 1rem; /* Responsive font size */
+}
+
+/* Games title */
+.games-title {
+    font-size: 1.5rem; /* Responsive font size */
+    font-weight: bold;
+    color: #008000;
+    text-align: left;
+    margin-bottom: 5px;
+}
+
+/* Games grid */
+.games-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr; /* Two columns */
+    gap: 2px; /* Space between cards */
+}
+
+.game-card {
+    position: relative; /* Set relative positioning for absolute children */
+    background: MintCream;
+    border: 1.5px solid #348C31;
+    border-radius: 10px;
+    padding: 20px; /* Adjust padding to accommodate the absolute-positioned icon */
+    text-align: center;
+    box-shadow: 1px 2px 4px rgba(0, 0, 0, 0.2); /* Add a shadow for visual depth */
+    max-width: 300px; /* Optional: set a max width for a consistent layout */
+    margin: 5px auto; /* Optional: center align the card on the page */
+}
+
+    .game-card img.game-image {
+        height: 10vh;
+        width: auto; /* Maintain the aspect ratio */
+        margin-top: 0px; /* Create some space between the icon and the image */
+    }
+
+    .game-card span.game-label {
+        font-size: 1rem; /* Responsive font size */
+        font-weight: bold;
+        display: block;
+        margin-bottom: 5px;
+    }
+
+    .game-card button.play-button {
+        background-color: #348C31;
+        color: #ffffff;
+        border: none;
+        border-radius: 5px; /* Rounded corners */
+        padding: 10px;
+        cursor: pointer;
+        font-size: 1rem; /* Responsive font size */
+        width: 100%;
+    }
+
+        .game-card button.play-button:hover {
+            background-color: #2c7228; /* Slightly darker color on hover */
+        }
+
+        .game-card button.play-button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+
+/* Logout button */
+.logout-button {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    margin-top: 20px;
+}
+
+    .logout-button img.logout-icon {
+        width: 60px;
+        height: 60px;
+    }
+
+/* Loading indicator */
+.loading-indicator {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0, 0, 0, 0.5);
+    color: #ffffff;
+    padding: 20px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem; /* Responsive font size */
+}

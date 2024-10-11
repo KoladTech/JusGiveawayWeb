@@ -1,0 +1,225 @@
+﻿@page "/signup"
+@inject HttpClient Http
+@inject NavigationManager NavigationManager
+@inject JusGiveawayWebApp.Services.FirebaseService FirebaseService
+@using Microsoft.AspNetCore.Components.Forms
+@using JusGiveawayWebApp.Pages
+
+
+<div class="phone-container">
+    <div class="phone-screen">
+        <img src="images/logo_green.png" class="jg-logo" alt="Logo" />
+
+        <!-- Sign Up label -->
+        <h2 class="form-title">Sign Up</h2>
+        <p class="small-text">Enter your credentials to continue...</p>
+
+        <label>Username</label>
+        <div class="entry-frame">
+            <InputText @bind-Value="username" placeholder="Enter your username" class="entry" maxlength="10" @oninput="e => UpdateUsername(e)" />
+        </div>
+
+        <label>Email</label>
+        <div class="entry-frame">
+            <InputText @bind-Value="email" placeholder="Enter your email" type="email" class="entry" @oninput="e => UpdateEmail(e)" />
+        </div>
+
+        <label>Password</label>
+        <div class="entry-frame">
+            <div class="password-container">
+                <InputText @bind-Value="password"
+                           placeholder="Enter password"
+                           type="@passwordType"
+                           class="entry"
+                           maxlength="12"
+                           @onfocus="HandleFocus"
+                           @oninput="e => UpdatePassword(e)"
+                           @onblur="HandleBlur" />
+            </div>
+        </div>
+
+        @if (showPasswordCriteria)
+        {
+            <div class="password-criteria">
+                @if (!lengthCriteriaMet)
+                {
+                    <span class="error-text">At least 8 characters</span>
+                    <br />
+                }
+                @if (!numberCriteriaMet)
+                {
+                    <span class="error-text">Contains at least one number</span>
+                    <br />
+                }
+                @if (!specialCharCriteriaMet)
+                {
+                    <span class="error-text">Contains at least one special character</span>
+                    <br />
+                }
+                @if (!upperCaseCriteriaMet)
+                {
+                    <span class="error-text">Contains at least one uppercase letter</span>
+                    <br />
+                }
+            </div>
+        }
+
+        <label>Confirm Password</label>
+        <div class="entry-frame">
+            <div class="password-container">
+                <InputText @bind-Value="confirmPassword" placeholder="Confirm password" type="@confirmPasswordType" class="entry" maxlength="12" @oninput="e => UpdateConfirmPassword(e)" />
+            </div>
+        </div>
+
+        <div class="button-container">
+			<button class="centered-button" @onclick="OnSignUpClicked" disabled="@(!isFormValid)">Sign Up</button>
+        </div>
+
+
+        @if (isLoading)
+        {
+            <p>Loading...</p>
+        }
+
+        <div class="signup-signin-prompt">
+            <p>Already have an account? <a @onclick="NavigateToSignin" class="signup-signin-link">Sign in</a></p>
+        </div>
+
+        <div class="form-footer-template">
+            <div class="form-footer-text copyright">© 2024 JusGiveaway. All rights reserved.</div>
+            <div class="form-footer-text">DavidBukola Foundation</div>
+            <div class="form-footer-text tagline">Where care meets community</div>
+        </div>
+
+        <Toast Message="@toastMessage" IsVisible="@isToastVisible" IsVisibleChanged="@(val => isToastVisible = val)" />
+
+    </div>
+</div>
+
+@code {
+    private string username;
+    private string email;
+    private string password;
+    private string confirmPassword;
+    private bool isLoading = false;
+    private bool showPasswordCriteria = false;
+    private string passwordType = "password";
+    private string confirmPasswordType = "password";
+    private bool isToastVisible;
+    private string toastMessage;
+
+    private bool isFormValid =>
+        !string.IsNullOrEmpty(username) &&
+        !string.IsNullOrEmpty(email) &&
+        !string.IsNullOrEmpty(password) &&
+        password == confirmPassword &&
+        !showPasswordCriteria;
+
+    // Criteria validation flags
+    private bool lengthCriteriaMet = false;
+    private bool numberCriteriaMet = false;
+    private bool specialCharCriteriaMet = false;
+    private bool upperCaseCriteriaMet = false;
+
+    // Handle focus event to show criteria
+    private void HandleFocus()
+    {
+        showPasswordCriteria = !lengthCriteriaMet || !numberCriteriaMet || !specialCharCriteriaMet || !upperCaseCriteriaMet;
+    }
+
+    // Handle blur event to determine if criteria should remain visible
+    private void HandleBlur()
+    {
+        // Criteria will stay visible until all are satisfied
+        showPasswordCriteria = !(lengthCriteriaMet && numberCriteriaMet && specialCharCriteriaMet && upperCaseCriteriaMet);
+    }
+
+    private void ValidateForm()
+    {
+        // This will trigger re-evaluation of isFormValid
+        StateHasChanged();
+    }
+
+    // Validate the password and update criteria flags
+    private void ValidatePassword(ChangeEventArgs e)
+    {
+        password = e.Value?.ToString() ?? string.Empty;
+
+        // Check if password meets each criterion
+        lengthCriteriaMet = password.Length >= 8;
+        numberCriteriaMet = password.Any(char.IsDigit);
+        specialCharCriteriaMet = password.Any(c => !char.IsLetterOrDigit(c));
+        upperCaseCriteriaMet = password.Any(char.IsUpper);
+    }
+
+    private void UpdateUsername(ChangeEventArgs e)
+    {
+        username = e.Value?.ToString() ?? string.Empty;
+        ValidateForm();
+    }
+
+    private void UpdateEmail(ChangeEventArgs e)
+    {
+        email = e.Value?.ToString() ?? string.Empty;
+        ValidateForm();
+    }
+
+    private void UpdatePassword(ChangeEventArgs e)
+    {
+        password = e.Value?.ToString() ?? string.Empty;
+        ValidateForm();
+        ValidatePassword(e);
+    }
+
+    private void UpdateConfirmPassword(ChangeEventArgs e)
+    {
+        confirmPassword = e.Value?.ToString() ?? string.Empty;
+        ValidateForm();
+    }
+
+    private async Task OnSignUpClicked()
+    {
+        isLoading = true;
+        // Call your registration logic here
+        //await Task.Delay(2000); // Simulate a delay
+
+
+        // Handle successful registration and redirect if necessary
+        var result = await FirebaseService.SignUpUserAsync(email, password);
+        if (result)
+        {
+            ShowToast("Sign-up successful!");
+
+            await Task.Delay(2000); // Simulate a delay
+            // After successful sign up in your sign-up component
+            NavigationManager.NavigateTo("/signin");
+        }
+        else
+        {
+            ShowToast("Sign Up failed!");
+        }
+
+        isLoading = false;
+    }
+
+    private void NavigateToSignin()
+    {
+        NavigationManager.NavigateTo("/signin");
+    }
+
+    private void ShowToast(string message)
+    {
+        toastMessage = message;
+        isToastVisible = true;
+
+        // Auto-hide the toast after 3 seconds
+        _ = Task.Delay(3000).ContinueWith(t =>
+        {
+            InvokeAsync(() =>
+            {
+                isToastVisible = false;
+                StateHasChanged();
+            });
+        });
+    }
+}

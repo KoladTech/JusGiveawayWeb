@@ -1,0 +1,131 @@
+﻿@page "/signin"
+@inject JusGiveawayWebApp.Services.FirebaseService FirebaseService
+@inject NavigationManager NavigationManager
+
+@* <h3>Sign In</h3>
+
+<EditForm Model="user" OnValidSubmit="HandleValidSubmit">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <div>
+        <label>Email:</label>
+        <InputText @bind-Value="user.Email" required />
+        <ValidationMessage For="@(() => user.Email)" />
+    </div>
+    <div>
+        <label>Password:</label>
+        <InputText @bind-Value="user.Password" type="password" required />
+        <ValidationMessage For="@(() => user.Password)" />
+    </div>
+    <button type="submit">Sign In</button>
+</EditForm> *@
+
+<div class="phone-container">
+    <div class="phone-screen">
+        <img src="images/logo_green.png" class="jg-logo" alt="Logo" />
+
+        <!-- Sign Up label -->
+        <h2 class="form-title">Sign In</h2>
+        <p class="small-text">Enter your password...</p>
+
+
+        <label>Email</label>
+        <div class="entry-frame">
+            <InputText @bind-Value="email" placeholder="Enter your email" type="email" class="entry" />
+        </div>
+
+        <label>Password</label>
+        <div class="entry-frame">
+            <div class="password-container">
+                <InputText @bind-Value="password"
+                           placeholder="Enter password"
+                           type="password"
+                           class="entry"
+                           maxlength="12"
+                           @oninput="e => ToggleBtn(e)" />
+            </div>
+        </div>
+
+        <div class="button-container">
+            <button class="centered-button" @onclick="OnSignInClicked" disabled="@(!btnEnabled)">Sign In</button>
+        </div>
+
+        @if (isLoading)
+        {
+            <p>Loading...</p>
+        }
+
+        <div class="signup-signin-prompt">
+            <p>Don't have an account? <a @onclick="NavigateToSignUp" class="signup-signin-link">Sign up</a></p>
+        </div>
+
+        <div class="form-footer-template">
+            <div class="form-footer-text copyright">© 2024 JusGiveaway. All rights reserved.</div>
+            <div class="form-footer-text">DavidBukola Foundation</div>
+            <div class="form-footer-text tagline">Where care meets community</div>
+        </div>
+
+        <Toast Message="@toastMessage" IsVisible="@isToastVisible" IsVisibleChanged="@(val => isToastVisible = val)" />
+
+    </div>
+</div>
+
+@if (errorMessage != null)
+{
+    <p style="color:red;">@errorMessage</p>
+}
+
+@code {
+    private string email;
+    private string password;
+    private bool isLoading = false;
+    private bool isToastVisible;
+    private string toastMessage;
+    private string errorMessage;
+
+    private bool btnEnabled = false;
+
+    private async Task OnSignInClicked()
+    {
+        var result = await FirebaseService.SignIn(email, password);
+        if (result)
+        {
+            ShowToast("Signed in");
+            // Redirect to the main page or home page after successful sign in
+            NavigationManager.NavigateTo("/mainpage");
+        }
+        else
+        {
+            ShowToast("Invalid email or password");
+            errorMessage = "Invalid email or password.";
+        }
+    }
+
+    private void ToggleBtn(ChangeEventArgs e)
+    {
+        password = e.Value?.ToString() ?? string.Empty;
+        btnEnabled = password == "" ? false : true;
+    }
+
+    private void NavigateToSignUp()
+    {
+        NavigationManager.NavigateTo("/signup");
+    }
+
+    private void ShowToast(string message)
+    {
+        toastMessage = message;
+        isToastVisible = true;
+
+        // Auto-hide the toast after 3 seconds
+        _ = Task.Delay(3000).ContinueWith(t =>
+        {
+            InvokeAsync(() =>
+            {
+                isToastVisible = false;
+                StateHasChanged();
+            });
+        });
+    }
+}

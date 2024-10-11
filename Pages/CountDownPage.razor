@@ -1,0 +1,115 @@
+﻿@page "/countdownpage"
+@inject NavigationManager NavigationManager
+@inject JusGiveawayWebApp.Services.FirebaseService FirebaseService
+@inject JusGiveawayWebApp.Helpers.CommonFunctions CommonFunctions
+@using JusGiveawayWebApp.Models
+
+<div class="phone-container">
+    <div class="phone-screen">
+        <div class="vertical-stack-layout center-content">
+            <!-- Logo -->
+            <img src="images/logo_green.png" alt="Logo" class="jg-logo" />
+
+            <!-- Countdown Timer -->
+            <div class="frame">
+                <div class="vertical-stack-layout">
+                    <!-- Days -->
+                    <div class="stack-layout">
+                        <span class="countdown-label days-label">@days</span>
+                        <span class="countdown-unit">Days</span>
+                    </div>
+
+                    <!-- Hours -->
+                    <div class="stack-layout">
+                        <span class="countdown-label hours-label">@hours</span>
+                        <span class="countdown-unit">Hours</span>
+                    </div>
+
+                    <!-- Minutes -->
+                    <div class="stack-layout">
+                        <span class="countdown-label minutes-label">@minutes</span>
+                        <span class="countdown-unit">Minutes</span>
+                    </div>
+
+                    <!-- Seconds -->
+                    <div class="stack-layout">
+                        <span class="countdown-label seconds-label">@seconds</span>
+                        <span class="countdown-unit">Seconds</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private bool _isCountdownRunning = false;
+    private DateTime giveawayStartDate;
+    private int days, hours, minutes, seconds;
+    private GiveawayData? _giveawayData;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _giveawayData = await CommonFunctions.GetGiveawayData();
+        // Trigger the countdown when the page is loaded
+        await StartCountdown();
+    }
+
+    private async Task StartCountdown()
+    {
+        GetGiveawayStartDate(_giveawayData);
+        _isCountdownRunning = true;
+
+        while (_isCountdownRunning)
+        {
+            TimeSpan remainingTime = giveawayStartDate - DateTime.Now;
+
+            if (remainingTime.TotalSeconds <= 0)
+            {
+                // Countdown complete
+                days = 0;
+                hours = 0;
+                minutes = 0;
+                seconds = 0;
+                _isCountdownRunning = false;
+                OnCountdownCompleted();
+            }
+            else
+            {
+                // Update countdown values
+                days = remainingTime.Days;
+                hours = remainingTime.Hours;
+                minutes = remainingTime.Minutes;
+                seconds = remainingTime.Seconds;
+            }
+
+            await InvokeAsync(StateHasChanged); // Re-render the component
+            await Task.Delay(1000); // Wait for 1 second before updating
+        }
+    }
+
+    private void GetGiveawayStartDate(GiveawayData? giveawayData)
+    {
+        //2024/10/11 00:55:33
+        //Date 12:55:33 (this is the target date time. Use this for future testing)
+        if (giveawayData == null)
+        {
+            giveawayStartDate = DateTime.Now.AddDays(60);
+            return;
+        }
+
+        if (!DateTime.TryParseExact(giveawayData.StartDate, "yyyy/MM/dd HH:mm:ss",
+            System.Globalization.CultureInfo.InvariantCulture, 
+            System.Globalization.DateTimeStyles.None, out giveawayStartDate))
+        {
+            Console.WriteLine("Invalid starting date format retrieved from database");
+        }
+    }
+
+    private void OnCountdownCompleted()
+    {
+        // Navigate to another page or show a message (example)
+        Console.WriteLine("Countdown Completed!");
+        NavigationManager.NavigateTo("/mainpage");
+    }
+}

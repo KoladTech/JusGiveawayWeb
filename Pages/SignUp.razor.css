@@ -1,0 +1,47 @@
+﻿.registration-container {
+    padding: 20px;
+}
+
+.password-container {
+    position: relative;
+}
+
+.password-criteria {
+    margin-top: 5px;
+    padding: 5px; /* Reduce padding around the container */
+}
+
+    .password-criteria .error-text {
+        color: red;
+        margin: 3px 0; /* Reduce vertical spacing between criteria */
+        font-size: 0.8rem; /* Slightly decrease font size if needed */
+    }
+
+.button-container {
+    display: flex; /* Enables Flexbox */
+    justify-content: center; /* Horizontally center the button */
+    align-items: center; /* Vertically center the button */
+    width: 100%; /* Optional: Make container full width */
+    margin-top: 20px; /* Optional: Add some spacing at the top */
+}
+
+.centered-button {
+    padding: 10px 20px;
+    font-size: 16px;
+    background-color: #468fa2; /* Optional: Button color */
+    color: white;
+    border: none;
+    border-radius: 10px; /* Rounded corners for a modern look */
+    cursor: pointer;
+    transition: background-color 0.3s ease; /* Smooth hover effect */
+}
+
+    .centered-button:hover {
+        background-color: #267724; /* Darker shade on hover */
+    }
+
+.centered-button:disabled {
+    background-color: #d3d3d3; /* Grey background for disabled state */
+    color: #a9a9a9; /* Light grey text for disabled state */
+    cursor: not-allowed; /* Change cursor to indicate disabled state */
+}

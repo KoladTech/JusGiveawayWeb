@@ -1,0 +1,20 @@
+﻿@code {
+    [Parameter] public string Message { get; set; }
+    [Parameter] public bool IsVisible { get; set; }
+    [Parameter] public EventCallback<bool> IsVisibleChanged { get; set; }
+
+    private async Task CloseToast()
+    {
+        IsVisible = false;
+        await IsVisibleChanged.InvokeAsync(IsVisible);
+    }
+}
+
+@if (IsVisible)
+{
+    <div class="toast-notification">
+        <div class="toast-message">
+            @Message
+        </div>
+    </div>
+}

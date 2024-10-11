@@ -1,0 +1,34 @@
+﻿@page "/"
+@using System.Collections.Generic
+
+<h3>Game List</h3>
+
+<div class="phone-container">
+	<div class="phone-screen">
+		<!-- Using NavLink (with styling for active link) -->
+		<NavLink href="/signup" class="nav-link">Sign Up</NavLink>
+
+		<!-- Or using a standard anchor tag -->
+		<a href="/heads-or-tails">HoT Page</a>
+		<!-- Or using a standard anchor tag -->
+        <a href="/mainpage">Main Page</a>
+        <a href="/countdownpage">Countdown Page</a>
+        <ul>
+            @foreach (var game in games)
+            {
+                <li>@game</li>
+            }
+        </ul>
+    </div>
+</div>
+
+@code {
+    private List<string> games = new List<string>
+    {
+
+        "Game 1",
+        "Game 2",
+        "Game 3",
+        "Game 4"
+    };
+}
