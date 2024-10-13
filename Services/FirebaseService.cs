@@ -3,6 +3,7 @@ using System.Net.Http;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using static System.Net.WebRequestMethods;
 
 namespace JusGiveawayWebApp.Services
@@ -12,7 +13,7 @@ namespace JusGiveawayWebApp.Services
         private readonly HttpClient _httpClient;
         private string webApiKey = "AIzaSyA-WcxOGCdd56pOAdLrYpsqTl4NnI7WLvw";
         private readonly string _firebaseBaseUrl;
-        private readonly string _authToken; // Authentication token (optional)
+        private string _authToken; // Authentication token (optional)
 
         public FirebaseService(HttpClient httpClient, string firebaseBaseUrl, string authToken = null)
         {
@@ -20,7 +21,11 @@ namespace JusGiveawayWebApp.Services
             _firebaseBaseUrl = firebaseBaseUrl;
             _authToken = authToken;
         }
-        public async Task<bool> SignUpUserAsync(string email, string password)
+        public void SetAuthToken(string authToken)
+        {
+            _authToken = authToken;
+        }
+        public async Task<FirebaseAuthResponse?> SignUpUserAsync(string email, string password)
         {
             var requestUri = $"https://identitytoolkit.googleapis.com/v1/accounts:signUp?key={webApiKey}"; // Use string interpolation
 
@@ -35,19 +40,21 @@ namespace JusGiveawayWebApp.Services
 
             if (response.IsSuccessStatusCode)
             {
-                var content = await response.Content.ReadAsStringAsync();
+                var jsonResponse = await response.Content.ReadFromJsonAsync<FirebaseAuthResponse>();
+
+                // Store the UID in IndexedDB or use it as needed
                 Console.WriteLine("Signup successful!");
-                return true;
+                return jsonResponse;
             }
             else
             {
                 var errorContent = await response.Content.ReadAsStringAsync();
                 Console.WriteLine($"Signup failed: {errorContent}");
-                return false;
+                return null;
             }
         }
 
-        public async Task<bool> SignIn(string email, string password)
+        public async Task<FirebaseAuthResponse?> SignInEmailPassword(string email, string password)
         {
             var requestUri = $"https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key={webApiKey}";
 
@@ -63,15 +70,16 @@ namespace JusGiveawayWebApp.Services
 
             if (response.IsSuccessStatusCode)
             {
-                var jsonResponse = await response.Content.ReadAsStringAsync();
+                var jsonResponse = await response.Content.ReadFromJsonAsync<FirebaseAuthResponse>();
+
                 // Process the response (e.g., store tokens, user info)
                 Console.WriteLine("Sign in successful!");
-                return true;
+                return jsonResponse;
             }
             else
             {
                 Console.WriteLine("Sign in failed.");
-                return false;
+                return null;
             }
         }
 
@@ -149,5 +157,28 @@ namespace JusGiveawayWebApp.Services
                 return false;
             }
         }
+
     }
+
+    public class FirebaseAuthResponse
+    {
+        [JsonPropertyName("idToken")]
+        public string IdToken { get; set; }
+
+        [JsonPropertyName("email")]
+        public string Email { get; set; }
+
+        [JsonPropertyName("refreshToken")]
+        public string RefreshToken { get; set; }
+
+        [JsonPropertyName("expiresIn")]
+        public string ExpiresIn { get; set; }
+
+        [JsonPropertyName("localId")] // This is the UID
+        public string LocalId { get; set; }
+
+        [JsonPropertyName("registered")]
+        public bool Registered { get; set; }
+    }
+
 }

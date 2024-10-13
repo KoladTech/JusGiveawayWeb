@@ -1,5 +1,11 @@
-﻿@page "/mainpage"
-
+﻿@page "/mainpage/{PlayerName}"
+@using static JusGiveawayWebApp.Pages.CustomAlertDialog
+@using JusGiveawayWebApp.Helpers
+@inject NavigationManager NavigationManager
+@using static JusGiveawayWebApp.Helpers.CommonFunctions
+@inject IndexedDB.Blazor.IIndexedDbFactory DbFactory
+@using JusGiveawayWebApp.Models
+@inject JusGiveawayWebApp.Helpers.CommonFunctions CommonFunctions
 
 <div class="phone-container">
     <div class="phone-screen">
@@ -8,7 +14,7 @@
             <div class="avatar-container">
                 <img src="images/avatar_green.png" class="avatar-image" />
                 <div class="player-info">
-                    <span>Hello, @PlayerName</span>
+                    <span>Hello @PlayerName</span>
                 </div>
             </div>
         </div>
@@ -64,11 +70,49 @@
     </div>
 </div>
 
+<CustomAlertDialog ShowDialog ="@ShowDialog" DialogParams ="@alertDialogParams"/>
+
 @code {
     // Bindable properties and variables
-    private string PlayerName { get; set; } = "Player";
+    [Parameter]
+    public string PlayerName { get; set; } = "Player";
 
     private bool isLoading = false;
+    private bool ShowDialog = false;
+    private AlertDialogParams alertDialogParams = new AlertDialogParams();
+
+    // protected override async Task OnInitializedAsync()
+    // {
+    //     try
+    //     {
+            
+    //         using (var db = await this.DbFactory.Create<JusGiveawayDB>())
+    //         {
+    //             var existingUser = db.UserInfo.FirstOrDefault(u => u.UID == uid);
+
+    //             if (existingUser == null)
+    //             {
+    //                 //if not in indexeddb that means browser data was cleared
+    //                 //or a new computer/phone/machine is being logged into
+    //                 //so we will retrieve data from firebase to now store in indexeddb
+    //                 string usersName = await CommonFunctions.GetUsersNameFromFirebase(uid);
+
+    //                 db.UserInfo.Add(new UserInfo()
+    //                     {
+    //                         UID = uid,
+    //                         Name = usersName,
+    //                         PhoneNumber = null,
+    //                         EmailAddress = email
+    //                     });
+    //                 await db.SaveChanges();
+    //             }
+    //         }
+    //     }
+    //     catch (Exception ex)
+    //     {
+    //         Console.WriteLine(ex.Message);
+    //     }
+    // }
 
     // Event handlers
     private void ShowHeadsOrTailsInstructions()
@@ -88,6 +132,21 @@
 
     private void Logout()
     {
-        // Handle logout button click
+        ShowDialog = true;
+        alertDialogParams.AlertTitle = "Sign out?";
+        alertDialogParams.AlertMessage = new MarkupString("Are you sure you want to sign out?");
+        alertDialogParams.OnPrimaryButtonClick = EventCallback.Factory.Create(this, AlertDialogPrimaryClicked);
+        alertDialogParams.OnSecondaryButtonClick = EventCallback.Factory.Create(this, AlertDialogSecondaryClicked);
+    }
+
+    private void AlertDialogPrimaryClicked()
+    {
+        ShowDialog = false;
+        NavigationManager.NavigateTo("/signin");
+    }
+
+    private void AlertDialogSecondaryClicked()
+    {
+        ShowDialog = false;
     }
 }

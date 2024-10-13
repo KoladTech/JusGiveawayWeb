@@ -2,8 +2,12 @@
 @inject HttpClient Http
 @inject NavigationManager NavigationManager
 @inject JusGiveawayWebApp.Services.FirebaseService FirebaseService
+@inject IndexedDB.Blazor.IIndexedDbFactory DbFactory
+@inject JusGiveawayWebApp.Helpers.CommonFunctions CommonFunctions
+@using JusGiveawayWebApp.Helpers
 @using Microsoft.AspNetCore.Components.Forms
 @using JusGiveawayWebApp.Pages
+@using JusGiveawayWebApp.Models
 
 
 <div class="phone-container">
@@ -97,10 +101,10 @@
 </div>
 
 @code {
-    private string username;
-    private string email;
-    private string password;
-    private string confirmPassword;
+    private string username = "ferdnanda";
+    private string email = "d@d.com";
+    private string password = "Qwerty1!";
+    private string confirmPassword = "Qwerty1!";
     private bool isLoading = false;
     private bool showPasswordCriteria = false;
     private string passwordType = "password";
@@ -120,6 +124,7 @@
     private bool numberCriteriaMet = false;
     private bool specialCharCriteriaMet = false;
     private bool upperCaseCriteriaMet = false;
+    private UserInfo newUserInfo = new UserInfo();
 
     // Handle focus event to show criteria
     private void HandleFocus()
@@ -185,9 +190,54 @@
 
 
         // Handle successful registration and redirect if necessary
-        var result = await FirebaseService.SignUpUserAsync(email, password);
-        if (result)
+        var response = await FirebaseService.SignUpUserAsync(email, password);
+        if (response != null)
         {
+            string uid = response.LocalId;
+            string idToken = response.IdToken;
+            FirebaseService.SetAuthToken(idToken);
+            //store userinfo in indexeddb
+            try
+            {
+                using (var db = await this.DbFactory.Create<JusGiveawayDB>())
+                {
+                    var existingUser = CommonFunctions.GetUserInfoFromIndexedDb(db, uid);
+
+                    if (existingUser == null)
+                    {
+                        newUserInfo = new UserInfo()
+                            {
+                                UID = uid,
+                                IdToken = idToken,
+                                Name = username,
+                                PhoneNumber = null,
+                                EmailAddress = email
+                            };
+                        db.UserInfo.Add(newUserInfo);
+                        await db.SaveChanges();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+
+            //store user in firebase db
+            try
+            {
+                bool userSaved = await CommonFunctions.SaveNewUserToFirebase(newUserInfo);
+
+                if (!userSaved)
+                {
+                    //alertdialog/toast
+                }
+            }
+            catch
+            {
+                //alertDialog/toast
+            }
+
             ShowToast("Sign-up successful!");
 
             await Task.Delay(2000); // Simulate a delay

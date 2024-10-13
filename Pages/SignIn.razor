@@ -1,6 +1,9 @@
 ﻿@page "/signin"
 @inject JusGiveawayWebApp.Services.FirebaseService FirebaseService
+@inject JusGiveawayWebApp.Helpers.CommonFunctions CommonFunctions
 @inject NavigationManager NavigationManager
+@inject IndexedDB.Blazor.IIndexedDbFactory DbFactory
+@using JusGiveawayWebApp.Models
 
 @* <h3>Sign In</h3>
 
@@ -77,8 +80,9 @@
 }
 
 @code {
+    private string userName;
     private string email;
-    private string password;
+    private string password = "Qwerty1!";
     private bool isLoading = false;
     private bool isToastVisible;
     private string toastMessage;
@@ -88,12 +92,45 @@
 
     private async Task OnSignInClicked()
     {
-        var result = await FirebaseService.SignIn(email, password);
-        if (result)
+        var response = await FirebaseService.SignInEmailPassword(email, password);
+        if (response != null)
         {
+            string uid = response.LocalId;
+            string idToken = response.IdToken;
+            FirebaseService.SetAuthToken(idToken);
+            //store userinfo in indexeddb
+            try
+            {
+                using (var db = await this.DbFactory.Create<JusGiveawayDB>())
+                {
+                    var existingUser = CommonFunctions.GetUserInfoFromIndexedDb(db, uid);
+                    userName = existingUser?.Name ?? "GameError";
+
+                    if (existingUser == null)
+                    {
+                        //if not in indexeddb that means browser data was cleared
+                        //or a new computer/phone/machine is being logged into
+                        //so we will retrieve data from firebase to now store in indexeddb
+                        userName = await CommonFunctions.GetUsersNameFromFirebase(uid);
+
+                        db.UserInfo.Add(new UserInfo()
+                            {
+                                UID = uid,
+                                Name = userName,
+                                PhoneNumber = null,
+                                EmailAddress = email
+                            });
+                        await db.SaveChanges();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
             ShowToast("Signed in");
             // Redirect to the main page or home page after successful sign in
-            NavigationManager.NavigateTo("/mainpage");
+            NavigationManager.NavigateTo($"/mainpage/{userName}");
         }
         else
         {

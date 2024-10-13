@@ -56,7 +56,7 @@
     width: 10px;
     height: auto;
     display: inline-block;
-    margin: -2.5px; /* Remove any margin */
+    margin: -0.5px; /* Remove any margin */
     padding: 0px; /* Remove any padding */
 }
 
@@ -159,6 +159,23 @@
 .flipping {
     animation: spin 0.5s ease-in-out infinite; /* Continuous spinning animation */
 }
+
+/*=========================
+  Reset Count Fading
+==========================*/
+.fade-in {
+    opacity: 1;
+    transition: opacity 3s ease-in;
+}
+
+.fade-out {
+    opacity: 0;
+    transition: opacity 3s ease-out;
+}
+/*=========================
+  Reset Count Fading End
+==========================*/
+
 
 /* Keyframes for flipping the coin */
 @keyframes spin {

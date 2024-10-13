@@ -1,0 +1,49 @@
+﻿@using JusGiveawayWebApp.Helpers
+
+@code {
+    [Parameter] public bool ShowDialog { get; set; } = false;
+    [Parameter] public AlertDialogParams DialogParams { get; set; } = new AlertDialogParams();
+
+    private string PrimaryButtonColor => GetButtonColor(DialogParams.DialogAlertType);
+    private string SecondaryButtonColor => "gray";
+
+    public enum AlertType
+    {
+        Info,
+        Warning,
+        Error
+    }
+    private string GetButtonColor(AlertType alertType)
+    {
+        return alertType switch
+        {
+            AlertType.Info => "green",
+            AlertType.Warning => "orange",
+            AlertType.Error => "red",
+            _ => "green"
+        };
+    }
+}
+@if (ShowDialog)
+{
+    <div class="dialog-overlay">
+        <div class="dialog-content">
+            <h3 class="dialog-title">@DialogParams.AlertTitle</h3>
+            <p class="dialog-message">@DialogParams.AlertMessage</p>
+            <div class="dialog-buttons">
+                @if (DialogParams.ShowPrimaryBtn)
+                {
+                    <button class="primary-button" @onclick="DialogParams.OnPrimaryButtonClick" style="background-color: @(PrimaryButtonColor)">
+                        @DialogParams.PrimaryBtnText
+                    </button>
+                }
+                @if (DialogParams.ShowSecondaryBtn)
+                {
+                    <button class="secondary-button" @onclick="DialogParams.OnSecondaryButtonClick" style="background-color: @(SecondaryButtonColor)">
+                        @DialogParams.SecondaryBtnText
+                    </button>
+                }
+            </div>
+        </div>
+    </div>
+}

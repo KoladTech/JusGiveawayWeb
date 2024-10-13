@@ -50,6 +50,7 @@
 
     protected override async Task OnInitializedAsync()
     {
+        CheckDataSize();
         _giveawayData = await CommonFunctions.GetGiveawayData();
         // Trigger the countdown when the page is loaded
         await StartCountdown();
@@ -111,5 +112,34 @@
         // Navigate to another page or show a message (example)
         Console.WriteLine("Countdown Completed!");
         NavigationManager.NavigateTo("/mainpage");
+    }
+
+    private string result;
+
+    private void CheckDataSize()
+    {
+        var giveawayData = new GiveawayData
+            {
+                LeftoverGiveawayFunds = 1000,
+                MaxPossibleWinningsPerPerson = 500,
+                MinCashoutPerPerson = 10,
+                MonetaryResetPenalty = 5,
+                NumberOfPlayers = 100,
+                RoundBigLossMonetaryValue = 200,
+                RoundBigWinMonetaryValue = 1000,
+                RoundDrawMonetaryValue = 50,
+                RoundSmallLossMonetaryValue = 5,
+                RoundSmallWinMonetaryValue = 20,
+                Sponsor = "Company A",
+                SponsorInstagramAccount = "@companyA",
+                StartDate = "2024-10-01",
+                Title = "Big Giveaway",
+                TotalGiveAwayFunds = 5000,
+                TotalResetsAllowed = 5
+            };
+
+        long sizeInBytes = giveawayData.GetSizeInBytes(giveawayData.LeftoverGiveawayFunds);
+        result = $"Size of GiveawayData in bytes: {sizeInBytes}";
+        Console.WriteLine(sizeInBytes);
     }
 }

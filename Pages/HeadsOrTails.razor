@@ -1,6 +1,7 @@
 ﻿@page "/heads-or-tails"
 @inject NavigationManager NavigationManager
 @inject JusGiveawayWebApp.Helpers.CommonFunctions CommonFunctions
+@inject IndexedDB.Blazor.IIndexedDbFactory DbFactory
 @using JusGiveawayWebApp.Models
 
 <div class="phone-container">
@@ -32,29 +33,18 @@
 
             <!-- Third Row -->
             <div class="resets-left" style="grid-column: 1 / -1;">
-                <img src="images/green_heart_left.png" class="hearts" alt="Hearts" style="cursor: pointer;" />
-                <img src="images/green_heart_right.png" class="hearts" alt="Hearts" style="cursor: pointer;" />
-                <img src="images/green_heart_left.png" class="hearts" alt="Hearts" style="cursor: pointer;" />
-                <img src="images/green_heart_right.png" class="hearts" alt="Hearts" style="cursor: pointer;" />
-                <img src="images/green_heart_left.png" class="hearts" alt="Hearts" style="cursor: pointer;" />
-                <img src="images/green_heart_right.png" class="hearts" alt="Hearts" style="cursor: pointer;" />
-                <img src="images/green_heart_left.png" class="hearts" alt="Hearts" style="cursor: pointer;" />
-                <img src="images/green_heart_right.png" class="hearts" alt="Hearts" style="cursor: pointer;" />
-                <img src="images/green_heart_left.png" class="hearts" alt="Hearts" style="cursor: pointer;" />
-                <img src="images/green_heart_right.png" class="hearts" alt="Hearts" style="cursor: pointer;" />
-                <img src="images/green_heart_left.png" class="hearts" alt="Hearts" style="cursor: pointer;" />
-                <img src="images/green_heart_right.png" class="hearts" alt="Hearts" style="cursor: pointer;" />
-                <img src="images/green_heart_left.png" class="hearts" alt="Hearts" style="cursor: pointer;" />
-                <img src="images/grey_heart_right.png" class="hearts" alt="Hearts" style="cursor: pointer;" />
-                <img src="images/grey_heart_left.png" class="hearts" alt="Hearts" style="cursor: pointer;" />
-                <img src="images/grey_heart_right.png" class="hearts" alt="Hearts" style="cursor: pointer;" />
-                <img src="images/grey_heart_left.png" class="hearts" alt="Hearts" style="cursor: pointer;" />
-                <img src="images/grey_heart_right.png" class="hearts" alt="Hearts" style="cursor: pointer;" />
-                <img src="images/grey_heart_left.png" class="hearts" alt="Hearts" style="cursor: pointer;" />
-                <img src="images/grey_heart_right.png" class="hearts" alt="Hearts" style="cursor: pointer;" />
-                <img src="images/grey_heart_left.png" class="hearts" alt="Hearts" style="cursor: pointer;" />
-                <img src="images/grey_heart_right.png" class="hearts" alt="Hearts" style="cursor: pointer;" />
-                <p>@ResetCount resets left</p>
+                @foreach (var heart in HeartImages)
+                {
+                    <img src="@heart.Source"
+                         @onclick="ToggleResetCountVisibility"
+                         class="hearts"
+                         alt="Heart"
+                         style="cursor: pointer;" />
+                }
+                @if (isResetCountVisible)
+                {
+                    <p class="@resetCounterParagraphClass">@ResetCount resets left</p>
+                }
             </div>
         </div>
 
@@ -123,10 +113,10 @@
 @code {
     private string PlayerName { get; set; } = "Player ..";
     private string PlayerChoice { get; set; } = "Choose Heads or Tails";
-    private decimal LeftoverGiveawayFunds { get; set; } = 0;
-    private decimal MaxPossibleWinnings { get; set; } = 0;
-    private decimal PotentialWinning { get; set; } = 23000;
-    private int ResetCount { get; set; } = 3; // Example reset count
+    private double LeftoverGiveawayFunds { get; set; } = 0;
+    private double MaxPossibleWinnings { get; set; } = 0;
+    private double PotentialWinning { get; set; } = 23000;
+    private int ResetCount { get; set; } = 3;
     private int TotalFlips => HeadsCount + TailsCount;
     private int HeadsCount { get; set; } = 12;
     private int TailsCount { get; set; } = 7;
@@ -143,14 +133,125 @@
     private bool isFlipping = false;
     private string CoinImage = "images/kobo_front.png";
     private GiveawayData? _giveawayData;
+    private List<UserGamePlayData> gameDataList = new List<UserGamePlayData>();
+    private bool isResetCountVisible = false;
+    private string resetCounterParagraphClass = ""; // Class for the paragraph
+    private List<HeartImage> HeartImages { get; set; } = new List<HeartImage>();
 
 
     protected override async Task OnInitializedAsync()
     {
         _giveawayData = await CommonFunctions.GetGiveawayData();
 
-        LeftoverGiveawayFunds = _giveawayData.LeftoverGiveawayFunds;
-        MaxPossibleWinnings = _giveawayData.MaxPossibleWinningsPerPerson;
+        //LeftoverGiveawayFunds = _giveawayData.LeftoverGiveawayFunds;
+        //MaxPossibleWinnings = _giveawayData.MaxPossibleWinningsPerPerson;
+
+
+        await Task.WhenAll(
+            AnimateNumberChange(value => LeftoverGiveawayFunds = value, LeftoverGiveawayFunds, _giveawayData.LeftoverGiveawayFunds), 
+        AnimateNumberChange(value => MaxPossibleWinnings = value, MaxPossibleWinnings, _giveawayData.MaxPossibleWinningsPerPerson));
+
+        try
+        {
+            using (var db = await this.DbFactory.Create<JusGiveawayDB>())
+            {
+                db.UserGameDatas.Add(new UserGamePlayData()
+                    {
+                        Id = 0,
+                        UID = "abcdefghijklmnop",
+                        SelectedSides = 1,
+                        PlayingHeads = 0,
+                        HeadsCount = 17,
+                        TailsCount = 45,
+                        MaxPossibleWinnings = 50000,
+                        CurrentWinnings = 17500,
+                        MinCashOut = 20000,
+                        TotalResetsUsed = 17
+                    });
+                await db.SaveChanges();
+            }
+        }
+        catch(Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+        }
+
+        AddHeartImages();
+    }
+
+    private async Task LoadGameDataFromDb()
+    {
+        using (var db = await DbFactory.Create<JusGiveawayDB>())
+        {
+            // Fetch all records from the GameDataSet
+            gameDataList = db.UserGameDatas.ToList<UserGamePlayData>();
+        }
+    }
+
+    private async Task AnimateNumberChange(Action<double> updateValue, double startValue, double endValue, int duration = 2000)
+    {
+        int stepDuration = 20; // Duration between each step (in milliseconds)
+        int steps = duration / stepDuration; // Total number of steps for the animation
+
+        // Calculate increment value per step
+        double incrementValue = (endValue - startValue) / steps;
+        double currentValue = startValue;
+
+        // Perform the animation in a loop
+        for (int i = 0; i < steps; i++)
+        {
+            currentValue += incrementValue; // Increment the value
+            updateValue(currentValue); // Update the value using the provided delegate
+            StateHasChanged(); // Notify Blazor to re-render the UI
+            await Task.Delay(stepDuration); // Wait for the next step
+        }
+
+        // Set the final value to ensure precision
+        updateValue(endValue);
+        StateHasChanged(); // Final update
+    }
+
+    private async Task StartAnimation()
+    {
+        double startValue1 = LeftoverGiveawayFunds; // Start from the current value
+        double endValue1 = 1000; // Change this value as needed
+
+        double startValue2 = MaxPossibleWinnings; // Start from the current value of AnotherFund
+        double endValue2 = 2000; // Change this value as needed
+
+        // Start both animations concurrently
+        var task1 = AnimateNumberChange(value => LeftoverGiveawayFunds = value, startValue1, endValue1);
+        var task2 = AnimateNumberChange(value => MaxPossibleWinnings = value, startValue2, endValue2);
+
+        // Wait for both animations to complete
+        await Task.WhenAll(task1, task2);
+    }
+
+    private async void ToggleResetCountVisibility()
+    {
+        isResetCountVisible = !isResetCountVisible; // Toggle the visibility
+
+        if (isResetCountVisible)
+        {
+            resetCounterParagraphClass = "fade-in"; // Apply fade-in class
+            StateHasChanged(); // Trigger re-render
+
+            await Task.Delay(2000); // Wait for 2 seconds (fade-in duration)
+
+            resetCounterParagraphClass = "fade-out"; // Apply fade-out class
+            await Task.Delay(2000); // Wait for 2 seconds (fade-out duration)
+
+            isResetCountVisible = false; // Set visibility to false after fade-out
+            resetCounterParagraphClass = ""; // Reset class
+            StateHasChanged(); // Trigger re-render
+        }
+        else
+        {
+            // If clicked again, immediately hide it (optional)
+            isResetCountVisible = false;
+            resetCounterParagraphClass = ""; // Reset class
+            StateHasChanged(); // Trigger re-render
+        }
     }
 
     private void OnChooseHeadsTapped()
@@ -217,15 +318,75 @@
     private void OnCashOutClicked()
     {
         // Logic for cashing out
-        IsResetVisible = true;
-        IsCashOutVisible = false;
+        // IsResetVisible = true;
+        // IsCashOutVisible = false;
     }
 
-    private void OnResetClicked()
+    private async void OnResetClicked()
     {
         // Logic for resetting the game
-        IsCashOutVisible = true;
-        IsResetVisible = false;
+        // IsCashOutVisible = true;
+        // IsResetVisible = false;
+        await LoadGameDataFromDb();
+        await StartAnimation();
+    }
+
+    private void AddHeartImages()
+    {
+        var resetsLeft = 17;//TotalResetsAllowed - TotalResetsUsed;
+        int i = 0;
+
+        // Green hearts for resets remaining
+        for (i = 1; i <= resetsLeft; i++)
+        {
+            if (i % 2 == 1){
+                HeartImages.Add(new HeartImage
+                    {
+                        Source = "images/green_heart_left.png",
+                        OnClick = () => OnHeartClicked($"Heart{i}_Left")
+                    });
+            }
+            else{
+                HeartImages.Add(new HeartImage
+                    {
+                        Source = "images/green_heart_right.png",
+                        OnClick = () => OnHeartClicked($"Heart{i}_Right")
+                    });
+            }
+        }
+
+        // Grey hearts for the number of used resets
+        for (int j = i; j < i + 3; j++)
+        {
+            if (j % 2 == 1)
+            {
+                HeartImages.Add(new HeartImage
+                    {
+                        Source = "images/grey_heart_left.png",
+                        OnClick = () => OnHeartClicked($"Heart{j}_Left")
+                    });
+            }
+            else{
+                HeartImages.Add(new HeartImage
+                    {
+                        Source = "images/grey_heart_right.png",
+                        OnClick = () => OnHeartClicked($"Heart{j}_Right")
+                    });
+            }
+        }
+    }
+
+    private void OnHeartClicked(string heartId)
+    {
+        // Handle heart click logic
+        Console.WriteLine($"{heartId} clicked.");
+        // Add any other logic you want to perform when a heart is clicked.
+    }
+
+    private class HeartImage
+    {
+        public string Source { get; set; }
+        public Action OnClick { get; set; }
     }
 
     private void OnSponsoredByTapped()
