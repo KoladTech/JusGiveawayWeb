@@ -2,6 +2,7 @@
 using JusGiveawayWebApp.Pages;
 using JusGiveawayWebApp.Services;
 using Microsoft.AspNetCore.Components;
+using System.Text.Json;
 using System.Threading.Tasks;
 using static JusGiveawayWebApp.Pages.CustomAlertDialog;
 
@@ -20,30 +21,132 @@ namespace JusGiveawayWebApp.Helpers
             _firebaseService = firebaseService;
         }
 
-        public async Task<GiveawayData> GetGiveawayData()
+        #region Firebase functions
+        public async Task<GiveawayData> GetGiveawayDataFromFirebase()
         {
             //if null, display error
             return await _firebaseService.ReadDataAsync<GiveawayData>($"Giveaways/A");
         }
+        public async Task<int> GetLeftoverGiveawayFundsFromFirebase()
+        {
+            //if null, display error
+            return await _firebaseService.ReadDataAsync<int>($"Giveaways/A/LeftoverGiveawayFunds");
+        }
+
 
         public async Task<bool> SaveNewUserToFirebase(UserInfo newUser)
         {
             //if null, display error
-            return await _firebaseService.WriteDataAsync<UserInfo>($"AllUsers/{newUser.UID}", newUser);
+            return await _firebaseService.WriteDataAsync<UserInfo>($"AllUsers/{newUser.UID}/UserInfo", newUser);
+        }
+
+        public async Task<bool> SaveUserGamePlayDataToFirebase(UserGamePlayData userGamePlayData)
+        {
+            //if null, display error
+            return await _firebaseService.WriteDataAsync<UserGamePlayData>($"AllUsers/{userGamePlayData.UID}/GamePlayData", userGamePlayData);
         }
 
         public async Task<string> GetUsersNameFromFirebase(string uid)
         {
             //if null, display error
-            return await _firebaseService.ReadDataAsync<string>($"AllUsers/{uid}/name");
+            return await _firebaseService.ReadDataAsync<string>($"AllUsers/{uid}/UserInfo/name");
         }
 
+        public async Task<UserGamePlayData?> GetUserGamePlayDataFromFirebase(string uid)
+        {
+            //if null, display error
+            return await _firebaseService.ReadDataAsync<UserGamePlayData>($"AllUsers/{uid}/GamePlayData");
+        }
+
+        public async Task<int> GetUserCashOutAmountFromFirebase(string uid)
+        {
+            //if null, display error
+            return await _firebaseService.ReadDataAsync<int>($"AllUsers/{uid}/GamePlayData/currentWinnings");
+        }
+
+        public async Task<bool> SaveUserCashOutDetailsToFirebase(UserInfo user, CashOutDetails userCashOutDetails)
+        {
+            //if null, display error
+            return await _firebaseService.WriteDataAsync<CashOutDetails>($"CashOuts/{user.UID}", userCashOutDetails);
+        }
+
+        public async Task<bool> SetUserHasCashedOutToFirebase(UserInfo user)
+        {
+            //if null, display error
+            return await _firebaseService.WriteDataAsync<bool>($"AllUsers/{user.UID}/GamePlayData/cashedOut", true);
+        }
+
+        public async void UpdateLeftoverGiveawayFundsInFirebase(int leftoverFunds)
+        {
+            await _firebaseService.WriteDataAsync<int>("Giveaways/A/LeftoverGiveawayFunds", leftoverFunds);
+        }
+        #endregion
+
+        #region IndexedDB Functions
         public UserInfo? GetUserInfoFromIndexedDb(JusGiveawayDB db, string uid)
         {
             return db.UserInfo.FirstOrDefault(u => u.UID == uid);
         }
 
+        public UserGamePlayData? GetUserGamePlayDataFromIndexedDb(JusGiveawayDB db, string uid)
+        {
+            return db.UserGameDatas.FirstOrDefault(u => u.UID == uid);
+        }
+
+        public async Task SignOutUser(JusGiveawayDB db, string uid)
+        {   
+            var existingUser = GetUserInfoFromIndexedDb(db, uid);
+
+            if (existingUser != null)
+            {
+                // Update the existing user's information
+                existingUser.IdToken = "";
+
+                // Save changes
+                await db.SaveChanges();
+            }
+        }
+        #endregion
+
+        public bool SendUserBackToLogInPageIfNotLoggedIn(UserInfo currentUser)
+        {
+            //check if user is logged in
+            if (currentUser.IdToken == "" || currentUser.IdToken == null)
+            {
+                //send user back to log in page
+                return true;
+            }
+            return false;
+        }
+
         // Add more common methods as needed.
+
+
+
+
+        // Method to get size of object in bytes
+        //public long GetSizeInBytes(T data)
+        //{
+        //    // Serialize to JSON
+        //    string json = JsonSerializer.Serialize(data);
+
+        //    // Convert to bytes
+        //    byte[] byteArray = System.Text.Encoding.UTF8.GetBytes(json);
+
+        //    // Return the size in bytes
+        //    return byteArray.Length;
+        //}
+        //public long GetSizeInBytes(int singleData)
+        //{
+        //    // Serialize to JSON
+        //    string json = JsonSerializer.Serialize(singleData);
+
+        //    // Convert to bytes
+        //    byte[] byteArray = System.Text.Encoding.UTF8.GetBytes(json);
+
+        //    // Return the size in bytes
+        //    return byteArray.Length;
+        //}
     }
 
     /// <summary>

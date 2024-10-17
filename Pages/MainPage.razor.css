@@ -11,6 +11,17 @@
     margin-bottom: 30px; /* Reduced margin for better spacing */
 }
 
+.game-info {
+    display: grid;
+    grid-template-columns: 1fr 1fr; /* Two columns */
+    margin-bottom: 10px; /* Adjust space between rows */
+    border: 1px solid #ccc; /* Optional: border for clarity */
+    border-radius: 10px; /* Optional: rounded corners */
+    background-color: #f9f9f9; /* Optional: background color */
+    padding: 10px; /* Add padding */
+    row-gap: 10px; /* Adjust this value for spacing between rows */
+}
+
 .avatar-container {
     display: flex;
     align-items: center;
@@ -103,6 +114,7 @@
     border: none;
     cursor: pointer;
     margin-top: 20px;
+    align-content: end;
 }
 
     .logout-button img.logout-icon {

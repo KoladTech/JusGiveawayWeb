@@ -1,0 +1,280 @@
+﻿@page "/cashout/{PlayerUID?}"
+@inject HttpClient Http
+@inject NavigationManager NavigationManager
+@inject JusGiveawayWebApp.Services.FirebaseService FirebaseService
+@inject IndexedDB.Blazor.IIndexedDbFactory DbFactory
+@inject JusGiveawayWebApp.Helpers.CommonFunctions CommonFunctions
+@using JusGiveawayWebApp.Helpers
+@using Microsoft.AspNetCore.Components.Forms
+@using JusGiveawayWebApp.Pages
+@using JusGiveawayWebApp.Models
+
+<div class="phone-container">
+    <div class="phone-screen">
+        <img src="images/logo_green.png" class="jg-logo" alt="Logo" />
+
+        @if(!cashOutInfoSubmitted)
+        {
+            <h2 class="form-title">Cash Out</h2>
+            <p class="small-text">Winner! Please enter details to cash out N@(userCashOutAmount.ToString("N0"))</p>
+
+            <label>First Name</label>
+            <div class="entry-frame">
+                <InputText @bind-Value="firstName" placeholder="Enter first name" class="entry" @oninput="e => UpdateFirstName(e)" />
+            </div>
+
+            <label>Last Name</label>
+            <div class="entry-frame">
+                <InputText @bind-Value="lastName" placeholder="Enter last name" class="entry" @oninput="e => UpdateLastName(e)" />
+            </div>
+
+            <div class="entry-frame">
+                <label>
+                    <input type="checkbox" @bind="isMale" />
+                    Male
+                </label>
+
+        
+                <label>
+                    <input type="checkbox" @bind="isFemale" />
+                    Female
+                </label>
+            </div>
+
+            <label>Email</label>
+            <div class="entry-frame">
+                <InputText @bind-Value="email" placeholder="Enter your email" type="email" class="entry" @oninput="e => UpdateEmail(e)" />
+		    </div>
+
+		    <label>Bank Name</label>
+		    <div class="entry-frame">
+                <InputText @bind-Value="bankName" placeholder="Enter bank's' name" class="entry" @oninput="e => UpdateBankName(e)" />
+		    </div>
+
+            <label>Bank Account Number</label>
+            <div class="entry-frame">
+                <InputText @bind-Value="acctNum" placeholder="Enter account#" class="entry" @oninput="e => UpdateAcctNum(e)" />
+            </div>
+
+            <div style="font-weight: bold; color: red; background-color: ghostwhite; padding: 10px; border-radius: 10px; text-align:center; border-style: dashed; border-color:seagreen">
+                Please make sure your information is accurate before submission
+            </div>
+
+
+            <div class="button-container">
+                <button class="centered-button" @onclick="OnSubmitClicked" disabled="@(!FormValidated && !cashOutInfoSubmitted)">Submit</button>
+            </div>
+        }
+
+        @if (cashOutInfoSubmitted)
+        {
+            <div style="text-align: center; margin-top: 50px;">
+                <h2 style="color: #333;">Thanks for playing in this giveaway @userInfo.Name!</h2>
+                <p style="font-size: 1.2rem; color: #555;">
+                    Till next time. Your winnings will be paid to you shortly.
+                </p>
+
+                <button @onclick="NavigateToHomePage" style="
+                    background-color: #28a745;
+                    color: white;
+                    padding: 10px 20px;
+                    border: none;
+                    font-size: 1rem;
+                    cursor: pointer;
+                    margin-top: 20px;
+                    border-radius: 5px;">
+                    Go to Homepage
+                </button>
+            </div>
+
+        }
+
+        <div class="form-footer-template">
+            <div class="form-footer-text copyright">© 2024 JusGiveaway. All rights reserved.</div>
+            <div class="form-footer-text">DavidBukola Foundation</div>
+            <div class="form-footer-text tagline">Where care meets community</div>
+        </div>
+
+        <Toast Message="@toastMessage" IsVisible="@isToastVisible" IsVisibleChanged="@(val => isToastVisible = val)" />
+
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public string PlayerUID { get; set; } = "";
+    private string firstName;
+    private string lastName;
+    private string email;
+    private string bankName;
+    private string acctNum;
+    private string password; //should I do something like sign in again to make sure its user cashing out?
+    private bool isToastVisible;
+    private string toastMessage;
+    UserInfo userInfo;
+    int userCashOutAmount; 
+    private bool isMale
+    {
+        get => _isMale;
+        set
+        {
+            _isMale = value;
+            if (_isMale) isFemale = false; // Uncheck Female if Male is checked
+        }
+    }
+
+    private bool isFemale
+    {
+        get => _isFemale;
+        set
+        {
+            _isFemale = value;
+            if (_isFemale) isMale = false; // Uncheck Male if Female is checked
+        }
+    }
+    private bool _isMale = false;
+    private bool _isFemale = false;
+
+    private bool FormValidated =>
+        !string.IsNullOrEmpty(firstName) &&
+        !string.IsNullOrEmpty(firstName) &&
+        !string.IsNullOrEmpty(email) &&
+        !string.IsNullOrEmpty(bankName) &&
+        !string.IsNullOrEmpty(acctNum);
+    private bool cashOutInfoSubmitted = false;
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (string.IsNullOrEmpty(PlayerUID))
+        {
+            // Redirect to the sign-in page
+            NavigationManager.NavigateTo("/");
+        }
+        try
+        {
+            //await FirebaseService.SignOutAsync();
+            using (var db = await this.DbFactory.Create<JusGiveawayDB>())
+            {
+                userInfo = CommonFunctions.GetUserInfoFromIndexedDb(db, PlayerUID); 
+                userCashOutAmount = await CommonFunctions.GetUserCashOutAmountFromFirebase(PlayerUID);
+
+                if (userInfo != null)
+                {
+                    //check if user is logged in
+                    if (CommonFunctions.SendUserBackToLogInPageIfNotLoggedIn(userInfo))
+                    {
+                        NavigationManager.NavigateTo("/");
+                    }
+
+                    email = userInfo.EmailAddress;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+        }
+    }
+
+    private void UpdateFirstName(ChangeEventArgs e)
+    {
+        firstName = e.Value?.ToString() ?? string.Empty;
+        StateHasChanged();
+    }
+
+    private void UpdateLastName(ChangeEventArgs e)
+    {
+        lastName = e.Value?.ToString() ?? string.Empty;
+        StateHasChanged();
+    }
+
+    private void UpdateEmail(ChangeEventArgs e)
+    {
+        email = e.Value?.ToString() ?? string.Empty;
+        StateHasChanged();
+    }
+
+    private void UpdateBankName(ChangeEventArgs e)
+    {
+        bankName = e.Value?.ToString() ?? string.Empty;
+        StateHasChanged();
+    }
+
+    private void UpdateAcctNum(ChangeEventArgs e)
+    {
+        acctNum = e.Value?.ToString() ?? string.Empty;
+        StateHasChanged();
+    }
+
+    private async Task OnSubmitClicked()
+    {
+        cashOutInfoSubmitted = true;
+        StateHasChanged();
+
+        CashOutDetails cashOutDetails = new CashOutDetails()
+            {
+                FirstName = firstName,
+                LastName = lastName,
+                UID = PlayerUID,
+                EmailAddress = email,
+                Sex = (isMale == isFemale) ? "NAN" : (isMale ? "M" : "F"),
+                DeviceInfo = "NAN",
+                BankName = bankName,
+                BankAccountNumber = acctNum,
+                CashoutAmount = userCashOutAmount,
+            };
+
+        // Handle successful cashout and redirect if necessary
+        if(userInfo != null){
+            FirebaseService.SetAuthToken(userInfo.IdToken);
+
+            //store user cashout info in firebase db
+            try
+            {
+                bool cashedOut = await CommonFunctions.SaveUserCashOutDetailsToFirebase(userInfo,cashOutDetails);
+                await CommonFunctions.SetUserHasCashedOutToFirebase(userInfo);
+
+                int currentLeftoverFunds = await CommonFunctions.GetLeftoverGiveawayFundsFromFirebase();
+                CommonFunctions.UpdateLeftoverGiveawayFundsInFirebase(currentLeftoverFunds - userCashOutAmount);
+
+                if (cashedOut)
+                {
+                    ShowToast("Cashout successful!");
+                }
+                else
+                {
+                    ShowToast("Cashout error!");
+                }
+            }
+            catch
+            {
+                ShowToast("Cashout error!");
+            }
+        }
+
+        //await Task.Delay(10000); // Simulate a delay
+    }
+
+
+    private void NavigateToHomePage()
+    {
+        NavigationManager.NavigateTo($"/mainpage/{PlayerUID}");
+    }
+
+    private void ShowToast(string message)
+    {
+        toastMessage = message;
+        isToastVisible = true;
+
+        // Auto-hide the toast after 5 seconds
+        _ = Task.Delay(10000).ContinueWith(t =>
+        {
+            InvokeAsync(() =>
+            {
+                isToastVisible = false;
+                StateHasChanged();
+            });
+        });
+    }
+}

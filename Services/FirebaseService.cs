@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Components;
+using System.IO;
 using System.Net.Http;
 using System.Net.Http.Json;
 using System.Text;
@@ -72,6 +73,8 @@ namespace JusGiveawayWebApp.Services
             {
                 var jsonResponse = await response.Content.ReadFromJsonAsync<FirebaseAuthResponse>();
 
+                //var o = await RefreshIdToken(jsonResponse.RefreshToken);
+
                 // Process the response (e.g., store tokens, user info)
                 Console.WriteLine("Sign in successful!");
                 return jsonResponse;
@@ -82,6 +85,69 @@ namespace JusGiveawayWebApp.Services
                 return null;
             }
         }
+
+        public async Task SignOutAsync()
+        {
+            //var response = await _httpClient.PostAsync("https://identitytoolkit.googleapis.com/v1/accounts:signOut?key=[API_KEY]", null);
+
+            var requestUri = $"https://identitytoolkit.googleapis.com/v1/accounts:signOut?key={webApiKey}";
+
+            // Send a POST request to sign out the user
+            try
+            {
+                var response = await _httpClient.PostAsync(requestUri, null);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    // Successfully signed out
+                    // You can also clear any local storage or IndexedDB here if needed
+                    Console.WriteLine("User signed out successfully.");
+                }
+                else
+                {
+                    // Handle error response
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    Console.WriteLine($"Error signing out: {errorContent}");
+                }
+            }
+            catch (Exception x)
+            {
+                Console.WriteLine(x.Message);
+            }
+        }
+
+
+        public async Task<string> RefreshIdToken(string refreshToken)
+        {
+            // Create the request body with the refresh token
+            var requestBody = new
+            {
+                grant_type = "refresh_token",
+                refresh_token = refreshToken
+            };
+
+            // Firebase token refresh URL with your Firebase Web API Key
+            string requestUri = $"https://securetoken.googleapis.com/v1/token?key={webApiKey}";
+
+            // Create HTTP request with content
+            var content = new StringContent(JsonSerializer.Serialize(requestBody), Encoding.UTF8, "application/json");
+
+            // Make the POST request
+            var response = await _httpClient.PostAsync(requestUri, content);
+
+            // Parse the response if successful
+            if (response.IsSuccessStatusCode)
+            {
+                var jsonResponse = await response.Content.ReadAsStringAsync();
+                var jsonDocument = JsonDocument.Parse(jsonResponse);
+                var newIdToken = jsonDocument.RootElement.GetProperty("id_token").GetString();
+                return newIdToken; // Return the new ID token
+            }
+
+            // Handle error or return null if the refresh fails
+            return null;
+        }
+
 
         // Method to write data to Firebase
         public async Task<bool> WriteDataAsync<T>(string path, T data)
@@ -117,7 +183,6 @@ namespace JusGiveawayWebApp.Services
 
                 //var responsetest = await _httpClient.GetStringAsync(url);
                 //Console.WriteLine(responsetest); // Log the raw JSON response for debugging
-
 
                 var response = await _httpClient.GetAsync(url);
                 if (response.IsSuccessStatusCode)
@@ -158,6 +223,39 @@ namespace JusGiveawayWebApp.Services
             }
         }
 
+        public async Task<HttpResponseMessage?> PollFirebaseForLeftoverGiveawayFunds(string lastETag)
+        {
+            try
+            {
+                var url = $"{_firebaseBaseUrl}/Giveaways/A/LeftoverGiveawayFunds.json";
+                var request = new HttpRequestMessage(HttpMethod.Get, url);
+
+                if (lastETag != null)
+                {
+                    request.Headers.IfNoneMatch.Add(new System.Net.Http.Headers.EntityTagHeaderValue(lastETag));
+                }
+                request.Headers.Add("X-Firebase-ETag", "true");
+
+                var response = await _httpClient.SendAsync(request);
+
+                if (response.StatusCode == System.Net.HttpStatusCode.OK)
+                {
+                    // Data has changed, process the new data
+                    return response;
+                }
+                else if (response.StatusCode == System.Net.HttpStatusCode.NotModified)
+                {
+                    // Data has not changed, no need to update
+                    Console.WriteLine("No data changes detected.");
+                    return null;
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error fetching data: {ex.Message}");
+            }
+            return null;
+        }
     }
 
     public class FirebaseAuthResponse

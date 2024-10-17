@@ -1,35 +1,17 @@
-﻿@page "/signin"
+﻿@page "/"
 @inject JusGiveawayWebApp.Services.FirebaseService FirebaseService
 @inject JusGiveawayWebApp.Helpers.CommonFunctions CommonFunctions
 @inject NavigationManager NavigationManager
 @inject IndexedDB.Blazor.IIndexedDbFactory DbFactory
+@using JusGiveawayWebApp.Helpers
 @using JusGiveawayWebApp.Models
-
-@* <h3>Sign In</h3>
-
-<EditForm Model="user" OnValidSubmit="HandleValidSubmit">
-    <DataAnnotationsValidator />
-    <ValidationSummary />
-
-    <div>
-        <label>Email:</label>
-        <InputText @bind-Value="user.Email" required />
-        <ValidationMessage For="@(() => user.Email)" />
-    </div>
-    <div>
-        <label>Password:</label>
-        <InputText @bind-Value="user.Password" type="password" required />
-        <ValidationMessage For="@(() => user.Password)" />
-    </div>
-    <button type="submit">Sign In</button>
-</EditForm> *@
 
 <div class="phone-container">
     <div class="phone-screen">
         <img src="images/logo_green.png" class="jg-logo" alt="Logo" />
 
         <!-- Sign Up label -->
-        <h2 class="form-title">Sign In</h2>
+        <h2 class="form-title">Log In</h2>
         <p class="small-text">Enter your password...</p>
 
 
@@ -51,7 +33,7 @@
         </div>
 
         <div class="button-container">
-            <button class="centered-button" @onclick="OnSignInClicked" disabled="@(!btnEnabled)">Sign In</button>
+            <button class="centered-button" @onclick="OnSignInClicked" disabled="@(!btnEnabled)">Log In</button>
         </div>
 
         @if (isLoading)
@@ -60,7 +42,7 @@
         }
 
         <div class="signup-signin-prompt">
-            <p>Don't have an account? <a @onclick="NavigateToSignUp" class="signup-signin-link">Sign up</a></p>
+            <p style ="margin: 10px 0px 0px 0px;">Don't have a JusGiveaway account? <a @onclick="NavigateToSignUp" class="signup-signin-link">Sign up</a></p>
         </div>
 
         <div class="form-footer-template">
@@ -74,21 +56,44 @@
     </div>
 </div>
 
-@if (errorMessage != null)
-{
-    <p style="color:red;">@errorMessage</p>
-}
 
 @code {
+    [CascadingParameter]
+    private CustomNavigationStack CustomNavStack { get; set; }
     private string userName;
     private string email;
-    private string password = "Qwerty1!";
+    private string password;
     private bool isLoading = false;
     private bool isToastVisible;
     private string toastMessage;
-    private string errorMessage;
 
     private bool btnEnabled = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (CustomNavStack.Pages.Count != 0)
+        {
+            var signInPage = CustomNavStack.FindPageByName("SignInPage");
+
+            if (signInPage != null)
+            {
+                var playerUID = signInPage["PlayerUID"];
+                try
+                {
+                    //await FirebaseService.SignOutAsync();
+                    using (var db = await this.DbFactory.Create<JusGiveawayDB>())
+                    {
+                        await CommonFunctions.SignOutUser(db, playerUID);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine(ex.Message);
+                }
+                ShowToast("Signed out");
+            }
+        }
+    }
 
     private async Task OnSignInClicked()
     {
@@ -116,10 +121,19 @@
                         db.UserInfo.Add(new UserInfo()
                             {
                                 UID = uid,
+                                IdToken = idToken,
                                 Name = userName,
                                 PhoneNumber = null,
                                 EmailAddress = email
                             });
+                        await db.SaveChanges();
+                    }
+                    else
+                    {
+                        // Update the existing user's information
+                        existingUser.IdToken = idToken;
+
+                        // Save changes
                         await db.SaveChanges();
                     }
                 }
@@ -130,12 +144,13 @@
             }
             ShowToast("Signed in");
             // Redirect to the main page or home page after successful sign in
-            NavigationManager.NavigateTo($"/mainpage/{userName}");
+            CustomNavStack.AddPage("SignInPage", uid);
+            CustomNavStack.AddPage("MainPage", uid);
+            NavigationManager.NavigateTo($"/mainpage/{uid}");
         }
         else
         {
             ShowToast("Invalid email or password");
-            errorMessage = "Invalid email or password.";
         }
     }
 
@@ -155,8 +170,8 @@
         toastMessage = message;
         isToastVisible = true;
 
-        // Auto-hide the toast after 3 seconds
-        _ = Task.Delay(3000).ContinueWith(t =>
+        // Auto-hide the toast after 5 seconds
+        _ = Task.Delay(5000).ContinueWith(t =>
         {
             InvokeAsync(() =>
             {

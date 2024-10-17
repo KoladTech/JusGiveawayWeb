@@ -1,4 +1,5 @@
-﻿@page "/mainpage/{PlayerName}"
+﻿@page "/mainpage/{PlayerUID?}"
+@inject JusGiveawayWebApp.Services.FirebaseService FirebaseService
 @using static JusGiveawayWebApp.Pages.CustomAlertDialog
 @using JusGiveawayWebApp.Helpers
 @inject NavigationManager NavigationManager
@@ -10,7 +11,7 @@
 <div class="phone-container">
     <div class="phone-screen">
         <!-- Top section with avatar and greeting -->
-        <div class="top-section">
+        <div class="game-info">
             <div class="avatar-container">
                 <img src="images/avatar_green.png" class="avatar-image" />
                 <div class="player-info">
@@ -56,9 +57,11 @@
         </div>
 
         <!-- Logout button -->
-        <button @onclick="Logout" class="logout-button">
-            <img src="images/logout_icon.png" class="logout-icon" />
-        </button>
+        <div style="text-align: center;">
+            <button @onclick="Logout" class="logout-button">
+                <img src="images/logout_icon.png" class="logout-icon" />
+            </button>
+        </div>
 
         <!-- Loading indicator (hidden initially) -->
         @if (isLoading)
@@ -67,6 +70,8 @@
                 <span>Loading...</span>
             </div>
         }
+
+        <Toast Message="@toastMessage" IsVisible="@isToastVisible" IsVisibleChanged="@(val => isToastVisible = val)" />
     </div>
 </div>
 
@@ -74,45 +79,78 @@
 
 @code {
     // Bindable properties and variables
-    [Parameter]
+    // [CascadingParameter]
+    // private CustomNavigationStack CustomNavStack { get; set; }
     public string PlayerName { get; set; } = "Player";
+    [Parameter]
+    public string PlayerUID { get; set; } = "";
 
     private bool isLoading = false;
     private bool ShowDialog = false;
+    private bool isToastVisible;
+    private string toastMessage;
+    private string errorMessage;
     private AlertDialogParams alertDialogParams = new AlertDialogParams();
 
-    // protected override async Task OnInitializedAsync()
-    // {
-    //     try
-    //     {
-            
-    //         using (var db = await this.DbFactory.Create<JusGiveawayDB>())
-    //         {
-    //             var existingUser = db.UserInfo.FirstOrDefault(u => u.UID == uid);
+    protected override void OnInitialized()
+    {
+        if (string.IsNullOrEmpty(PlayerUID))
+        {
+            // Redirect to the sign-in page
+            NavigationManager.NavigateTo("/");
+        }
+    }
 
-    //             if (existingUser == null)
-    //             {
-    //                 //if not in indexeddb that means browser data was cleared
-    //                 //or a new computer/phone/machine is being logged into
-    //                 //so we will retrieve data from firebase to now store in indexeddb
-    //                 string usersName = await CommonFunctions.GetUsersNameFromFirebase(uid);
+    protected override async Task OnInitializedAsync()
+    {
+        //commented out for now. I doubt it will be needed though
+        //use customnavstack to see if back was pressed
+        // if (CustomNavStack.Pages.Count != 0)
+        // {
+        //     var headsortailsPage = CustomNavStack.FindPageByName("HeadsOrTails");
 
-    //                 db.UserInfo.Add(new UserInfo()
-    //                     {
-    //                         UID = uid,
-    //                         Name = usersName,
-    //                         PhoneNumber = null,
-    //                         EmailAddress = email
-    //                     });
-    //                 await db.SaveChanges();
-    //             }
-    //         }
-    //     }
-    //     catch (Exception ex)
-    //     {
-    //         Console.WriteLine(ex.Message);
-    //     }
-    // }
+        //     if (headsortailsPage != null)
+        //     {
+        //         var playerUID = headsortailsPage["PlayerUID"];
+        //         try
+        //         {
+        //             //bool userSaved = await CommonFunctions.SaveUserGamePlayDataToFirebase(userGamePlayData);
+
+        //             using (var db = await this.DbFactory.Create<JusGiveawayDB>())
+        //             {
+        //                 await CommonFunctions.SignOutUser(db, playerUID);
+        //             }
+        //         }
+        //         catch (Exception ex)
+        //         {
+        //             Console.WriteLine(ex.Message);
+        //         }
+        //         ShowToast("Signed out");
+        //     }
+        // }
+        try
+        {
+            using (var db = await this.DbFactory.Create<JusGiveawayDB>())
+            {
+                var currentActiveUser = db.UserInfo.FirstOrDefault(u => u.UID == PlayerUID);
+
+                if (currentActiveUser != null)
+                {
+                    //check if user is logged in
+                    if (CommonFunctions.SendUserBackToLogInPageIfNotLoggedIn(currentActiveUser))
+                    {
+                        NavigationManager.NavigateTo("/");
+                    }
+
+                    PlayerName = currentActiveUser.Name;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+        }
+    }
 
     // Event handlers
     private void ShowHeadsOrTailsInstructions()
@@ -123,12 +161,15 @@
     private void PlayHeadsOrTailsGame()
     {
         // Handle play button click for Heads or Tails
+        //CustomNavStack.AddPage("HeadsOrTails", PlayerUID);
+        NavigationManager.NavigateTo($"/heads-or-tails/{PlayerUID}");
     }
 
     private void ShowComingSoonInstructions()
     {
         // Handle instructions button click for coming soon games
     }
+
 
     private void Logout()
     {
@@ -139,14 +180,45 @@
         alertDialogParams.OnSecondaryButtonClick = EventCallback.Factory.Create(this, AlertDialogSecondaryClicked);
     }
 
-    private void AlertDialogPrimaryClicked()
+    private async void AlertDialogPrimaryClicked()
     {
         ShowDialog = false;
-        NavigationManager.NavigateTo("/signin");
+
+        try
+        {
+            //await FirebaseService.SignOutAsync();
+            using (var db = await this.DbFactory.Create<JusGiveawayDB>())
+            {
+                await CommonFunctions.SignOutUser(db, PlayerUID);
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+        }
+        ShowToast("Signed out");
+
+        NavigationManager.NavigateTo("/");
     }
 
     private void AlertDialogSecondaryClicked()
     {
         ShowDialog = false;
+    }
+
+    private void ShowToast(string message)
+    {
+        toastMessage = message;
+        isToastVisible = true;
+
+        // Auto-hide the toast after 3 seconds
+        _ = Task.Delay(3000).ContinueWith(t =>
+        {
+            InvokeAsync(() =>
+            {
+                isToastVisible = false;
+                StateHasChanged();
+            });
+        });
     }
 }

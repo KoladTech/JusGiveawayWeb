@@ -28,6 +28,23 @@
     </div>
     <script src="_framework/blazor.webassembly.js"></script>
     <script src="_content/TG.Blazor.IndexedDB/indexedDb.Blazor.js"></script>
+    <script>
+        window.onPageExit = function (callback) {
+            // Listen for back button press (popstate event)
+            window.addEventListener('popstate', function (event) {
+                console.log("Back button pressed...");
+                callback.invokeMethodAsync('HandleBackButtonPress');
+            });
+
+            // Attach the beforeunload event listener for other exits
+            window.addEventListener('beforeunload', function (event) {
+                // Prevents default browser prompt from showing up
+                event.preventDefault();
+                console.log("Page is about to exit...");
+                callback.invokeMethodAsync('SaveProgressOnExit');
+            });
+        };
+    </script>
 </body>
 
 </html>

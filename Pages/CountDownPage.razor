@@ -51,7 +51,8 @@
     protected override async Task OnInitializedAsync()
     {
         CheckDataSize();
-        _giveawayData = await CommonFunctions.GetGiveawayData();
+        //change this to only get the startdate. Limiting how much we get from db
+        _giveawayData = await CommonFunctions.GetGiveawayDataFromFirebase();
         // Trigger the countdown when the page is loaded
         await StartCountdown();
     }

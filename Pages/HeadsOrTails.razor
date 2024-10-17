@@ -1,8 +1,12 @@
-﻿@page "/heads-or-tails"
+﻿@page "/heads-or-tails/{PlayerUID?}"
 @inject NavigationManager NavigationManager
 @inject JusGiveawayWebApp.Helpers.CommonFunctions CommonFunctions
+@inject JusGiveawayWebApp.Services.FirebaseService FirebaseService
 @inject IndexedDB.Blazor.IIndexedDbFactory DbFactory
+@inject IJSRuntime JSRuntime
 @using JusGiveawayWebApp.Models
+@using JusGiveawayWebApp.Services
+@using JusGiveawayWebApp.Helpers
 
 <div class="phone-container">
     <div class="phone-screen">
@@ -12,7 +16,7 @@
                 <img src="images/avatar_green.png" alt="Player Avatar" />
                 <div>
                     <p>@PlayerName</p>
-                    <p>Heads/Tails</p>
+                    <p>@PlayerChoice</p>
                 </div>
             </div>
             <div class="giveaway-info">
@@ -28,7 +32,7 @@
             </div>
             <div class="giveaway-info">
                 <p>Your Winnings</p>
-                <p class="funds">N@(@PotentialWinning.ToString("N0"))</p>
+                <p class="funds">N@(CurrentWinnings.ToString("N0"))</p>
             </div>
 
             <!-- Third Row -->
@@ -37,13 +41,14 @@
                 {
                     <img src="@heart.Source"
                          @onclick="ToggleResetCountVisibility"
-                         class="hearts"
+                         id="@heart.Id"
+                         class="hearts @heartClass[@heart.Id-1]"
                          alt="Heart"
                          style="cursor: pointer;" />
                 }
                 @if (isResetCountVisible)
                 {
-                    <p class="@resetCounterParagraphClass">@ResetCount resets left</p>
+                    <p class="@resetCounterParagraphClass">@ResetsLeft resets left</p>
                 }
             </div>
         </div>
@@ -54,20 +59,20 @@
             <p>@PlayerChoice</p>
             <div class="coin-images">
                 <img src="images/kobo_front.png" alt="Coin Front"
-                        class="@((SelectedCoin == "heads") ? "coin selected" : "coin")"
+                        class="@((PlayerChoice == "Heads") ? "coin selected" : "coin")"
                         style="width: 100px; height: 100px;" @onclick="OnChooseHeadsTapped" />
                 <img src="images/kobo_back.png" alt="Coin Back"
-                        class="@((SelectedCoin == "tails") ? "coin selected" : "coin")"
+                        class="@((PlayerChoice == "Tails") ? "coin selected" : "coin")"
                         style="width: 100px; height: 100px;" @onclick="OnChooseTailsTapped" />
             </div>
-            <button class="centered-button" @onclick="OnLockInSelectionClicked" disabled="@(!IsGameActive)">Start Game</button>
+            <button class="centered-button" @onclick="OnLockInSelectionClicked" disabled="@(!IsUserMakingChoice)">Start Game</button>
         </div>
         
         <!--Game play section -->
         <div class="transition-fade @(SideSelected ? "show" : "hidden")">
             <!-- Coin Image -->
-            <div class="gameplay-content-centered">
-                <img class="coin-image @(isFlipping ? "flipping" : "")" src="@CoinImage" alt="Coin" @onclick="OnCoinTapped" />
+			<div class="gameplay-content-centered">
+                <img class="coin-image  @(isFlipping ? "flipping" : "") @(isShaking ? "shake-effect" : "")" src="@CoinImage" alt="Coin" @onclick="OnCoinTapped" />
             </div>
 
             <!-- Total Label -->
@@ -97,35 +102,46 @@
 
             <!-- Score -->
             <div class="gameplay-content-centered">
-                <p>Score: <span style="color: @(Score >= 0 ? "green" : "red")">@Score</span></p>
+                @* <p>Score: <span style="color: @(Score >= 0 ? "green" : "red")">@Score</span></p> *@
+                <div class="score-display">
+                    <p class="score-text">
+                        Score:
+                        <span class="score-value @(Score >= 0 ? "positive" : "negative")">@Score</span>
+                    </p>
+                </div>
             </div>
 
             <div class="button-container">
-                <button @onclick="OnResetClicked" class="centered-button transition-fade @(IsResetVisible ? "show" : "hidden")">Reset Game</button>
+                <button @onclick="OnResetClicked" class="centered-button transition-fade @(ShowResetBtn ? "show" : "hidden")">Switch to @ResetBtnText</button>
 			</div>
 			<div class="button-container">
-				<button @onclick="OnCashOutClicked" class="transition-fade @(IsCashOutVisible ? "show" : "hidden") centered-button">Cash Out</button>
+				<button @onclick="OnCashOutClicked" class="transition-fade @(ShowCashOutBtn ? "show" : "hidden") centered-button">Cash Out</button>
 			</div>
         </div>
     </div>
 </div>
 
+<Toast Message="@toastMessage" IsVisible="@isToastVisible" IsVisibleChanged="@(val => isToastVisible = val)" />
+
+<CustomAlertDialog ShowDialog="@ShowDialog" DialogParams="@alertDialogParams" />
+
 @code {
-    private string PlayerName { get; set; } = "Player ..";
-    private string PlayerChoice { get; set; } = "Choose Heads or Tails";
+    private string PlayerName { get; set; } = "whoRu?";
+    private string PlayerChoice { get; set; } = "Heads or Tails";
+    [Parameter]
+    public string PlayerUID { get; set; } = ""; 
     private double LeftoverGiveawayFunds { get; set; } = 0;
     private double MaxPossibleWinnings { get; set; } = 0;
-    private double PotentialWinning { get; set; } = 23000;
-    private int ResetCount { get; set; } = 3;
+    private double CurrentWinnings { get; set; } = 0;
     private int TotalFlips => HeadsCount + TailsCount;
-    private int HeadsCount { get; set; } = 12;
-    private int TailsCount { get; set; } = 7;
+    private int HeadsCount { get; set; } = 0;
+    private int TailsCount { get; set; } = 0;
     private int Score => (HeadsCount - TailsCount) * scoreAdjuster;
     private int scoreAdjuster { get; set; } = 1;
-    private bool IsGameActive { get; set; } = false;
-    private bool IsCashOutVisible { get; set; } = false;
-    private bool IsResetVisible { get; set; } = true;
-    private string SelectedCoin = string.Empty;
+    private bool IsUserMakingChoice { get; set; } = false;
+    private bool ShowCashOutBtn { get; set; } = false;
+    private bool ShowResetBtn { get; set; } = true;
+    private string ResetBtnText { get; set; } = "Heads/Tails";
     private bool SideSelected = false;
     // Calculate height for the bars based on counts
     private double HeadsBarHeight => TotalFlips > 0 ? (double)HeadsCount / TotalFlips * 100 : 0;
@@ -133,42 +149,105 @@
     private bool isFlipping = false;
     private string CoinImage = "images/kobo_front.png";
     private GiveawayData? _giveawayData;
+    private UserGamePlayData? userGamePlayData;
     private List<UserGamePlayData> gameDataList = new List<UserGamePlayData>();
+    private int ResetsLeft { get; set; } = 0;
     private bool isResetCountVisible = false;
     private string resetCounterParagraphClass = ""; // Class for the paragraph
     private List<HeartImage> HeartImages { get; set; } = new List<HeartImage>();
+    private string[] heartClass;  // Store classes for each heart for animation
+    private Timer _timer;
+    private string _lastETag = null;
+    private FirebaseAuthResponse _firebaseResponse;
+    private HttpResponseMessage httpResponseMessage;
+    private bool isToastVisible;
+    private string toastMessage;
+    private bool ShowDialog = false;
+    private AlertDialogParams alertDialogParams = new AlertDialogParams(); 
+    private bool isShaking = false;
 
+    protected override void OnInitialized()
+    {
+        if (string.IsNullOrEmpty(PlayerUID))
+        {
+            // Redirect to the sign-in page
+            NavigationManager.NavigateTo("/");
+        }
+    }
 
     protected override async Task OnInitializedAsync()
     {
-        _giveawayData = await CommonFunctions.GetGiveawayData();
-
-        //LeftoverGiveawayFunds = _giveawayData.LeftoverGiveawayFunds;
-        //MaxPossibleWinnings = _giveawayData.MaxPossibleWinningsPerPerson;
-
-
-        await Task.WhenAll(
-            AnimateNumberChange(value => LeftoverGiveawayFunds = value, LeftoverGiveawayFunds, _giveawayData.LeftoverGiveawayFunds), 
-        AnimateNumberChange(value => MaxPossibleWinnings = value, MaxPossibleWinnings, _giveawayData.MaxPossibleWinningsPerPerson));
+        //rethink. this is absolutely necessary. If null, its a problem innit?
+        _giveawayData = await CommonFunctions.GetGiveawayDataFromFirebase();
+        //get latest data from firebase
+        userGamePlayData = await CommonFunctions.GetUserGamePlayDataFromFirebase(PlayerUID);
+        //check the size of the reads
 
         try
         {
             using (var db = await this.DbFactory.Create<JusGiveawayDB>())
             {
-                db.UserGameDatas.Add(new UserGamePlayData()
+                var user = CommonFunctions.GetUserInfoFromIndexedDb(db, PlayerUID);
+
+                //check if user is logged in
+                if (CommonFunctions.SendUserBackToLogInPageIfNotLoggedIn(user))
+                {
+                    NavigationManager.NavigateTo("/");
+                }
+
+                PlayerName = user?.Name ?? "GameError";
+
+                if (userGamePlayData == null)
+                {
+                    //no data in firebase, so lets check local as well. they might have a game going which hasn't been pushed to firebase
+                    Console.WriteLine("no game play data in firebase");
+                    userGamePlayData = CommonFunctions.GetUserGamePlayDataFromIndexedDb(db, PlayerUID);
+
+                    if (userGamePlayData == null)
                     {
-                        Id = 0,
-                        UID = "abcdefghijklmnop",
-                        SelectedSides = 1,
-                        PlayingHeads = 0,
-                        HeadsCount = 17,
-                        TailsCount = 45,
-                        MaxPossibleWinnings = 50000,
-                        CurrentWinnings = 17500,
-                        MinCashOut = 20000,
-                        TotalResetsUsed = 17
-                    });
-                await db.SaveChanges();
+                        //if still null, then its first time playing
+                        Console.WriteLine("no game play data - first time playing");
+                        userGamePlayData = new UserGamePlayData()
+                            {
+                                UID = PlayerUID,
+                                SelectedSides = false,
+                                PlayingHeads = false,
+                                HeadsCount = 0,
+                                TailsCount = 0,
+                                MaxPossibleWinnings = _giveawayData.MaxPossibleWinningsPerPerson,
+                                CurrentWinnings = 0,
+                                MinCashOut = _giveawayData.MinCashoutPerPerson,
+                                TotalResetsLeft = _giveawayData.TotalResetsAllowed,
+                                LifetimeHeadsCount = 0,
+                                LifetimeTailsCount = 0,
+                                GameOver = false,
+                                CashedOut = false
+                            };
+                    }
+                    db.UserGameDatas.Add(userGamePlayData);
+                    await db.SaveChanges();
+                }
+                else
+                {
+                    Console.WriteLine("game play data EXISTS");
+                    //store gameplaydata in indexeddb
+                    var userGamePlayDataFromIndexedDB = CommonFunctions.GetUserGamePlayDataFromIndexedDb(db, PlayerUID);
+                    if (userGamePlayDataFromIndexedDB == null)
+                    {
+                        db.UserGameDatas.Add(userGamePlayData);
+                        await db.SaveChanges();
+                    }
+                    else
+                    {
+                        db.UserGameDatas.Remove(userGamePlayDataFromIndexedDB);
+                        await db.SaveChanges();//seems I can actually remove this line
+
+                        db.UserGameDatas.Add(userGamePlayData);
+                        await db.SaveChanges();
+                    }
+                }
+                //populate all thats needed
+                startGameUISetup(userGamePlayData, _giveawayData);
             }
         }
         catch(Exception ex)
@@ -177,6 +256,7 @@
         }
 
         AddHeartImages();
+        GetLeftoverGiveawayFundsFromFirebase();
     }
 
     private async Task LoadGameDataFromDb()
@@ -211,20 +291,28 @@
         StateHasChanged(); // Final update
     }
 
-    private async Task StartAnimation()
+    //just quickly created an overloaded function. Look into this later
+    private async Task AnimateNumberChange(Action<int> updateValue, int startValue, int endValue, int duration = 2000)
     {
-        double startValue1 = LeftoverGiveawayFunds; // Start from the current value
-        double endValue1 = 1000; // Change this value as needed
+        int stepDuration = 20; // Duration between each step (in milliseconds)
+        int steps = duration / stepDuration; // Total number of steps for the animation
 
-        double startValue2 = MaxPossibleWinnings; // Start from the current value of AnotherFund
-        double endValue2 = 2000; // Change this value as needed
+        // Calculate increment value per step
+        int incrementValue = (endValue - startValue) / steps;
+        int currentValue = startValue;
 
-        // Start both animations concurrently
-        var task1 = AnimateNumberChange(value => LeftoverGiveawayFunds = value, startValue1, endValue1);
-        var task2 = AnimateNumberChange(value => MaxPossibleWinnings = value, startValue2, endValue2);
+        // Perform the animation in a loop
+        for (int i = 0; i < steps; i++)
+        {
+            currentValue += incrementValue; // Increment the value
+            updateValue(currentValue); // Update the value using the provided delegate
+            StateHasChanged(); // Notify Blazor to re-render the UI
+            await Task.Delay(stepDuration); // Wait for the next step
+        }
 
-        // Wait for both animations to complete
-        await Task.WhenAll(task1, task2);
+        // Set the final value to ensure precision
+        updateValue(endValue);
+        StateHasChanged(); // Final update
     }
 
     private async void ToggleResetCountVisibility()
@@ -256,35 +344,61 @@
 
     private void OnChooseHeadsTapped()
     {
-        SelectedCoin = "heads";
         PlayerChoice = "Heads";
         scoreAdjuster = 1;
-        IsGameActive = true;
+        IsUserMakingChoice = true;
     }
 
     private void OnChooseTailsTapped()
     {
-        SelectedCoin = "tails";
         PlayerChoice = "Tails";
         scoreAdjuster = -1;
-        IsGameActive = true;
+        IsUserMakingChoice = true;
     }
 
-    private void OnLockInSelectionClicked()
+    private async void OnLockInSelectionClicked()
     {
         Console.WriteLine(SideSelected);
         // Logic for starting the game
         SideSelected = true;
         Console.WriteLine(SideSelected);
+
+        ResetBtnText = PlayerChoice == "Heads" ? "Tails" : "Heads";
+
+        //store side selection in indexeddb
+        try
+        {
+            using (var db = await this.DbFactory.Create<JusGiveawayDB>())
+            {
+                var userGamePlayData = CommonFunctions.GetUserGamePlayDataFromIndexedDb(db, PlayerUID);
+                if (userGamePlayData != null)
+                {
+                    userGamePlayData.SelectedSides = true;
+                    userGamePlayData.PlayingHeads = PlayerChoice == "Heads" ? true : false;
+                    await db.SaveChanges();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+        }
     }
 
     private async void OnCoinTapped()
     {
+        //just an animation for fun
+        if (userGamePlayData.GameOver)
+        {
+            await ShakeImage();
+        }
         // Logic for flipping the coin
-        if (isFlipping)
+        if (isFlipping || isMaxWinAchieved() || userGamePlayData.GameOver)
             return; // Prevent multiple clicks while flipping
 
         isFlipping = true;
+        ShowCashOutBtn = isMaxWinAchieved();
+        ShowResetBtn = !ShowCashOutBtn;
         StateHasChanged();
 
         Random random = new Random();
@@ -303,94 +417,532 @@
         if (random.Next(2) == 0)
         {
             CoinImage = "images/kobo_front.png"; // Set to heads
-            HeadsCount += 20;
+            HeadsCount += 5;
         }
         else
         {
             CoinImage = "images/kobo_back.png"; // Set to tails
-            TailsCount += 20;
+            TailsCount += 5;
         }
 
-        isFlipping = false;
+        CheckForWin(userGamePlayData, _giveawayData);
+
+        //save coin flips to indexeddb after every 10 flips
+        if (TotalFlips % 10 == 0)
+        {
+            try
+            {
+                using (var db = await this.DbFactory.Create<JusGiveawayDB>())
+                {
+                    userGamePlayData = CommonFunctions.GetUserGamePlayDataFromIndexedDb(db, PlayerUID);
+                    if (userGamePlayData != null)
+                    {
+                        userGamePlayData.HeadsCount = HeadsCount;
+                        userGamePlayData.TailsCount = TailsCount;
+
+                        await db.SaveChanges();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+        }
+
+        isFlipping = isMaxWinAchieved();
+
         StateHasChanged(); // Update UI after flipping is complete
+    }
+
+    private async void startGameUISetup(UserGamePlayData userGamePlayData, GiveawayData giveawayData)
+    {
+        SideSelected = userGamePlayData.SelectedSides;
+        if (SideSelected)
+        {
+            PlayerChoice = userGamePlayData.PlayingHeads ? "Heads" : "Tails";
+        }
+        else
+        {
+            PlayerChoice = "Choose Heads/Tails";
+        }
+
+        ResetBtnText = PlayerChoice == "Heads" ? "Tails" : "Heads";
+        HeadsCount = userGamePlayData.HeadsCount;
+        TailsCount = userGamePlayData.TailsCount;
+        ResetsLeft = userGamePlayData.TotalResetsLeft;
+        scoreAdjuster = userGamePlayData.PlayingHeads ? 1 : -1;
+        ShowCashOutBtn = ((userGamePlayData.HeadsCount + userGamePlayData.TailsCount) % 10 == 0) && userGamePlayData.CurrentWinnings >= userGamePlayData.MinCashOut && !userGamePlayData.CashedOut;
+        ShowResetBtn = !ShowCashOutBtn && !userGamePlayData.GameOver;
+
+        await Task.WhenAll(
+            AnimateNumberChange(value => LeftoverGiveawayFunds = value, LeftoverGiveawayFunds, giveawayData.LeftoverGiveawayFunds), 
+        AnimateNumberChange(value => MaxPossibleWinnings = value, MaxPossibleWinnings, userGamePlayData.MaxPossibleWinnings),
+        AnimateNumberChange(value => CurrentWinnings = value, CurrentWinnings, userGamePlayData.CurrentWinnings)
+        );
+
+        //if gameover, we lock the game
+        if (userGamePlayData.GameOver)
+        {
+            LockGame();
+        }
     }
 
     private void OnCashOutClicked()
     {
-        // Logic for cashing out
-        // IsResetVisible = true;
-        // IsCashOutVisible = false;
+        ShowDialog = true;
+        alertDialogParams.AlertTitle = "Cash Out?";
+        alertDialogParams.AlertMessage = new MarkupString($"Are you sure you are ready to cash out N{userGamePlayData.CurrentWinnings.ToString("N0")}?");
+        alertDialogParams.OnPrimaryButtonClick = EventCallback.Factory.Create(this, AlertDialogPrimaryClicked);
+        alertDialogParams.OnSecondaryButtonClick = EventCallback.Factory.Create(this, AlertDialogSecondaryClicked);
     }
 
     private async void OnResetClicked()
     {
-        // Logic for resetting the game
-        // IsCashOutVisible = true;
-        // IsResetVisible = false;
-        await LoadGameDataFromDb();
-        await StartAnimation();
+        ShowDialog = true;
+
+        int resetPenalty = _giveawayData.MonetaryResetPenalty;
+        double resetMaxPossibleWinnings = MaxPossibleWinnings - resetPenalty;
+        resetMaxPossibleWinnings = Math.Max(resetMaxPossibleWinnings, _giveawayData.MinCashoutPerPerson);
+        double resetCurrentWinnings = CurrentWinnings - resetPenalty;
+
+        alertDialogParams.AlertTitle = $"Switch to {ResetBtnText}?";
+        alertDialogParams.AlertMessage = new MarkupString($"There will be a penalty of <strong>N{resetPenalty}</strong>!<br/><br/>"+
+                $"Maximum possible winnings will be reduced to <strong>N{resetMaxPossibleWinnings.ToString("N0")}</strong>! " +
+                 $"<br/><br/>Winnings will be reduced to <strong>N{resetCurrentWinnings.ToString("N0")}</strong>!");
+        alertDialogParams.OnPrimaryButtonClick = EventCallback.Factory.Create(this, AlertDialogPrimaryClicked);
+        alertDialogParams.OnSecondaryButtonClick = EventCallback.Factory.Create(this, AlertDialogSecondaryClicked);
+        //await LoadGameDataFromDb();
+    }
+
+    private async Task ResetDataInDBs()
+    {
+        try
+        {
+            using (var db = await this.DbFactory.Create<JusGiveawayDB>())
+            {
+                userGamePlayData = CommonFunctions.GetUserGamePlayDataFromIndexedDb(db, PlayerUID);
+
+                if (userGamePlayData != null)
+                {
+                    userGamePlayData.SelectedSides = false;
+                    userGamePlayData.PlayingHeads = false;
+                    userGamePlayData.HeadsCount = 0;
+                    userGamePlayData.TailsCount = 0;
+                    userGamePlayData.MaxPossibleWinnings -= _giveawayData.MonetaryResetPenalty;
+                    userGamePlayData.CurrentWinnings -= _giveawayData.MonetaryResetPenalty;
+                    userGamePlayData.TotalResetsLeft -= 1;
+                    userGamePlayData.LifetimeHeadsCount += HeadsCount;
+                    userGamePlayData.LifetimeTailsCount += TailsCount;
+
+                    await db.SaveChanges();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+        }
+
+        //save reset to firebase
+        try
+        {
+            bool userSaved = await CommonFunctions.SaveUserGamePlayDataToFirebase(userGamePlayData);
+        }
+        catch (Exception x)
+        {
+            Console.WriteLine($"Error saving gameplay data to firebase - {x.Message}");
+        }
+    }
+
+    private async Task ResetUI()
+    {
+        await Task.WhenAll(
+        AnimateNumberChange(value => MaxPossibleWinnings = value, MaxPossibleWinnings, MaxPossibleWinnings - _giveawayData.MonetaryResetPenalty),
+        AnimateNumberChange(value => CurrentWinnings = value, CurrentWinnings, CurrentWinnings - _giveawayData.MonetaryResetPenalty),
+        AnimateNumberChange(value => HeadsCount = value, HeadsCount, 0),
+        AnimateNumberChange(value => TailsCount = value, TailsCount, 0),
+        TriggerHeartAnimation(ResetsLeft)
+        );
+        SideSelected = false;
+        PlayerChoice = "Choose Heads/Tails";
+        IsUserMakingChoice = false;
+        ResetsLeft -= 1;
+        AddHeartImages();
+        StateHasChanged();
     }
 
     private void AddHeartImages()
     {
-        var resetsLeft = 17;//TotalResetsAllowed - TotalResetsUsed;
+        HeartImages = new List<HeartImage>();
         int i = 0;
 
         // Green hearts for resets remaining
-        for (i = 1; i <= resetsLeft; i++)
+        for (i = 1; i <= ResetsLeft; i++)
         {
             if (i % 2 == 1){
                 HeartImages.Add(new HeartImage
                     {
                         Source = "images/green_heart_left.png",
-                        OnClick = () => OnHeartClicked($"Heart{i}_Left")
+                        Id = i
                     });
             }
             else{
                 HeartImages.Add(new HeartImage
                     {
                         Source = "images/green_heart_right.png",
-                        OnClick = () => OnHeartClicked($"Heart{i}_Right")
+                        Id = i
                     });
             }
         }
 
         // Grey hearts for the number of used resets
-        for (int j = i; j < i + 3; j++)
+        for (int j = i; j < i + _giveawayData.TotalResetsAllowed - ResetsLeft; j++)
         {
             if (j % 2 == 1)
             {
                 HeartImages.Add(new HeartImage
                     {
                         Source = "images/grey_heart_left.png",
-                        OnClick = () => OnHeartClicked($"Heart{j}_Left")
+                        Id = j
                     });
             }
             else{
                 HeartImages.Add(new HeartImage
                     {
                         Source = "images/grey_heart_right.png",
-                        OnClick = () => OnHeartClicked($"Heart{j}_Right")
+                        Id = j
                     });
             }
         }
-    }
 
-    private void OnHeartClicked(string heartId)
-    {
-        // Handle heart click logic
-        Console.WriteLine($"{heartId} clicked.");
-        // Add any other logic you want to perform when a heart is clicked.
+        heartClass = new string[HeartImages.Count];
     }
 
     private class HeartImage
     {
         public string Source { get; set; }
-        public Action OnClick { get; set; }
+        public int Id { get; set; }
+    }
+
+    //TODO: Currently animation is not working. look into how to trigger it
+    private async Task TriggerHeartAnimation(int heartId)
+    {
+        // Remove the class briefly to reset the animation
+        heartClass[heartId - 1] = "";
+        StateHasChanged();
+
+        // Wait a brief moment to allow reflow, then re-apply the animation class
+        await Task.Delay(50);
+        heartClass[heartId - 1] = "heart-drop";
+        StateHasChanged();  // Re-render the UI
     }
 
     private void OnSponsoredByTapped()
     {
         // Logic for resetting the game
+    }
+
+    private async void CheckForWin(UserGamePlayData userGamePlayData, GiveawayData giveawayData)
+    {
+        bool playerWon = false;
+        //ShowCashOutBtn = false;
+        //ShowResetBtn = !ShowCashOutBtn;
+        string roundCompleteMsg = $"Round {(TotalFlips / 100)} complete!";
+        string winMsg = string.Empty;
+        string lossMsg = "You did not win this time.";
+        string additionalMsg = string.Empty;
+        double winning = 0;
+        int loss = 0;
+
+        // Check for win only when total flips reach a multiple of 100
+        if (TotalFlips >= 100 && TotalFlips % 100 == 0)
+        {
+            if (Score >= 0)
+            {
+                playerWon = true;
+
+                if (Score == 0)     //A draw (BINGO)
+                {
+                    winning = giveawayData.RoundDrawMonetaryValue;
+                }
+                else if (Score >= 10)    //A big win
+                {
+                    winning = giveawayData.RoundBigWinMonetaryValue;
+                }
+                else    //A small win
+                {
+                    winning = giveawayData.RoundSmallWinMonetaryValue;
+                }
+
+                await AnimateNumberChange(value => CurrentWinnings = value, CurrentWinnings, CurrentWinnings + winning);
+
+                //CurrentWinnings += winning;
+
+                //check if current round winning puts you above max possible win
+                if (CurrentWinnings > MaxPossibleWinnings)
+                {
+                    CurrentWinnings -= winning;
+                    winning = MaxPossibleWinnings - CurrentWinnings;
+                    CurrentWinnings = MaxPossibleWinnings;
+                }
+
+                winMsg = $"You won N{winning.ToString("N0")}! ";
+            }
+            else
+            {
+                playerWon = false;
+
+                if (CurrentWinnings > 0)
+                {
+                    if (Score <= -10)    //A big loss
+                    {
+                        loss = giveawayData.RoundBigLossMonetaryValue;
+                    }
+                    else    //A small loss
+                    {
+                        loss = giveawayData.RoundSmallLossMonetaryValue;
+                    }
+
+                    await AnimateNumberChange(value => CurrentWinnings = value, CurrentWinnings, CurrentWinnings - loss);
+
+                    lossMsg = $"You lost N{loss.ToString("N0")}!";
+                }
+            }
+
+            ShowCashOutBtn = CurrentWinnings >= userGamePlayData.MinCashOut;
+            winMsg += ShowCashOutBtn ? "\nYou can cashout or Play for more" : "";
+            ShowResetBtn = !ShowCashOutBtn;
+
+            if (playerWon)
+            {
+                if (isMaxWinAchieved())
+                {
+                    winMsg = $"You can now cashout your winnings of N{CurrentWinnings.ToString("N0")}";
+                }
+                additionalMsg = winMsg;
+            }
+            else
+            {
+                // Player did not meet winning criteria
+                additionalMsg = lossMsg;
+            }
+
+            ShowToast(additionalMsg);
+            // ShowDialog = true;
+            // alertDialogParams.AlertTitle = roundCompleteMsg;
+            // alertDialogParams.AlertMessage = new MarkupString(additionalMsg);
+            // alertDialogParams.PrimaryBtnText = "Ok";
+            // alertDialogParams.ShowSecondaryBtn = false;
+            // alertDialogParams.OnPrimaryButtonClick = EventCallback.Factory.Create(this, AlertDialogPrimaryClicked);
+            // alertDialogParams.OnSecondaryButtonClick = EventCallback.Factory.Create(this, AlertDialogSecondaryClicked);
+
+            //save usergameplaydata to indexeddb
+            try
+            {
+                using (var db = await this.DbFactory.Create<JusGiveawayDB>())
+                {
+                    userGamePlayData = CommonFunctions.GetUserGamePlayDataFromIndexedDb(db, PlayerUID);
+
+                    if (userGamePlayData != null)
+                    {
+                        userGamePlayData.HeadsCount = HeadsCount;
+                        userGamePlayData.TailsCount = TailsCount;
+                        userGamePlayData.CurrentWinnings = (int)CurrentWinnings; // casting to int, but I should probably change CurrentWinnings to a double in the first place
+
+                        await db.SaveChanges();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+                //await CommonFunctions.DisplayCustomAlertPage("Error", "Error saving game state to DB, please contact app devs", "Close", "", true, false, AlertType.Error, Navigation);
+            }
+
+            //save usergameplaydata to firebase
+            try
+            {
+                bool userSaved = await CommonFunctions.SaveUserGamePlayDataToFirebase(userGamePlayData);
+            }
+            catch(Exception x)
+            {
+                Console.WriteLine($"Error saving gameplay data to firebase - {x.Message}");
+            }
+        }
+    }
+
+    private bool isMaxWinAchieved()
+    {
+        if (CurrentWinnings == MaxPossibleWinnings)
+        {
+            if (CoinImage != "images/coin_locked.png")
+                LockGame();
+            return true;
+        }
+        return false;
+    }
+
+    private async void LockGame()
+    {
+        ShowCashOutBtn = CurrentWinnings >= userGamePlayData.MinCashOut && !userGamePlayData.CashedOut;
+        ShowResetBtn = false;
+        //isFlipping = true; //this prevents clicks
+        CoinImage = "images/coin_locked.png";
+        StateHasChanged();
+
+        //Write to firebase db signifying end of game
+        if (userGamePlayData != null && !userGamePlayData.GameOver)
+        {
+            Console.WriteLine("Game over");
+            userGamePlayData.GameOver = true;
+            try
+            {
+                bool userSaved = await CommonFunctions.SaveUserGamePlayDataToFirebase(userGamePlayData);
+            }
+            catch (Exception x)
+            {
+                Console.WriteLine($"Error saving gameplay data to firebase - {x.Message}");
+            }
+        }
+    }
+
+    private async void GetLeftoverGiveawayFundsFromFirebase()
+    {
+        try
+        {
+            // Start polling every 60 seconds (60000 milliseconds)
+            _timer = new Timer(async _ =>
+            {
+                // Capture the response from the Firebase service call
+                var response = await FirebaseService.PollFirebaseForLeftoverGiveawayFunds(_lastETag);
+
+                // Store the response in a variable
+                if (response != null)
+                {
+                    httpResponseMessage = response;
+                    StateHasChanged();
+                    _lastETag = httpResponseMessage.Headers.ETag?.Tag ?? null;
+
+                    var currentLeftoverGiveawayFunds = int.Parse(await response.Content.ReadAsStringAsync());
+                    await AnimateNumberChange(value => LeftoverGiveawayFunds = value, LeftoverGiveawayFunds, currentLeftoverGiveawayFunds);
+                }
+            }, null, 0, 60000);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error fetching data: {ex.Message}");
+        }
+    }
+
+    private async Task ShakeImage()
+    {
+        isShaking = true; // Add the class to trigger animation
+        StateHasChanged(); // Update the UI
+
+        await Task.Delay(500); // Wait for the animation to complete
+
+        isShaking = false; // Remove the class after animation
+        StateHasChanged(); // Update the UI again
+    }
+
+    public void Dispose()
+    {
+        _timer?.Dispose();  // Dispose the timer when the component is destroyed
+    }
+
+    private async void AlertDialogPrimaryClicked()
+    {
+        ShowDialog = false;
+
+        if (ShowResetBtn)
+        {
+            await ResetDataInDBs();
+            await ResetUI();
+            ShowToast($"You can switch now");
+        }
+
+        if (ShowCashOutBtn)
+        {
+            LockGame();
+            await Task.Delay(1000); // Simulate a delay
+            NavigationManager.NavigateTo($"/cashout/{PlayerUID}");
+        }
+    }
+
+    private void AlertDialogSecondaryClicked()
+    {
+        ShowDialog = false;
+    }
+
+    private void ShowToast(string message)
+    {
+        toastMessage = message;
+        isToastVisible = true;
+
+        // Auto-hide the toast after 5 seconds
+        _ = Task.Delay(5000).ContinueWith(t =>
+        {
+            InvokeAsync(() =>
+            {
+                isToastVisible = false;
+                StateHasChanged();
+            });
+        });
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await JSRuntime.InvokeVoidAsync("onPageExit", DotNetObjectReference.Create(this));
+        }
+    }
+
+    [JSInvokable]
+    public void SaveProgressOnExit()
+    {
+        // Logic to save progress goes here
+        // e.g., Save to IndexedDB or trigger an API to save progress
+        Console.WriteLine("Saving progress on page exit...");
+    }
+
+    [JSInvokable]
+    public async void HandleBackButtonPress()
+    {
+        // Logic to handle back button press (e.g., log out user)
+        Console.WriteLine("Back button pressed. Logging out...");
+        // Add your log out or navigation handling code here
+
+        var userGamePlayData = new UserGamePlayData();
+
+        //get most recent data from indexeddb
+        try
+        {
+            using (var db = await this.DbFactory.Create<JusGiveawayDB>())
+            {
+                userGamePlayData = CommonFunctions.GetUserGamePlayDataFromIndexedDb(db, PlayerUID);
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+        }
+
+        //save usergameplaydata to firebase
+        if (userGamePlayData != null)
+        {
+            Console.WriteLine("Back button pressed. Saving game play data...");
+            userGamePlayData.HeadsCount = HeadsCount;
+            userGamePlayData.TailsCount = TailsCount;
+            try
+            {
+                bool userSaved = await CommonFunctions.SaveUserGamePlayDataToFirebase(userGamePlayData);
+            }
+            catch (Exception x)
+            {
+                Console.WriteLine($"Error saving gameplay data to firebase - {x.Message}");
+            }
+        }
     }
 }

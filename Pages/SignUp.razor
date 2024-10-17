@@ -79,14 +79,8 @@
 			<button class="centered-button" @onclick="OnSignUpClicked" disabled="@(!isFormValid)">Sign Up</button>
         </div>
 
-
-        @if (isLoading)
-        {
-            <p>Loading...</p>
-        }
-
         <div class="signup-signin-prompt">
-            <p>Already have an account? <a @onclick="NavigateToSignin" class="signup-signin-link">Sign in</a></p>
+            <p style="margin: 10px 0px 0px 0px;">Already have an account? <a @onclick="NavigateToSignin" class="signup-signin-link">Log in</a></p>
         </div>
 
         <div class="form-footer-template">
@@ -101,11 +95,10 @@
 </div>
 
 @code {
-    private string username = "ferdnanda";
-    private string email = "d@d.com";
-    private string password = "Qwerty1!";
-    private string confirmPassword = "Qwerty1!";
-    private bool isLoading = false;
+    private string username;
+    private string email;
+    private string password;
+    private string confirmPassword;
     private bool showPasswordCriteria = false;
     private string passwordType = "password";
     private string confirmPasswordType = "password";
@@ -184,7 +177,6 @@
 
     private async Task OnSignUpClicked()
     {
-        isLoading = true;
         // Call your registration logic here
         //await Task.Delay(2000); // Simulate a delay
 
@@ -242,19 +234,17 @@
 
             await Task.Delay(2000); // Simulate a delay
             // After successful sign up in your sign-up component
-            NavigationManager.NavigateTo("/signin");
+            NavigationManager.NavigateTo("/");
         }
         else
         {
             ShowToast("Sign Up failed!");
         }
-
-        isLoading = false;
     }
 
     private void NavigateToSignin()
     {
-        NavigationManager.NavigateTo("/signin");
+        NavigationManager.NavigateTo("/");
     }
 
     private void ShowToast(string message)

@@ -7,27 +7,35 @@ namespace JusGiveawayWebApp.Models
         [Key] 
         public int Id { get; set; }
         public string UID { get; set; }
-        public int SelectedSides { get; set; }
-        public int PlayingHeads { get; set; }
+        public bool SelectedSides { get; set; }
+        public bool PlayingHeads { get; set; }
         public int HeadsCount { get; set; }
         public int TailsCount { get; set; }
-        public decimal MaxPossibleWinnings { get; set; }
-        public decimal CurrentWinnings { get; set; }
-        public decimal MinCashOut { get; set; }
-        public int TotalResetsUsed { get; set; }
+        public int MaxPossibleWinnings { get; set; }
+        public int CurrentWinnings { get; set; }
+        public int MinCashOut { get; set; }
+        public int TotalResetsLeft { get; set; }
+        public int LifetimeHeadsCount { get; set; }
+        public int LifetimeTailsCount { get; set; }
+        public bool GameOver { get; set; }
+        public bool CashedOut { get; set; }
 
         public UserGamePlayData()
         {
             Id = 0;
             UID = "";
-            SelectedSides = 0;
-            PlayingHeads = 0;
+            SelectedSides = false;
+            PlayingHeads = false;
             HeadsCount = 0;
             TailsCount = 0;
             MaxPossibleWinnings = 0;
             CurrentWinnings = 0;
             MinCashOut = 0;
-            TotalResetsUsed = 0;
+            TotalResetsLeft = 0;
+            LifetimeHeadsCount = 0;
+            LifetimeTailsCount = 0;
+            GameOver = false;
+            CashedOut = false;
         }
     }
 }
