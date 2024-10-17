@@ -81,3 +81,11 @@
         overflow-y: auto;
     }
 }
+
+.nav-footer {
+    margin-top: 20px; /* Add some space between menu and footer */
+    font-size: 0.8rem; /* Make the text smaller */
+    text-align: center; /* Center the footer text */
+    color: gray; /* Optional: set the text color */
+    padding: 10px 0; /* Optional: padding for aesthetics */
+}

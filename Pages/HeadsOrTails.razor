@@ -504,7 +504,7 @@
         int resetPenalty = _giveawayData.MonetaryResetPenalty;
         double resetMaxPossibleWinnings = MaxPossibleWinnings - resetPenalty;
         resetMaxPossibleWinnings = Math.Max(resetMaxPossibleWinnings, _giveawayData.MinCashoutPerPerson);
-        double resetCurrentWinnings = CurrentWinnings - resetPenalty;
+        double resetCurrentWinnings = Math.Max(CurrentWinnings - resetPenalty,0);
 
         alertDialogParams.AlertTitle = $"Switch to {ResetBtnText}?";
         alertDialogParams.AlertMessage = new MarkupString($"There will be a penalty of <strong>N{resetPenalty}</strong>!<br/><br/>"+
