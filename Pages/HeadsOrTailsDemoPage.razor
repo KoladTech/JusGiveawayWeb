@@ -1,0 +1,592 @@
+﻿@page "/heads-or-tails-demo/"
+@inject NavigationManager NavigationManager
+@inject JusGiveawayWebApp.Helpers.CommonFunctions CommonFunctions
+@inject JusGiveawayWebApp.Services.FirebaseService FirebaseService
+@inject IndexedDB.Blazor.IIndexedDbFactory DbFactory
+@inject IJSRuntime JSRuntime
+@using JusGiveawayWebApp.Models
+@using JusGiveawayWebApp.Services
+@using JusGiveawayWebApp.Helpers
+
+<div class="phone-container">
+    <div class="phone-screen">
+        <div class="game-info">
+            <!-- First Row -->
+            <div class="player-info">
+                <img src="images/avatar_green.png" alt="Player Avatar" />
+                <div>
+                    <p>@PlayerName</p>
+                    <p>@PlayerChoice</p>
+                </div>
+            </div>
+            <div class="giveaway-info">
+                <p>Giveaway Balance</p>
+                <p class="funds">N@(LeftoverGiveawayFunds.ToString("N0"))</p>
+                <p class="sponsored-link">Sponsored by...</p>
+            </div>
+
+            <!-- Second Row -->
+            <div class="winning-info">
+                <p>Maximum Win</p>
+                <p class="funds">N@(MaxPossibleWinnings.ToString("N0"))</p>
+            </div>
+            <div class="giveaway-info">
+                <p>Your Winnings</p>
+                <p class="funds">N@(CurrentWinnings.ToString("N0"))</p>
+            </div>
+
+            <!-- Third Row -->
+            <div class="resets-left" style="grid-column: 1 / -1;">
+                @foreach (var heart in HeartImages)
+                {
+                    <img src="@heart.Source"
+                         @onclick="ToggleResetCountVisibility"
+                         id="@heart.Id"
+                         class="hearts @heartClass[@heart.Id-1]"
+                         alt="Heart"
+                         style="cursor: pointer;" />
+                }
+                @if (isResetCountVisible)
+                {
+                    <p class="@resetCounterParagraphClass">@ResetsLeft resets left</p>
+                }
+            </div>
+        </div>
+
+
+        <!-- Side choice section -->
+        <div class="side-choice-section transition-fade @(SideSelected ? "hidden" : "show")">
+            <p>@PlayerChoice</p>
+            <div class="coin-images">
+                <img src="images/kobo_front.png" alt="Coin Front"
+                     class="@((PlayerChoice == "Heads") ? "coin selected" : "coin")"
+                     style="width: 100px; height: 100px;" @onclick="OnChooseHeadsTapped" />
+                <img src="images/kobo_back.png" alt="Coin Back"
+                     class="@((PlayerChoice == "Tails") ? "coin selected" : "coin")"
+                     style="width: 100px; height: 100px;" @onclick="OnChooseTailsTapped" />
+            </div>
+            <button class="centered-button" @onclick="OnLockInSelectionClicked" disabled="@(!IsUserMakingChoice)">Start Game</button>
+        </div>
+
+        <!--Game play section -->
+        <div class="transition-fade @(SideSelected ? "show" : "hidden")">
+            <!-- Coin Image -->
+            <div class="gameplay-content-centered">
+                <img class="coin-image  @(isFlipping ? "flipping" : "")" src="@CoinImage" alt="Coin" @onclick="OnCoinTapped" />
+            </div>
+
+            <!-- Total Label -->
+            <div class="gameplay-content-centered">
+                <p>Total Flips: @TotalFlips</p>
+            </div>
+
+            <div class="grid-layout">
+                <!-- Heads Column -->
+                <div class="bar-column">
+                    <div class="bar-frame">
+                        <div class="bar" style="height: @HeadsBarHeight%;"> </div>
+                    </div>
+                    <label class="label">Heads</label>
+                    <label class="count-label">@HeadsCount</label>
+                </div>
+
+                <!-- Tails Column -->
+                <div class="bar-column">
+                    <div class="bar-frame">
+                        <div class="bar tails-bar" style="height: @TailsBarHeight%;"> </div>
+                    </div>
+                    <label class="label">Tails</label>
+                    <label class="count-label">@TailsCount</label>
+                </div>
+            </div>
+
+            <!-- Score -->
+            <div class="gameplay-content-centered">
+                @* <p>Score: <span style="color: @(Score >= 0 ? "green" : "red")">@Score</span></p> *@
+                <div class="score-display">
+                    <p class="score-text">
+                        Score:
+                        <span class="score-value @(Score >= 0 ? "positive" : "negative")">@Score</span>
+                    </p>
+                </div>
+            </div>
+
+            <div class="button-container">
+                <button @onclick="OnResetClicked" class="centered-button transition-fade @(ShowResetBtn ? "show" : "hidden")">Switch to @ResetBtnText</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<Toast Message="@toastMessage" IsVisible="@isToastVisible" IsVisibleChanged="@(val => isToastVisible = val)" />
+
+<CustomAlertDialog ShowDialog="@ShowDialog" DialogParams="@alertDialogParams" />
+
+@code {
+    private string PlayerName { get; set; } = "This is a Demo";
+    private string PlayerChoice { get; set; } = "Heads or Tails";
+    [Parameter]
+    public string PlayerUID { get; set; } = "";
+    private double LeftoverGiveawayFunds { get; set; } = 0;
+    private double MaxPossibleWinnings { get; set; } = 50000;
+    private double CurrentWinnings { get; set; } = 0;
+    private int TotalFlips => HeadsCount + TailsCount;
+    private int HeadsCount { get; set; } = 0;
+    private int TailsCount { get; set; } = 0;
+    private int Score => (HeadsCount - TailsCount) * scoreAdjuster;
+    private int scoreAdjuster { get; set; } = 1;
+    private bool IsUserMakingChoice { get; set; } = false;
+    private bool ShowResetBtn { get; set; } = true;
+    private string ResetBtnText { get; set; } = "Heads/Tails";
+    private bool SideSelected = false;
+    // Calculate height for the bars based on counts
+    private double HeadsBarHeight => TotalFlips > 0 ? (double)HeadsCount / TotalFlips * 100 : 0;
+    private double TailsBarHeight => TotalFlips > 0 ? (double)TailsCount / TotalFlips * 100 : 0;
+    private bool isFlipping = false;
+    private string CoinImage = "images/kobo_front.png";
+    //private GiveawayData? _giveawayData;
+    //private UserGamePlayData? userGamePlayData;
+    private int ResetsLeft { get; set; } = 20;
+    private int TotalResetsAllowed { get; set; } = 20;
+    private bool isResetCountVisible = false;
+    private string resetCounterParagraphClass = ""; // Class for the paragraph
+    private List<HeartImage> HeartImages { get; set; } = new List<HeartImage>();
+    private string[] heartClass;  // Store classes for each heart for animation
+    private string _lastETag = null;
+    private bool isToastVisible;
+    private string toastMessage;
+    private bool ShowDialog = false;
+    private AlertDialogParams alertDialogParams = new AlertDialogParams();
+
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        //rethink. this is absolutely necessary. If null, its a problem innit?
+        //_giveawayData = await CommonFunctions.GetGiveawayDataFromFirebase();
+        //get latest data from firebase
+        //userGamePlayData = await CommonFunctions.GetUserGamePlayDataFromFirebase(PlayerUID);
+        //check the size of the reads
+
+        AddHeartImages();
+    }
+
+    private async Task AnimateNumberChange(Action<double> updateValue, double startValue, double endValue, int duration = 2000)
+    {
+        int stepDuration = 20; // Duration between each step (in milliseconds)
+        int steps = duration / stepDuration; // Total number of steps for the animation
+
+        // Calculate increment value per step
+        double incrementValue = (endValue - startValue) / steps;
+        double currentValue = startValue;
+
+        // Perform the animation in a loop
+        for (int i = 0; i < steps; i++)
+        {
+            currentValue += incrementValue; // Increment the value
+            updateValue(currentValue); // Update the value using the provided delegate
+            StateHasChanged(); // Notify Blazor to re-render the UI
+            await Task.Delay(stepDuration); // Wait for the next step
+        }
+
+        // Set the final value to ensure precision
+        updateValue(endValue);
+        StateHasChanged(); // Final update
+    }
+
+    //just quickly created an overloaded function. Look into this later
+    private async Task AnimateNumberChange(Action<int> updateValue, int startValue, int endValue, int duration = 2000)
+    {
+        int stepDuration = 20; // Duration between each step (in milliseconds)
+        int steps = duration / stepDuration; // Total number of steps for the animation
+
+        // Calculate increment value per step
+        int incrementValue = (endValue - startValue) / steps;
+        int currentValue = startValue;
+
+        // Perform the animation in a loop
+        for (int i = 0; i < steps; i++)
+        {
+            currentValue += incrementValue; // Increment the value
+            updateValue(currentValue); // Update the value using the provided delegate
+            StateHasChanged(); // Notify Blazor to re-render the UI
+            await Task.Delay(stepDuration); // Wait for the next step
+        }
+
+        // Set the final value to ensure precision
+        updateValue(endValue);
+        StateHasChanged(); // Final update
+    }
+
+    private async void ToggleResetCountVisibility()
+    {
+        isResetCountVisible = !isResetCountVisible; // Toggle the visibility
+
+        if (isResetCountVisible)
+        {
+            resetCounterParagraphClass = "fade-in"; // Apply fade-in class
+            StateHasChanged(); // Trigger re-render
+
+            await Task.Delay(2000); // Wait for 2 seconds (fade-in duration)
+
+            resetCounterParagraphClass = "fade-out"; // Apply fade-out class
+            await Task.Delay(2000); // Wait for 2 seconds (fade-out duration)
+
+            isResetCountVisible = false; // Set visibility to false after fade-out
+            resetCounterParagraphClass = ""; // Reset class
+            StateHasChanged(); // Trigger re-render
+        }
+        else
+        {
+            // If clicked again, immediately hide it (optional)
+            isResetCountVisible = false;
+            resetCounterParagraphClass = ""; // Reset class
+            StateHasChanged(); // Trigger re-render
+        }
+    }
+
+    private void OnChooseHeadsTapped()
+    {
+        PlayerChoice = "Heads";
+        scoreAdjuster = 1;
+        IsUserMakingChoice = true;
+    }
+
+    private void OnChooseTailsTapped()
+    {
+        PlayerChoice = "Tails";
+        scoreAdjuster = -1;
+        IsUserMakingChoice = true;
+    }
+
+    private async void OnLockInSelectionClicked()
+    {
+        Console.WriteLine(SideSelected);
+        // Logic for starting the game
+        SideSelected = true;
+        Console.WriteLine(SideSelected);
+
+        ResetBtnText = PlayerChoice == "Heads" ? "Tails" : "Heads";
+    }
+
+    private async void OnCoinTapped()
+    {
+        // Logic for flipping the coin
+        if (isFlipping || isMaxWinAchieved())
+            return; // Prevent multiple clicks while flipping
+
+        isFlipping = true;
+        StateHasChanged();
+
+        Random random = new Random();
+        int totalSpins = 15;  // Total number of flips (adjust as needed)
+
+        // Rotate the coin and switch images for a spinning effect
+        for (int i = 0; i < totalSpins; i++)
+        {
+            CoinImage = i % 2 == 0 ? "images/kobo_front.png" : "images/kobo_back.png"; // Alternate front/back
+            StateHasChanged();
+
+            await Task.Delay(100); // Adjust this value to control the speed of spinning
+        }
+
+        // Final outcome based on random result (0 = heads, 1 = tails)
+        if (random.Next(2) == 0)
+        {
+            CoinImage = "images/kobo_front.png"; // Set to heads
+            HeadsCount += 5;
+        }
+        else
+        {
+            CoinImage = "images/kobo_back.png"; // Set to tails
+            TailsCount += 5;
+        }
+
+        CheckForWin();
+
+        isFlipping = isMaxWinAchieved();
+
+        StateHasChanged(); // Update UI after flipping is complete
+    }
+
+    private async void startGameUISetup(UserGamePlayData userGamePlayData, GiveawayData giveawayData)
+    {
+        SideSelected = userGamePlayData.SelectedSides;
+        if (SideSelected)
+        {
+            PlayerChoice = userGamePlayData.PlayingHeads ? "Heads" : "Tails";
+        }
+        else
+        {
+            PlayerChoice = "Choose Heads/Tails";
+        }
+
+        ResetBtnText = PlayerChoice == "Heads" ? "Tails" : "Heads";
+        HeadsCount = userGamePlayData.HeadsCount;
+        TailsCount = userGamePlayData.TailsCount;
+        ResetsLeft = userGamePlayData.TotalResetsLeft;
+        scoreAdjuster = userGamePlayData.PlayingHeads ? 1 : -1;
+
+        await Task.WhenAll(
+            AnimateNumberChange(value => LeftoverGiveawayFunds = value, LeftoverGiveawayFunds, giveawayData.LeftoverGiveawayFunds),
+        AnimateNumberChange(value => MaxPossibleWinnings = value, MaxPossibleWinnings, userGamePlayData.MaxPossibleWinnings),
+        AnimateNumberChange(value => CurrentWinnings = value, CurrentWinnings, userGamePlayData.CurrentWinnings)
+        );
+
+    }
+    
+    private async void OnResetClicked()
+    {
+        ShowDialog = true;
+
+        int resetPenalty = 2000;
+        double resetMaxPossibleWinnings = MaxPossibleWinnings - resetPenalty;
+        resetMaxPossibleWinnings = Math.Max(resetMaxPossibleWinnings, 1000);
+        double resetCurrentWinnings = Math.Max(CurrentWinnings - resetPenalty, 0);
+
+        alertDialogParams.AlertTitle = $"Switch to {ResetBtnText}?";
+        alertDialogParams.AlertMessage = new MarkupString($"There will be a penalty of <strong>N{resetPenalty}</strong>!<br/><br/>" +
+                $"Maximum possible winnings will be reduced to <strong>N{resetMaxPossibleWinnings.ToString("N0")}</strong>! " +
+                 $"<br/><br/>Winnings will be reduced to <strong>N{resetCurrentWinnings.ToString("N0")}</strong>!");
+        alertDialogParams.OnPrimaryButtonClick = EventCallback.Factory.Create(this, AlertDialogPrimaryClicked);
+        alertDialogParams.OnSecondaryButtonClick = EventCallback.Factory.Create(this, AlertDialogSecondaryClicked);
+        //await LoadGameDataFromDb();
+    }
+
+
+    private async Task ResetUI()
+    {
+        await Task.WhenAll(
+        AnimateNumberChange(value => MaxPossibleWinnings = value, MaxPossibleWinnings, MaxPossibleWinnings - 2000),
+        AnimateNumberChange(value => CurrentWinnings = value, CurrentWinnings, Math.Max(CurrentWinnings - 2000, 0)),
+        AnimateNumberChange(value => HeadsCount = value, HeadsCount, 0),
+        AnimateNumberChange(value => TailsCount = value, TailsCount, 0),
+        TriggerHeartAnimation(ResetsLeft)
+        );
+        SideSelected = false;
+        PlayerChoice = "Choose Heads/Tails";
+        IsUserMakingChoice = false;
+        ResetsLeft -= 1;
+        AddHeartImages();
+        StateHasChanged();
+    }
+
+    private void AddHeartImages()
+    {
+        HeartImages = new List<HeartImage>();
+        int i = 0;
+
+        // Green hearts for resets remaining
+        for (i = 1; i <= ResetsLeft; i++)
+        {
+            if (i % 2 == 1)
+            {
+                HeartImages.Add(new HeartImage
+                    {
+                        Source = "images/green_heart_left.png",
+                        Id = i
+                    });
+            }
+            else
+            {
+                HeartImages.Add(new HeartImage
+                    {
+                        Source = "images/green_heart_right.png",
+                        Id = i
+                    });
+            }
+        }
+
+        // Grey hearts for the number of used resets
+        for (int j = i; j < i + TotalResetsAllowed - ResetsLeft; j++)
+        {
+            if (j % 2 == 1)
+            {
+                HeartImages.Add(new HeartImage
+                    {
+                        Source = "images/grey_heart_left.png",
+                        Id = j
+                    });
+            }
+            else
+            {
+                HeartImages.Add(new HeartImage
+                    {
+                        Source = "images/grey_heart_right.png",
+                        Id = j
+                    });
+            }
+        }
+
+        heartClass = new string[HeartImages.Count];
+    }
+
+    private class HeartImage
+    {
+        public string Source { get; set; }
+        public int Id { get; set; }
+    }
+
+    //TODO: Currently animation is not working. look into how to trigger it
+    private async Task TriggerHeartAnimation(int heartId)
+    {
+        // Remove the class briefly to reset the animation
+        heartClass[heartId - 1] = "";
+        StateHasChanged();
+
+        // Wait a brief moment to allow reflow, then re-apply the animation class
+        await Task.Delay(50);
+        heartClass[heartId - 1] = "heart-drop";
+        StateHasChanged();  // Re-render the UI
+    }
+
+    private async void CheckForWin()
+    {
+        bool playerWon = false;
+        //ShowCashOutBtn = false;
+        //ShowResetBtn = !ShowCashOutBtn;
+        string roundCompleteMsg = $"Round {(TotalFlips / 100)} complete!";
+        string winMsg = string.Empty;
+        string lossMsg = "You did not win this time.";
+        string additionalMsg = string.Empty;
+        double winning = 0;
+        int loss = 0;
+
+        // Check for win only when total flips reach a multiple of 100
+        if (TotalFlips >= 100 && TotalFlips % 100 == 0)
+        {
+            if (Score >= 0)
+            {
+                playerWon = true;
+
+                if (Score == 0)     //A draw (BINGO)
+                {
+                    winning = 5000;
+                }
+                else if (Score >= 10)    //A big win
+                {
+                    winning = 2000;
+                }
+                else    //A small win
+                {
+                    winning = 500;
+                }
+
+                await AnimateNumberChange(value => CurrentWinnings = value, CurrentWinnings, CurrentWinnings + winning);
+
+                //CurrentWinnings += winning;
+
+                //check if current round winning puts you above max possible win
+                if (CurrentWinnings > MaxPossibleWinnings)
+                {
+                    CurrentWinnings -= winning;
+                    winning = MaxPossibleWinnings - CurrentWinnings;
+                    CurrentWinnings = MaxPossibleWinnings;
+                }
+
+                winMsg = $"You won N{winning.ToString("N0")}! ";
+            }
+            else
+            {
+                playerWon = false;
+
+                if (CurrentWinnings > 0)
+                {
+                    if (Score <= -10)    //A big loss
+                    {
+                        loss = 1000;
+                    }
+                    else    //A small loss
+                    {
+                        loss = 500;
+                    }
+
+                    await AnimateNumberChange(value => CurrentWinnings = value, CurrentWinnings, CurrentWinnings - loss);
+
+                    lossMsg = $"You lost N{loss.ToString("N0")}!";
+                }
+            }
+
+            if (playerWon)
+            {
+                if (isMaxWinAchieved())
+                {
+                    winMsg = $"You can now cashout your winnings of N{CurrentWinnings.ToString("N0")}";
+                }
+                additionalMsg = winMsg;
+            }
+            else
+            {
+                // Player did not meet winning criteria
+                additionalMsg = lossMsg;
+            }
+
+            ShowToast(additionalMsg);
+        }
+    }
+
+    private bool isMaxWinAchieved()
+    {
+        if (CurrentWinnings == MaxPossibleWinnings)
+        {
+            return true;
+        }
+        return false;
+    }
+
+
+
+    private async void AlertDialogPrimaryClicked()
+    {
+        ShowDialog = false;
+
+        if (ShowResetBtn)
+        {
+            await ResetUI();
+            ShowToast($"You can switch now");
+        }
+    }
+
+    private void AlertDialogSecondaryClicked()
+    {
+        ShowDialog = false;
+    }
+
+    private void ShowToast(string message)
+    {
+        toastMessage = message;
+        isToastVisible = true;
+
+        // Auto-hide the toast after 5 seconds
+        _ = Task.Delay(5000).ContinueWith(t =>
+        {
+            InvokeAsync(() =>
+            {
+                isToastVisible = false;
+                StateHasChanged();
+            });
+        });
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await JSRuntime.InvokeVoidAsync("onPageExit", DotNetObjectReference.Create(this));
+        }
+    }
+
+    [JSInvokable]
+    public void SaveProgressOnExit()
+    {
+        // Logic to save progress goes here
+        // e.g., Save to IndexedDB or trigger an API to save progress
+        Console.WriteLine("Saving progress on page exit...");
+    }
+
+    [JSInvokable]
+    public async void HandleBackButtonPress()
+    {
+        
+    }
+}

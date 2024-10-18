@@ -27,12 +27,16 @@ namespace JusGiveawayWebApp.Helpers
             //if null, display error
             return await _firebaseService.ReadDataAsync<GiveawayData>($"Giveaways/A");
         }
+        public async Task<string> GetGiveawayStartDateFromFirebase()
+        {
+            //if null, display error
+            return await _firebaseService.ReadDataAsync<string>($"Giveaways/A/StartDate");
+        }
         public async Task<int> GetLeftoverGiveawayFundsFromFirebase()
         {
             //if null, display error
             return await _firebaseService.ReadDataAsync<int>($"Giveaways/A/LeftoverGiveawayFunds");
         }
-
 
         public async Task<bool> SaveNewUserToFirebase(UserInfo newUser)
         {
@@ -44,6 +48,19 @@ namespace JusGiveawayWebApp.Helpers
         {
             //if null, display error
             return await _firebaseService.WriteDataAsync<UserGamePlayData>($"AllUsers/{userGamePlayData.UID}/GamePlayData", userGamePlayData);
+        }
+        public async Task<bool> SaveUserSurveyToFirebase(bool interested)
+        {
+            if (interested)
+            {
+                int interestedCount = await _firebaseService.ReadDataAsync<int>($"Survey/Interested");
+                return await _firebaseService.WriteDataAsync<int>($"Survey/Interested", ++interestedCount);
+            }
+            else
+            {
+                int notInterestedCount = await _firebaseService.ReadDataAsync<int>($"Survey/NotInterested");
+                return await _firebaseService.WriteDataAsync<int>($"Survey/NotInterested", ++notInterestedCount);
+            }
         }
 
         public async Task<string> GetUsersNameFromFirebase(string uid)
@@ -86,6 +103,16 @@ namespace JusGiveawayWebApp.Helpers
         public UserInfo? GetUserInfoFromIndexedDb(JusGiveawayDB db, string uid)
         {
             return db.UserInfo.FirstOrDefault(u => u.UID == uid);
+        }
+        public bool GetSurveyResultFromIndexedDb(JusGiveawayDB db)
+        {
+            var user = db.UserInfo.FirstOrDefault(u => u.TookSurvey == true);
+            return user?.TookSurvey ?? false;
+        }
+        public bool GetTesterFromIndexedDb(JusGiveawayDB db)
+        {
+            var user = db.UserInfo.FirstOrDefault(u => u.Tester == true);
+            return user?.Tester ?? false;
         }
 
         public UserGamePlayData? GetUserGamePlayDataFromIndexedDb(JusGiveawayDB db, string uid)

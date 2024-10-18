@@ -16,6 +16,8 @@ namespace JusGiveawayWebApp.Models
         [NotNull]
         public string EmailAddress { get; set; }
         public string? DeviceInfo { get; set; }
+        public bool TookSurvey { get; set; }
+        public bool Tester { get; set; }
 
         public UserInfo()
         {
@@ -26,6 +28,8 @@ namespace JusGiveawayWebApp.Models
             PhoneNumber = null;
             EmailAddress = "";
             DeviceInfo = null;
+            TookSurvey = false;
+            Tester = false;
         }
     }
 }

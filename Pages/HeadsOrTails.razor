@@ -256,7 +256,7 @@
         }
 
         AddHeartImages();
-        GetLeftoverGiveawayFundsFromFirebase();
+        await GetLeftoverGiveawayFundsFromFirebase();
     }
 
     private async Task LoadGameDataFromDb()
@@ -492,7 +492,7 @@
     {
         ShowDialog = true;
         alertDialogParams.AlertTitle = "Cash Out?";
-        alertDialogParams.AlertMessage = new MarkupString($"Are you sure you are ready to cash out N{userGamePlayData.CurrentWinnings.ToString("N0")}?");
+        alertDialogParams.AlertMessage = new MarkupString($"Are you sure you are ready to cash out N{CurrentWinnings.ToString("N0")}?");
         alertDialogParams.OnPrimaryButtonClick = EventCallback.Factory.Create(this, AlertDialogPrimaryClicked);
         alertDialogParams.OnSecondaryButtonClick = EventCallback.Factory.Create(this, AlertDialogSecondaryClicked);
     }
@@ -530,7 +530,7 @@
                     userGamePlayData.HeadsCount = 0;
                     userGamePlayData.TailsCount = 0;
                     userGamePlayData.MaxPossibleWinnings -= _giveawayData.MonetaryResetPenalty;
-                    userGamePlayData.CurrentWinnings -= _giveawayData.MonetaryResetPenalty;
+                    userGamePlayData.CurrentWinnings = (int)Math.Max(CurrentWinnings - _giveawayData.MonetaryResetPenalty, 0);
                     userGamePlayData.TotalResetsLeft -= 1;
                     userGamePlayData.LifetimeHeadsCount += HeadsCount;
                     userGamePlayData.LifetimeTailsCount += TailsCount;
@@ -559,7 +559,7 @@
     {
         await Task.WhenAll(
         AnimateNumberChange(value => MaxPossibleWinnings = value, MaxPossibleWinnings, MaxPossibleWinnings - _giveawayData.MonetaryResetPenalty),
-        AnimateNumberChange(value => CurrentWinnings = value, CurrentWinnings, CurrentWinnings - _giveawayData.MonetaryResetPenalty),
+        AnimateNumberChange(value => CurrentWinnings = value, CurrentWinnings, Math.Max(CurrentWinnings - _giveawayData.MonetaryResetPenalty, 0)),
         AnimateNumberChange(value => HeadsCount = value, HeadsCount, 0),
         AnimateNumberChange(value => TailsCount = value, TailsCount, 0),
         TriggerHeartAnimation(ResetsLeft)
@@ -807,31 +807,98 @@
         }
     }
 
-    private async void GetLeftoverGiveawayFundsFromFirebase()
+    private async Task GetLeftoverGiveawayFundsFromFirebase()
     {
         try
         {
             // Start polling every 60 seconds (60000 milliseconds)
             _timer = new Timer(async _ =>
             {
-                // Capture the response from the Firebase service call
-                var response = await FirebaseService.PollFirebaseForLeftoverGiveawayFunds(_lastETag);
-
-                // Store the response in a variable
-                if (response != null)
+                try
                 {
-                    httpResponseMessage = response;
-                    StateHasChanged();
-                    _lastETag = httpResponseMessage.Headers.ETag?.Tag ?? null;
+                    // Capture the response from the Firebase service call
+                    var response = await FirebaseService.PollFirebaseForLeftoverGiveawayFunds(_lastETag);
 
-                    var currentLeftoverGiveawayFunds = int.Parse(await response.Content.ReadAsStringAsync());
-                    await AnimateNumberChange(value => LeftoverGiveawayFunds = value, LeftoverGiveawayFunds, currentLeftoverGiveawayFunds);
+                    // Store the response in a variable
+                    if (response != null)
+                    {
+                        httpResponseMessage = response;
+                        StateHasChanged();
+                        _lastETag = httpResponseMessage.Headers.ETag?.Tag ?? null;
+
+                        var currentLeftoverGiveawayFunds = int.Parse(await response.Content.ReadAsStringAsync());
+                        await AnimateNumberChange(value => LeftoverGiveawayFunds = value, LeftoverGiveawayFunds, currentLeftoverGiveawayFunds);
+
+                        await UpdateMonetaryValuesBasedOnLeftverFunds();
+                    }
                 }
-            }, null, 0, 60000);
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error during polling: {ex.Message}");
+                }
+            }, null, 0, 5000);
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Error fetching data: {ex.Message}");
+        }
+    }
+
+    private async Task UpdateMonetaryValuesBasedOnLeftverFunds()
+    {
+        Console.WriteLine("Update max and win function - "+LeftoverGiveawayFunds.ToString("N0")+ MaxPossibleWinnings.ToString("N0")+ CurrentWinnings.ToString("N0"));
+        //adjust users current winnings and maximum win amounts to match leftoverfunds
+        if (LeftoverGiveawayFunds <= CurrentWinnings || LeftoverGiveawayFunds <= MaxPossibleWinnings)
+        {
+            if (LeftoverGiveawayFunds <= CurrentWinnings)
+            {
+                await Task.WhenAll(
+                     AnimateNumberChange(value => CurrentWinnings = value, CurrentWinnings, LeftoverGiveawayFunds),
+                 AnimateNumberChange(value => MaxPossibleWinnings = value, MaxPossibleWinnings, LeftoverGiveawayFunds));
+            }
+            else if (LeftoverGiveawayFunds <= MaxPossibleWinnings)
+            {
+                await AnimateNumberChange(value => MaxPossibleWinnings = value, MaxPossibleWinnings, LeftoverGiveawayFunds);
+            }
+
+            var userGamePlayData = new UserGamePlayData();
+
+            //get most recent data from indexeddb
+            try
+            {
+                using (var db = await this.DbFactory.Create<JusGiveawayDB>())
+                {
+                    userGamePlayData = CommonFunctions.GetUserGamePlayDataFromIndexedDb(db, PlayerUID);
+
+                    if (userGamePlayData != null)
+                    {
+                        userGamePlayData.CurrentWinnings = (int)CurrentWinnings;
+                        userGamePlayData.MaxPossibleWinnings = (int)MaxPossibleWinnings;
+
+                        await db.SaveChanges();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+
+            //save usergameplaydata to firebase
+            if (userGamePlayData != null)
+            {
+                try
+                {
+                    bool userSaved = await CommonFunctions.SaveUserGamePlayDataToFirebase(userGamePlayData);
+                }
+                catch (Exception x)
+                {
+                    Console.WriteLine($"Error saving gameplay data to firebase - {x.Message}");
+                }
+            }
+
+            //check if we should lock game
+            isMaxWinAchieved();
         }
     }
 

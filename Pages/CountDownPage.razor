@@ -2,7 +2,10 @@
 @inject NavigationManager NavigationManager
 @inject JusGiveawayWebApp.Services.FirebaseService FirebaseService
 @inject JusGiveawayWebApp.Helpers.CommonFunctions CommonFunctions
+@using JusGiveawayWebApp.Helpers
 @using JusGiveawayWebApp.Models
+@inject IndexedDB.Blazor.IIndexedDbFactory DbFactory
+
 
 <div class="phone-container">
     <div class="phone-screen">
@@ -38,7 +41,41 @@
                     </div>
                 </div>
             </div>
+            
+
         </div>
+        <div class="entry-container">
+            <InputText @bind-Value="testCode" placeholder="Testers only....." class="entry" @oninput="e => UpdateTestCode(e)" />
+            <button class="centered-button" @onclick="OnTesterBtnClicked" disabled="@(!isCodeValid)">Tester Login</button>
+        </div>
+
+        <div style="text-align: center; margin-top: 30px;">
+            <h4 style="color: #333;">Countdown to our giveaway</h4>
+            <p style="font-size: 1.2rem; color: #555;">
+                Try out "Heads o' Tails" below
+            </p>
+        </div>
+
+        <div style="text-align: center; margin-top:5px">
+            <button class="centered-button" @onclick="OnDemoClicked">Play Demo</button>
+            <button class="centered-button" @onclick="ShowHeadsOrTailsInstructions">How to Play</button>
+        </div>
+
+        @if (ShowSurvey)
+        {
+            <div style="text-align: center; margin-top: 20px;">
+                <p style="font-size: 1.2rem; color: #555;">
+                    Will you play "Heads o' Tails" when we launch?
+                </p>
+            </div>        <div style="text-align: center; margin-top:5px">
+                <button class="centered-button" @onclick="OnSurveyYesClicked">Yes</button>
+                <button class="centered-button" @onclick="OnSurveyNoClicked">No</button>
+            </div>
+        }
+        <!-- Import the instruction pop-up component -->
+        <HeadsOrTailsInstructionsPage @ref="headsOrTailsInstructionsPopup" />
+
+        <CustomAlertDialog ShowDialog="@ShowDialog" DialogParams="@alertDialogParams" />
     </div>
 </div>
 
@@ -47,19 +84,50 @@
     private DateTime giveawayStartDate;
     private int days, hours, minutes, seconds;
     private GiveawayData? _giveawayData;
+    private string testCode;
+    private HeadsOrTailsInstructionsPage headsOrTailsInstructionsPopup;
+    private bool isCodeValid =>
+        !string.IsNullOrEmpty(testCode)&& testCode == "37652";
+
+    private bool ShowDialog = false;
+    private AlertDialogParams alertDialogParams = new AlertDialogParams();
+    private bool ShowSurvey = true;
 
     protected override async Task OnInitializedAsync()
     {
-        CheckDataSize();
+        //read survey from indexeddb
+        try
+        {
+            using (var db = await this.DbFactory.Create<JusGiveawayDB>())
+            {
+                bool surveyTaken = CommonFunctions.GetSurveyResultFromIndexedDb(db);
+
+                if (surveyTaken)
+                {
+                    ShowSurvey = false;
+                }
+                else
+                {
+                    ShowSurvey = true;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+        }
+
         //change this to only get the startdate. Limiting how much we get from db
-        _giveawayData = await CommonFunctions.GetGiveawayDataFromFirebase();
+        //_giveawayData = await CommonFunctions.GetGiveawayDataFromFirebase();//CheckDataSize(); I want to check the difference btw retrieving all vs just the data
+        var startDate = await CommonFunctions.GetGiveawayStartDateFromFirebase();
+
         // Trigger the countdown when the page is loaded
-        await StartCountdown();
+        await StartCountdown(startDate);
     }
 
-    private async Task StartCountdown()
+    private async Task StartCountdown(string startDate)
     {
-        GetGiveawayStartDate(_giveawayData);
+        GetGiveawayStartDate(startDate);
         _isCountdownRunning = true;
 
         while (_isCountdownRunning)
@@ -90,17 +158,17 @@
         }
     }
 
-    private void GetGiveawayStartDate(GiveawayData? giveawayData)
+    private void GetGiveawayStartDate(string? startDate)
     {
         //2024/10/11 00:55:33
         //Date 12:55:33 (this is the target date time. Use this for future testing)
-        if (giveawayData == null)
+        if (startDate == null)
         {
             giveawayStartDate = DateTime.Now.AddDays(60);
             return;
         }
 
-        if (!DateTime.TryParseExact(giveawayData.StartDate, "yyyy/MM/dd HH:mm:ss",
+        if (!DateTime.TryParseExact(startDate, "yyyy/MM/dd HH:mm:ss",
             System.Globalization.CultureInfo.InvariantCulture, 
             System.Globalization.DateTimeStyles.None, out giveawayStartDate))
         {
@@ -112,7 +180,121 @@
     {
         // Navigate to another page or show a message (example)
         Console.WriteLine("Countdown Completed!");
-        NavigationManager.NavigateTo("/mainpage");
+        NavigationManager.NavigateTo("/");
+    }
+
+    private void UpdateTestCode(ChangeEventArgs e)
+    {
+        testCode = e.Value?.ToString() ?? string.Empty;
+        StateHasChanged();
+    }
+
+    private void OnDemoClicked()
+    {
+        NavigationManager.NavigateTo("/heads-or-tails-demo/");
+    }
+
+    private async void OnTesterBtnClicked()
+    {
+        await SaveTesterToIndexedDb();
+        NavigationManager.NavigateTo("/");
+    }
+
+    private void OnSurveyYesClicked()
+    {
+        ShowDialog = true;
+        alertDialogParams.AlertTitle = "Please Confirm";
+        alertDialogParams.AlertMessage = new MarkupString("Will you be back to play?");
+        alertDialogParams.PrimaryBtnText = "Yes";
+        alertDialogParams.SecondaryBtnText = "Go back";
+        alertDialogParams.OnPrimaryButtonClick = EventCallback.Factory.Create(this, AlertDialogPrimaryClickedSurveyYes);
+        alertDialogParams.OnSecondaryButtonClick = EventCallback.Factory.Create(this, AlertDialogSecondaryClickedSurveyYes);
+    }
+
+    private void OnSurveyNoClicked()
+    {
+        ShowDialog = true;
+        alertDialogParams.AlertTitle = "Oh no...";
+        alertDialogParams.AlertMessage = new MarkupString("Maybe next time. Thanks for trying our demo");
+        alertDialogParams.PrimaryBtnText = "Yes, next time";
+        alertDialogParams.SecondaryBtnText = "Go back";
+        alertDialogParams.OnPrimaryButtonClick = EventCallback.Factory.Create(this, AlertDialogPrimaryClickedSurveyNo);
+        alertDialogParams.OnSecondaryButtonClick = EventCallback.Factory.Create(this, AlertDialogSecondaryClickedSurveyNo);
+    }
+
+    private async void AlertDialogPrimaryClickedSurveyYes()
+    {
+        ShowDialog = false;
+        ShowSurvey = false;
+        //save to firebase db
+        await CommonFunctions.SaveUserSurveyToFirebase(true);
+
+        await SaveUserSurveyToIndexedDb();
+    }
+
+    private void AlertDialogSecondaryClickedSurveyYes()
+    {
+        ShowDialog = false;
+    }
+
+    private async void AlertDialogPrimaryClickedSurveyNo()
+    {
+        ShowDialog = false;
+        ShowSurvey = false;
+        //save to firebase db
+        await CommonFunctions.SaveUserSurveyToFirebase(false);
+
+        await SaveUserSurveyToIndexedDb();
+    }
+
+    private async Task SaveUserSurveyToIndexedDb()
+    {
+        //store survey in indexeddb
+        try
+        {
+            using (var db = await this.DbFactory.Create<JusGiveawayDB>())
+            {
+                db.UserInfo.Add(new UserInfo()
+                    {
+                        TookSurvey = true
+                    });
+                await db.SaveChanges();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+        }
+    }
+
+    private async Task SaveTesterToIndexedDb()
+    {
+        //store tester in indexeddb
+        try
+        {
+            using (var db = await this.DbFactory.Create<JusGiveawayDB>())
+            {
+                db.UserInfo.Add(new UserInfo()
+                    {
+                        Tester = true
+                    });
+                await db.SaveChanges();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+        }
+    }
+
+    private void AlertDialogSecondaryClickedSurveyNo()
+    {
+        ShowDialog = false;
+    }
+
+    private void ShowHeadsOrTailsInstructions()
+    {
+        headsOrTailsInstructionsPopup.ShowPopup();
     }
 
     private string result;

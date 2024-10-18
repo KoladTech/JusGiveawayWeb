@@ -65,12 +65,55 @@
     private string password;
     private bool isLoading = false;
     private bool isToastVisible;
-    private string toastMessage;
+    private string toastMessage;    
+    private DateTime giveawayStartDate;
+    private bool isTester;
 
     private bool btnEnabled = false;
 
     protected override async Task OnInitializedAsync()
     {
+        //read tester from indexeddb
+        try
+        {
+            using (var db = await this.DbFactory.Create<JusGiveawayDB>())
+            {
+                bool surveyTaken = CommonFunctions.GetTesterFromIndexedDb(db);
+
+                if (surveyTaken)
+                {
+                    isTester = true;
+                }
+                else
+                {
+                    isTester = false;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+        }
+
+        //check if we should navigate to the countdownpage
+        var startDate = await CommonFunctions.GetGiveawayStartDateFromFirebase();
+
+        if (!DateTime.TryParseExact(startDate, "yyyy/MM/dd HH:mm:ss",
+            System.Globalization.CultureInfo.InvariantCulture, 
+            System.Globalization.DateTimeStyles.None, out giveawayStartDate))
+        {
+            Console.WriteLine("Invalid starting date format retrieved from database");
+            NavigationManager.NavigateTo("/");
+        }
+        TimeSpan remainingTime = giveawayStartDate - DateTime.Now;
+
+        if (remainingTime.TotalSeconds > 0 && !isTester)
+        {
+            // Countdown complete
+            NavigationManager.NavigateTo("/countdownpage");
+        }
+
+
         if (CustomNavStack.Pages.Count != 0)
         {
             var signInPage = CustomNavStack.FindPageByName("SignInPage");

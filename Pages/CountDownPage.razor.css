@@ -17,7 +17,7 @@
 
 .vertical-stack-layout {
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     align-items: center;
 }
 
@@ -52,4 +52,46 @@
 
 .seconds-label {
     color: #FF6347;
+}
+
+.button-container {
+    display: flex; /* Enables Flexbox */
+    justify-content: center; /* Horizontally center the button */
+    align-items: center; /* Vertically center the button */
+    width: 100%; /* Optional: Make container full width */
+    margin-top: 20px; /* Optional: Add some spacing at the top */
+}
+
+.centered-button {
+    padding: 10px 20px;
+    font-size: 16px;
+    background-color: #468fa2; /* Optional: Button color */
+    color: white;
+    border: none;
+    border-radius: 10px; /* Rounded corners for a modern look */
+    cursor: pointer;
+    transition: background-color 0.3s ease; /* Smooth hover effect */
+}
+
+    .centered-button:hover {
+        background-color: #267724; /* Darker shade on hover */
+    }
+
+    .centered-button:disabled {
+        background-color: #d3d3d3; /* Grey background for disabled state */
+        color: #a9a9a9; /* Light grey text for disabled state */
+        cursor: not-allowed; /* Change cursor to indicate disabled state */
+    }
+
+.entry-container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between; /* Adjusts spacing between input and button */
+    gap: 10px; /* Adds space between input and button */
+    margin-top: 10px; /* Optional: Adds some space above the container */
+}
+.entry {
+    flex-grow: 1; /* Ensures input takes up available space */
+    padding: 8px; /* Adds some padding to the input */
+    font-size: 16px; /* Optional: Adjusts font size */
 }

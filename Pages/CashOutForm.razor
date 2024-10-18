@@ -43,8 +43,13 @@
 
             <label>Email</label>
             <div class="entry-frame">
-                <InputText @bind-Value="email" placeholder="Enter your email" type="email" class="entry" @oninput="e => UpdateEmail(e)" />
-		    </div>
+                <InputText @bind-Value="email" placeholder="Enter email" type="email" class="entry" @oninput="e => UpdateEmail(e)" />
+            </div>
+
+            <label>Phone #</label>
+            <div class="entry-frame">
+                <InputText @bind-Value="phoneNum" placeholder="Enter cellphone# (+234xxxxxxxxxx)" class="entry" @oninput="e => UpdatePhoneNum(e)" />
+            </div>
 
 		    <label>Bank Name</label>
 		    <div class="entry-frame">
@@ -106,6 +111,7 @@
     private string firstName;
     private string lastName;
     private string email;
+    private string phoneNum;
     private string bankName;
     private string acctNum;
     private string password; //should I do something like sign in again to make sure its user cashing out?
@@ -139,6 +145,7 @@
         !string.IsNullOrEmpty(firstName) &&
         !string.IsNullOrEmpty(firstName) &&
         !string.IsNullOrEmpty(email) &&
+        !string.IsNullOrEmpty(phoneNum) &&
         !string.IsNullOrEmpty(bankName) &&
         !string.IsNullOrEmpty(acctNum);
     private bool cashOutInfoSubmitted = false;
@@ -192,6 +199,12 @@
     private void UpdateEmail(ChangeEventArgs e)
     {
         email = e.Value?.ToString() ?? string.Empty;
+        StateHasChanged();
+    }
+
+    private void UpdatePhoneNum(ChangeEventArgs e)
+    {
+        phoneNum = e.Value?.ToString() ?? string.Empty;
         StateHasChanged();
     }
 
