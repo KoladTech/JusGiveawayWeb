@@ -171,18 +171,32 @@ a, .btn-link {
         content: "An error has occurred."
     }
 
+.loading-splash {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    height: 100vh; /* Ensure full-screen centering */
+}
+
+.splash-image {
+    width: 180px;
+    height: 180px;
+    display: block;
+    margin-bottom: 20px; /* Space between image and loading circle */
+}
+
 .loading-progress {
     position: relative;
     display: block;
     width: 8rem;
     height: 8rem;
-    margin: 20vh auto 1rem auto;
 }
 
     .loading-progress circle {
         fill: none;
         stroke: #e0e0e0;
-        stroke-width: 0.6rem;
+        stroke-width: 0.45rem;
         transform-origin: 50% 50%;
         transform: rotate(-90deg);
     }
@@ -197,11 +211,13 @@ a, .btn-link {
     position: absolute;
     text-align: center;
     font-weight: bold;
-    inset: calc(20vh + 3.25rem) 0 auto 0.2rem;
+    top: 50%; /* Center the text within the circle */
+    left: 50%;
+    transform: translate(-50%, -50%);
 }
 
     .loading-progress-text:after {
-        content: var(--blazor-load-percentage-text, "Loading");
+        content: var(--blazor-load-percentage-text, "Loading...");
     }
 
 code {

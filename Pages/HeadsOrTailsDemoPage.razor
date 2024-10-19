@@ -111,8 +111,21 @@
                 </div>
             </div>
 
-            <div class="button-container">
-                <button @onclick="OnResetClicked" class="centered-button transition-fade @(ShowResetBtn ? "show" : "hidden")">Switch to @ResetBtnText</button>
+            <!-- Button container with Flexbox layout -->
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+
+                <!-- Back button (left-aligned) -->
+                <button @onclick="OnBackBtnClicked" class="back-button">
+                    <img src="images/back_icon.png" class="back-icon" />
+                </button>
+
+                <!-- Spacer to ensure the right button stays aligned on the right -->
+                <div style="flex-grow: 1;"></div>
+
+                <!-- Reset button (right-aligned) -->
+                <button @onclick="OnResetClicked" class="centered-button transition-fade @(ShowResetBtn ? "show" : "hidden")">
+                    Switch to @ResetBtnText
+                </button>
             </div>
         </div>
     </div>
@@ -588,5 +601,10 @@
     public async void HandleBackButtonPress()
     {
         
+    }
+
+    private void OnBackBtnClicked()
+    {
+        NavigationManager.NavigateTo("/countdownpage");
     }
 }

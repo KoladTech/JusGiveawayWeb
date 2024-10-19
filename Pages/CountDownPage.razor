@@ -10,39 +10,40 @@
 <div class="phone-container">
     <div class="phone-screen">
         <div class="vertical-stack-layout center-content">
-            <!-- Logo -->
-            <img src="images/logo_green.png" alt="Logo" class="jg-logo" />
+            <div class="countdown-container">
+                <!-- Logo -->
+                <img src="images/logo_green.png" alt="Logo" class="countdown-logo" />
+                <h2 class="countdown-title">Countdown</h2>
 
-            <!-- Countdown Timer -->
-            <div class="frame">
-                <div class="vertical-stack-layout">
-                    <!-- Days -->
-                    <div class="stack-layout">
-                        <span class="countdown-label days-label">@days</span>
-                        <span class="countdown-unit">Days</span>
-                    </div>
+                <!-- Countdown Timer -->
+                <div class="frame">
+                    <div class="vertical-stack-layout">
+                        <!-- Days -->
+                        <div class="stack-layout">
+                            <span class="countdown-label days-label">@days</span>
+                            <span class="countdown-unit">Days</span>
+                        </div>
 
-                    <!-- Hours -->
-                    <div class="stack-layout">
-                        <span class="countdown-label hours-label">@hours</span>
-                        <span class="countdown-unit">Hours</span>
-                    </div>
+                        <!-- Hours -->
+                        <div class="stack-layout">
+                            <span class="countdown-label hours-label">@hours</span>
+                            <span class="countdown-unit">Hours</span>
+                        </div>
 
-                    <!-- Minutes -->
-                    <div class="stack-layout">
-                        <span class="countdown-label minutes-label">@minutes</span>
-                        <span class="countdown-unit">Minutes</span>
-                    </div>
+                        <!-- Minutes -->
+                        <div class="stack-layout">
+                            <span class="countdown-label minutes-label">@minutes</span>
+                            <span class="countdown-unit">Minutes</span>
+                        </div>
 
-                    <!-- Seconds -->
-                    <div class="stack-layout">
-                        <span class="countdown-label seconds-label">@seconds</span>
-                        <span class="countdown-unit">Seconds</span>
+                        <!-- Seconds -->
+                        <div class="stack-layout">
+                            <span class="countdown-label seconds-label">@seconds</span>
+                            <span class="countdown-unit">Seconds</span>
+                        </div>
                     </div>
                 </div>
             </div>
-            
-
         </div>
         <div class="entry-container">
             <InputText @bind-Value="testCode" placeholder="Testers only....." class="entry" @oninput="e => UpdateTestCode(e)" />
@@ -50,9 +51,9 @@
         </div>
 
         <div style="text-align: center; margin-top: 30px;">
-            <h4 style="color: #333;">Countdown to our giveaway</h4>
+            <h4 style="color: #333;">While you wait</h4>
             <p style="font-size: 1.2rem; color: #555;">
-                Try out "Heads o' Tails" below
+                Try out "Heads or Tails" below
             </p>
         </div>
 
@@ -64,6 +65,7 @@
         @if (ShowSurvey)
         {
             <div style="text-align: center; margin-top: 20px;">
+                <h4 style="color: #333;">Answer Quick Survey</h4>
                 <p style="font-size: 1.2rem; color: #555;">
                     Will you play "Heads o' Tails" when we launch?
                 </p>
@@ -203,8 +205,8 @@
     private void OnSurveyYesClicked()
     {
         ShowDialog = true;
-        alertDialogParams.AlertTitle = "Please Confirm";
-        alertDialogParams.AlertMessage = new MarkupString("Will you be back to play?");
+        alertDialogParams.AlertTitle = "Did you like the Demo?";
+        alertDialogParams.AlertMessage = new MarkupString("Will you be back to play when we launch?");
         alertDialogParams.PrimaryBtnText = "Yes";
         alertDialogParams.SecondaryBtnText = "Go back";
         alertDialogParams.OnPrimaryButtonClick = EventCallback.Factory.Create(this, AlertDialogPrimaryClickedSurveyYes);

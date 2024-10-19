@@ -102,7 +102,6 @@
 
             <!-- Score -->
             <div class="gameplay-content-centered">
-                @* <p>Score: <span style="color: @(Score >= 0 ? "green" : "red")">@Score</span></p> *@
                 <div class="score-display">
                     <p class="score-text">
                         Score:
@@ -111,12 +110,34 @@
                 </div>
             </div>
 
-            <div class="button-container">
-                <button @onclick="OnResetClicked" class="centered-button transition-fade @(ShowResetBtn ? "show" : "hidden")">Switch to @ResetBtnText</button>
-			</div>
-			<div class="button-container">
-				<button @onclick="OnCashOutClicked" class="transition-fade @(ShowCashOutBtn ? "show" : "hidden") centered-button">Cash Out</button>
-			</div>
+            <!-- Button container with Flexbox layout -->
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+
+                <!-- Back button (left-aligned) -->
+                <button @onclick="OnBackBtnClicked" class="back-button">
+                    <img src="images/back_icon.png" class="back-icon" />
+                </button>
+
+                <!-- Spacer to ensure the right button stays aligned on the right -->
+                <div style="flex-grow: 1;"></div>
+
+                <!-- Reset button (right-aligned) -->
+                <button @onclick="OnResetClicked" class="centered-button transition-fade @(ShowResetBtn ? "show" : "hidden")">
+                    Switch to @ResetBtnText
+                </button>
+
+                <!-- Cash Out button (right-aligned) -->
+                <button @onclick="OnCashOutClicked" class="transition-fade @(ShowCashOutBtn ? "show" : "hidden") centered-button">
+                    Cash Out
+                </button>
+            </div>
+
+
+            <div class="win-message @(isWinning ? "animate" : "")">
+                @(EndOfRoundMessage)
+            </div>
+
+
         </div>
     </div>
 </div>
@@ -143,6 +164,7 @@
     private bool ShowResetBtn { get; set; } = true;
     private string ResetBtnText { get; set; } = "Heads/Tails";
     private bool SideSelected = false;
+    private string EndOfRoundMessage { get; set; } = "";
     // Calculate height for the bars based on counts
     private double HeadsBarHeight => TotalFlips > 0 ? (double)HeadsCount / TotalFlips * 100 : 0;
     private double TailsBarHeight => TotalFlips > 0 ? (double)TailsCount / TotalFlips * 100 : 0;
@@ -165,6 +187,8 @@
     private bool ShowDialog = false;
     private AlertDialogParams alertDialogParams = new AlertDialogParams(); 
     private bool isShaking = false;
+    private DotNetObjectReference<HeadsOrTails>? objRef; 
+    private bool isUserLoggedIn = true; // Assume user is logged in initially
 
     protected override void OnInitialized()
     {
@@ -248,6 +272,9 @@
                 }
                 //populate all thats needed
                 startGameUISetup(userGamePlayData, _giveawayData);
+
+                //function which helps with sign out on inactivity
+                await OnLoginSuccess();
             }
         }
         catch(Exception ex)
@@ -504,12 +531,10 @@
         int resetPenalty = _giveawayData.MonetaryResetPenalty;
         double resetMaxPossibleWinnings = MaxPossibleWinnings - resetPenalty;
         resetMaxPossibleWinnings = Math.Max(resetMaxPossibleWinnings, _giveawayData.MinCashoutPerPerson);
-        double resetCurrentWinnings = Math.Max(CurrentWinnings - resetPenalty,0);
 
         alertDialogParams.AlertTitle = $"Switch to {ResetBtnText}?";
         alertDialogParams.AlertMessage = new MarkupString($"There will be a penalty of <strong>N{resetPenalty}</strong>!<br/><br/>"+
-                $"Maximum possible winnings will be reduced to <strong>N{resetMaxPossibleWinnings.ToString("N0")}</strong>! " +
-                 $"<br/><br/>Winnings will be reduced to <strong>N{resetCurrentWinnings.ToString("N0")}</strong>!");
+                $"Maximum possible winnings will be reduced to <strong>N{resetMaxPossibleWinnings.ToString("N0")}</strong>! ");
         alertDialogParams.OnPrimaryButtonClick = EventCallback.Factory.Create(this, AlertDialogPrimaryClicked);
         alertDialogParams.OnSecondaryButtonClick = EventCallback.Factory.Create(this, AlertDialogSecondaryClicked);
         //await LoadGameDataFromDb();
@@ -530,7 +555,7 @@
                     userGamePlayData.HeadsCount = 0;
                     userGamePlayData.TailsCount = 0;
                     userGamePlayData.MaxPossibleWinnings -= _giveawayData.MonetaryResetPenalty;
-                    userGamePlayData.CurrentWinnings = (int)Math.Max(CurrentWinnings - _giveawayData.MonetaryResetPenalty, 0);
+                    userGamePlayData.CurrentWinnings = (int)CurrentWinnings;
                     userGamePlayData.TotalResetsLeft -= 1;
                     userGamePlayData.LifetimeHeadsCount += HeadsCount;
                     userGamePlayData.LifetimeTailsCount += TailsCount;
@@ -559,7 +584,6 @@
     {
         await Task.WhenAll(
         AnimateNumberChange(value => MaxPossibleWinnings = value, MaxPossibleWinnings, MaxPossibleWinnings - _giveawayData.MonetaryResetPenalty),
-        AnimateNumberChange(value => CurrentWinnings = value, CurrentWinnings, Math.Max(CurrentWinnings - _giveawayData.MonetaryResetPenalty, 0)),
         AnimateNumberChange(value => HeadsCount = value, HeadsCount, 0),
         AnimateNumberChange(value => TailsCount = value, TailsCount, 0),
         TriggerHeartAnimation(ResetsLeft)
@@ -728,7 +752,8 @@
                 additionalMsg = lossMsg;
             }
 
-            ShowToast(additionalMsg);
+            //ShowToast(additionalMsg);
+            //ShowWinningMessage(additionalMsg);
             // ShowDialog = true;
             // alertDialogParams.AlertTitle = roundCompleteMsg;
             // alertDialogParams.AlertMessage = new MarkupString(additionalMsg);
@@ -836,7 +861,7 @@
                 {
                     Console.WriteLine($"Error during polling: {ex.Message}");
                 }
-            }, null, 0, 5000);
+            }, null, 0, 60000);
         }
         catch (Exception ex)
         {
@@ -846,7 +871,6 @@
 
     private async Task UpdateMonetaryValuesBasedOnLeftverFunds()
     {
-        Console.WriteLine("Update max and win function - "+LeftoverGiveawayFunds.ToString("N0")+ MaxPossibleWinnings.ToString("N0")+ CurrentWinnings.ToString("N0"));
         //adjust users current winnings and maximum win amounts to match leftoverfunds
         if (LeftoverGiveawayFunds <= CurrentWinnings || LeftoverGiveawayFunds <= MaxPossibleWinnings)
         {
@@ -916,6 +940,9 @@
     public void Dispose()
     {
         _timer?.Dispose();  // Dispose the timer when the component is destroyed
+                            // Dispose the object reference to prevent memory leaks
+        objRef?.Dispose();
+        Console.WriteLine("inside dispose function #####################");
     }
 
     private async void AlertDialogPrimaryClicked()
@@ -960,9 +987,14 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (firstRender)
+        if (firstRender && isUserLoggedIn)
         {
-            await JSRuntime.InvokeVoidAsync("onPageExit", DotNetObjectReference.Create(this));
+            // Creating a DotNetObjectReference to pass to JavaScript
+            objRef = DotNetObjectReference.Create(this);
+
+            await JSRuntime.InvokeVoidAsync("onPageExit", objRef);
+            // Load the JavaScript to track inactivity
+            await JSRuntime.InvokeVoidAsync("inactivityTimer", objRef);
         }
     }
 
@@ -977,39 +1009,67 @@
     [JSInvokable]
     public async void HandleBackButtonPress()
     {
-        // Logic to handle back button press (e.g., log out user)
-        Console.WriteLine("Back button pressed. Logging out...");
-        // Add your log out or navigation handling code here
+        Console.WriteLine("Browser Back button pressed");
+        CommonFunctions.SaveUserProgressOnExit(this.DbFactory, PlayerUID, HeadsCount, TailsCount);
+    }
 
-        var userGamePlayData = new UserGamePlayData();
+    private void OnBackBtnClicked()
+    {
+        Console.WriteLine("Game Back button pressed");
+        CommonFunctions.SaveUserProgressOnExit(this.DbFactory, PlayerUID, HeadsCount, TailsCount);
+        NavigationManager.NavigateTo($"/mainpage/{PlayerUID}");
+    }
 
-        //get most recent data from indexeddb
-        try
-        {
-            using (var db = await this.DbFactory.Create<JusGiveawayDB>())
-            {
-                userGamePlayData = CommonFunctions.GetUserGamePlayDataFromIndexedDb(db, PlayerUID);
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine(ex.Message);
-        }
+    private static async Task YourLogoutFunction()
+    {
+        // Logic to log out the user (e.g., clear session, token)
+        Console.WriteLine("inside logoutfunction");
+        //CommonFunctions.SaveUserProgressOnExit(this.DbFactory, PlayerUID, HeadsCount, TailsCount);
+    }
 
-        //save usergameplaydata to firebase
-        if (userGamePlayData != null)
+    [JSInvokable]
+    public async Task LogoutUser()
+    {
+        isUserLoggedIn = false;  // Set the flag to false on logout
+
+        // Clear any user session data or tokens
+        //await YourLogoutFunction();
+        Console.WriteLine("inside logoutuser - " + isUserLoggedIn);
+        CommonFunctions.SaveUserProgressOnExit(this.DbFactory, PlayerUID, HeadsCount, TailsCount);
+        // Optionally redirect to the login page
+        NavigationManager.NavigateTo("/");
+
+        // Clear the inactivity timer after logout
+        await JSRuntime.InvokeVoidAsync("clearInactivityTimer");
+    }
+
+    private async Task OnLoginSuccess()
+    {
+        // Your existing login logic here...
+
+        // Reset the inactivity timer's logged out flag
+        await JSRuntime.InvokeVoidAsync("resetUserLoggedOutFlag");
+
+        // Set up the inactivity timer again after login
+        await JSRuntime.InvokeVoidAsync("inactivityTimer", objRef);
+    }
+
+    private bool isWinning;
+
+    private void ShowWinningMessage(string msg)
+    {
+        EndOfRoundMessage = msg;
+        isWinning = true; // Show the winning message
+        StateHasChanged(); // Trigger a UI update
+
+        // Start the animation
+        Task.Delay(2000).ContinueWith(_ =>
         {
-            Console.WriteLine("Back button pressed. Saving game play data...");
-            userGamePlayData.HeadsCount = HeadsCount;
-            userGamePlayData.TailsCount = TailsCount;
-            try
+            InvokeAsync(() =>
             {
-                bool userSaved = await CommonFunctions.SaveUserGamePlayDataToFirebase(userGamePlayData);
-            }
-            catch (Exception x)
-            {
-                Console.WriteLine($"Error saving gameplay data to firebase - {x.Message}");
-            }
-        }
+                isWinning = false; // Hide the winning message
+                StateHasChanged(); // Trigger a UI update
+            });
+        });
     }
 }

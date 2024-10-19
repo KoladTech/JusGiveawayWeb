@@ -15,20 +15,20 @@
                     <h4>How to Play</h4>
                     <p>
                         Choose a side - <strong>Heads or Tails</strong>.
-                        Flip the coin, if it lands on your side, you win. Each round of HoT consists of 100 coin flips.
-                        Get more flips on your chosen side and you win.
+                        Flip the coin to <strong>win</strong> or <strong>lose</strong>. 1 round is <strong>100</strong> coin flips.
+                        Play as many rounds as you want.
                     </p>
                 </div>
 
                 <div class="instructions-section">
                     <h4>How to Win/Lose Money</h4>
                     <p>
-                        Each round of HoT you win comes with monetary wins. <strong>
+                        Each round you win comes with monetary wins. <strong>
                             Score of 10 or more, win N2,000.
-                            Score 1-9 win N500.
-                        </strong> Rounds you lose will cost you winnings.
-                        <strong>Score -10 or less lose N1,000. score between -1 and -9 lose N500.</strong>
-                        Every round you <strong>draw is a BINGO!!!</strong> and comes with a <strong>N5,000</strong> win.
+                            Score 1-9 win N1,000.
+                        </strong> Rounds you lose will cost you.
+                        <strong>Score -10 or less lose N1,000. score between -1 & -9 lose N500.</strong>
+                        <strong>Draw a round and it is a BINGO!!!</strong> Bingos win you <strong>N5,000</strong>.
                         Maximum possible winnings is <strong>N50,000.</strong>
                     </p>
                 </div>
@@ -36,8 +36,8 @@
                 <div class="instructions-section">
                     <h4>How to Switch Sides</h4>
                     <p>
-                        Switching coin sides means you wish to reset the game, click the <strong>‘Switch to’</strong> button.
-                        This will reset your score and progress. Each reset will also come with a penalty of
+                        Switching coin sides means you will reset the game, click the <strong>‘Switch to’</strong> button.
+                        This will reset your score and progress. Each reset will drop your max possible winnings by 
                         <strong>N2,000.</strong> You have only <strong>20 resets</strong> allowed. Tap the hearts
                         at the top of the screen.
                     </p>
@@ -63,7 +63,7 @@
                 <div class="instructions-section">
                     <h4>More info/instructions</h4>
                     <p>
-                        For more detailed instructions on how to play HoT. Please visit our <a href="https://www.instagram.com/jus_giveaway/" target="_blank">instagram page</a>.
+                        For more detailed instructions on how to play Heads or Tails. Please visit our <a href="https://www.instagram.com/jus_giveaway/" target="_blank">instagram page</a>.
                     </p>
                 </div>
             </div>
@@ -78,7 +78,7 @@
 
 @code {
     // Example data binding for instructions title
-    public string GameInstructionsTitle { get; set; } = "Heads o' Tails Instructions";
+    public MarkupString GameInstructionsTitle { get; set; } = new MarkupString("Heads or Tails<br/>Quick Guide");//"Heads or Tails Quick Guide";
     private bool IsPopupVisible { get; set; }
 
     // Handle closing the popup

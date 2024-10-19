@@ -14,11 +14,16 @@
 
 <body>
     <div id="app">
-        <svg class="loading-progress">
-            <circle r="40%" cx="50%" cy="50%" />
-            <circle r="40%" cx="50%" cy="50%" />
-        </svg>
-        <div class="loading-progress-text"></div>
+        <div class="loading-splash">
+            <img src="images/splash.png" alt="Splash Image" class="splash-image" />
+            <div class="loading-progress">
+                <svg viewBox="0 0 36 36">
+                    <circle cx="18" cy="18" r="16"></circle>
+                    <circle cx="18" cy="18" r="16"></circle>
+                </svg>
+                <div class="loading-progress-text"></div>
+            </div>
+        </div>
     </div>
 
     <div id="blazor-error-ui">
@@ -45,6 +50,65 @@
             });
         };
     </script>
+    <script>
+        let timer;
+        let isUserLoggedOut = false; // Add a flag to track logout state
+
+        window.inactivityTimer = function (dotNetHelper) {
+            if (!dotNetHelper || isUserLoggedOut) {
+                console.error("DotNetHelper is undefined. or userLoggedout");
+                return;
+            }
+;
+            let timer;
+            //10 mins * 60 secs/min * 1000 milliseconds/sec = 600,000 milliseconds
+            let logoutAfter = 10 * 60 * 1000; 
+
+
+            // Reset the timer on any user activity
+            // Add event listeners for both desktop and mobile devices
+            window.onload = resetTimer;
+            document.onmousemove = resetTimer;  // Mouse movement (desktop)
+            document.onkeydown = resetTimer;    // Keypress (desktop)
+            document.onclick = resetTimer;      // Clicks (desktop)
+            document.ontouchstart = resetTimer; // Touch (mobile)
+            document.ontouchmove = resetTimer;  // Scrolling/touch movement (mobile)
+            document.onscroll = resetTimer;     // Scrolling (both desktop and mobile)
+                        
+
+            // Log the user out when time expires
+            function logoutUser() {
+                if (!isUserLoggedOut) {
+                    // Call the Blazor method using the DotNetHelper
+                    dotNetHelper.invokeMethodAsync('LogoutUser')
+                        .catch(err => console.error("Error invoking LogoutUser:", err));
+                    console.error("inside logoutUser js func.");
+                }
+            }
+
+            // Reset the inactivity timer
+            function resetTimer() {
+                if (!isUserLoggedOut) {
+                    clearTimeout(timer);
+                    timer = setTimeout(logoutUser, logoutAfter);
+                    //console.error("inside resetTimer js func.");
+                }
+            }
+        };
+        window.clearInactivityTimer = function () {
+            clearTimeout(inactivityTimer);
+            inactivityTimer = null; // Clear the timer when logged out
+            console.error("inside clearInactivityTimer js func.");
+            isUserLoggedOut = true; // Set the flag to stop further timer setups
+        };
+
+        window.resetUserLoggedOutFlag = function () {
+            isUserLoggedOut = false; // Reset the flag when the user logs back in
+            console.log("inside resetUserLoggedOutFlag")
+        };
+    </script>
+
+
 </body>
 
 </html>

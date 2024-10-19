@@ -309,7 +309,7 @@
 .score-text {
     font-size: 1.1rem; /* Larger text for better visibility */
     color: white; /* Text color */
-    font-family: 'Press Start 2P', cursive; /* Example game-like font */
+    font-family: 'Press Start 2P'; /* Example game-like font */
     margin-bottom: 0;
 }
 
@@ -365,3 +365,63 @@
 /*=========================
     Coin Image Shake Ended
 ==========================*/
+
+/* Back button */
+.back-button {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    margin-top: 20px;
+    align-content: end;
+}
+
+    .back-button img.back-icon {
+        width: 60px;
+        height: auto;
+    }
+
+
+@keyframes bounceIn {
+    0% {
+        transform: translateY(100%); /* Start below the screen */
+        opacity: 0; /* Start invisible */
+    }
+
+    50% {
+        opacity: 1; /* Become visible */
+        transform: translateY(-30px); /* Move up slightly */
+    }
+
+    100% {
+        transform: translateY(0); /* Settle back to original position */
+    }
+}
+
+@keyframes bounceOut {
+    0% {
+        transform: translateY(0); /* Start from original position */
+        opacity: 1; /* Fully visible */
+    }
+
+    100% {
+        transform: translateY(100%); /* Move down and disappear */
+        opacity: 0; /* Fade out */
+    }
+}
+
+.win-message {
+    position: fixed; /* Stay fixed on the screen */
+    bottom: 0; /* Start at the bottom */
+    left: 50%; /* Center horizontally */
+    transform: translateX(-50%); /* Center alignment */
+    background-color: rgba(255, 215, 0, 0.8); /* Gold color for the message */
+    padding: 10px 20px; /* Padding for better appearance */
+    border-radius: 5px; /* Rounded corners */
+    font-size: 1.5rem; /* Adjust font size as needed */
+    z-index: 1000; /* Ensure it appears above other elements */
+    display: none; /* Hide by default */
+}
+    .win-message.animate {
+        display: block; /* Make it visible */
+        animation: bounceIn 0.5s forwards, bounceOut 0.5s 1.5s forwards; /* Bounce in, then out */
+    }

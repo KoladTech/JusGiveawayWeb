@@ -61,8 +61,8 @@
     [CascadingParameter]
     private CustomNavigationStack CustomNavStack { get; set; }
     private string userName;
-    private string email;
-    private string password;
+    private string email = "f@f.com";
+    private string password = "Qwerty1!w";
     private bool isLoading = false;
     private bool isToastVisible;
     private string toastMessage;    
@@ -73,14 +73,13 @@
 
     protected override async Task OnInitializedAsync()
     {
+        #region Check if user is tester
         //read tester from indexeddb
         try
         {
             using (var db = await this.DbFactory.Create<JusGiveawayDB>())
             {
-                bool surveyTaken = CommonFunctions.GetTesterFromIndexedDb(db);
-
-                if (surveyTaken)
+                if (CommonFunctions.GetTesterFromIndexedDb(db))
                 {
                     isTester = true;
                 }
@@ -94,7 +93,9 @@
         {
             Console.WriteLine(ex.Message);
         }
+        #endregion
 
+        #region Check if navigate to countdownpage
         //check if we should navigate to the countdownpage
         var startDate = await CommonFunctions.GetGiveawayStartDateFromFirebase();
 
@@ -103,16 +104,16 @@
             System.Globalization.DateTimeStyles.None, out giveawayStartDate))
         {
             Console.WriteLine("Invalid starting date format retrieved from database");
+            //should this navigation be here?
             NavigationManager.NavigateTo("/");
         }
         TimeSpan remainingTime = giveawayStartDate - DateTime.Now;
 
         if (remainingTime.TotalSeconds > 0 && !isTester)
         {
-            // Countdown complete
             NavigationManager.NavigateTo("/countdownpage");
         }
-
+        #endregion
 
         if (CustomNavStack.Pages.Count != 0)
         {

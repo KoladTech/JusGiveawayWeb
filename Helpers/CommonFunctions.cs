@@ -1,4 +1,5 @@
-﻿using JusGiveawayWebApp.Models;
+﻿using IndexedDB.Blazor;
+using JusGiveawayWebApp.Models;
 using JusGiveawayWebApp.Pages;
 using JusGiveawayWebApp.Services;
 using Microsoft.AspNetCore.Components;
@@ -138,12 +139,46 @@ namespace JusGiveawayWebApp.Helpers
         public bool SendUserBackToLogInPageIfNotLoggedIn(UserInfo currentUser)
         {
             //check if user is logged in
-            if (currentUser.IdToken == "" || currentUser.IdToken == null)
+            if (currentUser == null || currentUser.IdToken == "" || currentUser.IdToken == null)
             {
                 //send user back to log in page
                 return true;
             }
             return false;
+        }
+
+        public async void SaveUserProgressOnExit(IIndexedDbFactory DbFactory, string playerUID, int headsCount, int tailsCount)
+        {
+            var userGamePlayData = new UserGamePlayData();
+
+            //get most recent data from indexeddb
+            try
+            {
+                using (var db = await DbFactory.Create<JusGiveawayDB>())
+                {
+                    userGamePlayData = GetUserGamePlayDataFromIndexedDb(db, playerUID);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+
+            //save usergameplaydata to firebase
+            if (userGamePlayData != null)
+            {
+                Console.WriteLine("Saving game play data, due to inactivity...");
+                userGamePlayData.HeadsCount = headsCount;
+                userGamePlayData.TailsCount = tailsCount;
+                try
+                {
+                    bool userSaved = await SaveUserGamePlayDataToFirebase(userGamePlayData);
+                }
+                catch (Exception x)
+                {
+                    Console.WriteLine($"Error saving gameplay data to firebase - {x.Message}");
+                }
+            }
         }
 
         // Add more common methods as needed.
