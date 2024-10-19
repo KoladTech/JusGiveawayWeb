@@ -63,6 +63,20 @@ namespace JusGiveawayWebApp.Helpers
                 return await _firebaseService.WriteDataAsync<int>($"Survey/NotInterested", ++notInterestedCount);
             }
         }
+        public async Task<bool> SaveUserStatsForCountDownPageToFirebase(bool demoClicked, bool instructionsClicked)
+        {
+            if (demoClicked)
+            {
+                int demoClicks = await _firebaseService.ReadDataAsync<int>("CountdownPage/ClickedDemo");
+                return await _firebaseService.WriteDataAsync<int>("CountdownPage/ClickedDemo", ++demoClicks);
+            }
+            if (instructionsClicked)
+            {
+                int instructionsClicks = await _firebaseService.ReadDataAsync<int>("CountdownPage/ClickedInstructions");
+                return await _firebaseService.WriteDataAsync<int>("CountdownPage/ClickedInstructions", ++instructionsClicks);
+            }
+            return false;
+        }
 
         public async Task<string> GetUsersNameFromFirebase(string uid)
         {

@@ -1,0 +1,135 @@
+﻿/* About Us Page Styles */
+.about-us {
+    padding: 20px;
+    font-family: 'Poppins', sans-serif;
+    max-width: 100%;
+}
+
+/* Image Style */
+.intro-image {
+    width: 100%;
+    max-width: 250px; /* Limits image size */
+    height: auto;
+    display: block;
+    margin: 20px auto; /* Centers the image */
+}
+
+/* Header Section */
+.header-section {
+    background-color: #f0f4f8;
+    text-align: center;
+    padding: 30px 20px;
+}
+
+.header-title {
+    font-size: 2rem;
+    margin-bottom: 8px;
+}
+
+.header-subtitle {
+    font-size: 1.5rem;
+    color: #666;
+}
+
+/* Introduction Section */
+.introduction-section {
+    padding: 20px;
+    background-color: #fff;
+    text-align: center; /* Center all text for mobile */
+}
+
+/* Intro Content */
+.intro-content {
+    display: flex;
+    flex-direction: column; /* Stack content vertically on mobile */
+    align-items: center;
+    justify-content: center;
+}
+
+/* Intro Text */
+.intro-text {
+    padding: 10px;
+    max-width: 100%;
+    font-size: 1rem;
+    line-height: 1.6;
+    color: #4a4a4a;
+}
+
+/* Call to Action Button */
+.cta-button {
+    padding: 12px 20px;
+    font-size: 1rem;
+    background-color: #3da9fc;
+    color: white;
+    text-transform: uppercase;
+    border-radius: 5px;
+    margin-top: 15px;
+    text-decoration: none;
+    display: inline-block;
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+    /* Adjust header padding */
+    .header-section {
+        padding: 30px 20px;
+    }
+
+    /* Adjust text size for better readability */
+    h2 {
+        font-size: 2rem;
+    }
+
+    .intro-text {
+        font-size: 1rem;
+        padding: 15px;
+    }
+
+    /* Ensure the CTA button is larger and more tappable */
+    .cta-button {
+        padding: 15px 25px;
+        font-size: 1.1rem;
+    }
+
+    /* Intro image */
+    .intro-image {
+        max-width: 100%;
+    }
+
+    /* Stack content vertically */
+    .intro-content {
+        flex-direction: column;
+        padding: 20px;
+    }
+}
+
+@media (max-width: 480px) {
+    h2 {
+        font-size: 1.8rem;
+    }
+
+    .intro-text {
+        font-size: 0.9rem;
+        line-height: 1.5;
+        padding: 10px;
+    }
+
+    /* Larger buttons for mobile */
+    .cta-button {
+        padding: 15px 25px;
+        font-size: 1.1rem;
+    }
+
+    /* Responsive image */
+    .intro-image {
+        max-width: 200px; /* Reduce image size further */
+    }
+
+    /* Adjust sections for smaller screens */
+    .intro-content {
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 10px;
+    }
+}

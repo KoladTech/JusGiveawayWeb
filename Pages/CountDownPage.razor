@@ -67,7 +67,7 @@
             <div style="text-align: center; margin-top: 20px;">
                 <h4 style="color: #333;">Answer Quick Survey</h4>
                 <p style="font-size: 1.2rem; color: #555;">
-                    Will you play "Heads o' Tails" when we launch?
+                    Will you play "Heads or Tails" when we launch?
                 </p>
             </div>        <div style="text-align: center; margin-top:5px">
                 <button class="centered-button" @onclick="OnSurveyYesClicked">Yes</button>
@@ -191,8 +191,11 @@
         StateHasChanged();
     }
 
-    private void OnDemoClicked()
+    private async void OnDemoClicked()
     {
+        //write to firebasedb for stats
+        await CommonFunctions.SaveUserStatsForCountDownPageToFirebase(true,false);
+
         NavigationManager.NavigateTo("/heads-or-tails-demo/");
     }
 
@@ -294,8 +297,11 @@
         ShowDialog = false;
     }
 
-    private void ShowHeadsOrTailsInstructions()
+    private async void ShowHeadsOrTailsInstructions()
     {
+        //write to firebasedb for stats
+        await CommonFunctions.SaveUserStatsForCountDownPageToFirebase(false,true);
+
         headsOrTailsInstructionsPopup.ShowPopup();
     }
 
