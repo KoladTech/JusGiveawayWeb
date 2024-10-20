@@ -390,4 +390,10 @@
     .back-button img.back-icon {
         width: 60px;
         height: auto;
+        transition: opacity 0.3s ease;
     }
+
+        .back-button img.back-icon:hover {
+            content: url('images/back_icon_hover.png'); /* Image on hover */
+            opacity: 0.8; /* Optional: add an effect */
+        }

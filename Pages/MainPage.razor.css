@@ -116,11 +116,15 @@
     margin-top: 20px;
     align-content: end;
 }
-
     .logout-button img.logout-icon {
         width: 60px;
-        height: 60px;
+        height: auto;
+        transition: opacity 0.3s ease;
     }
+        .logout-button img.logout-icon:hover {
+            content: url('images/logout_icon_hover.png'); /* Image on hover */
+            opacity: 0.8; /* Optional: add an effect */
+        }
 
 /* Loading indicator */
 .loading-indicator {

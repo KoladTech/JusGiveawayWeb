@@ -102,6 +102,7 @@
         {
             // Redirect to the sign-in page
             NavigationManager.NavigateTo("/");
+            return;
         }
     }
 
@@ -144,9 +145,12 @@
                     if (CommonFunctions.SendUserBackToLogInPageIfNotLoggedIn(currentActiveUser))
                     {
                         NavigationManager.NavigateTo("/");
+                        return;
                     }
 
                     PlayerName = currentActiveUser.Name;
+                    //set auth token in case of a refresh of page
+                    FirebaseService.SetAuthToken(currentActiveUser.IdToken);
                 }
             }
         }
@@ -187,19 +191,7 @@
     private async void AlertDialogPrimaryClicked()
     {
         ShowDialog = false;
-
-        try
-        {
-            //await FirebaseService.SignOutAsync();
-            using (var db = await this.DbFactory.Create<JusGiveawayDB>())
-            {
-                await CommonFunctions.SignOutUser(db, PlayerUID);
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine(ex.Message);
-        }
+        await CommonFunctions.SignOutUser(this.DbFactory, PlayerUID);
         ShowToast("Signed out");
 
         NavigationManager.NavigateTo("/");

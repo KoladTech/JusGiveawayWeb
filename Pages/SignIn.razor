@@ -106,12 +106,14 @@
             Console.WriteLine("Invalid starting date format retrieved from database");
             //should this navigation be here?
             NavigationManager.NavigateTo("/");
+            return;
         }
         TimeSpan remainingTime = giveawayStartDate - DateTime.Now;
 
         if (remainingTime.TotalSeconds > 0 && !isTester)
         {
             NavigationManager.NavigateTo("/countdownpage");
+            return;
         }
         #endregion
 
@@ -122,18 +124,7 @@
             if (signInPage != null)
             {
                 var playerUID = signInPage["PlayerUID"];
-                try
-                {
-                    //await FirebaseService.SignOutAsync();
-                    using (var db = await this.DbFactory.Create<JusGiveawayDB>())
-                    {
-                        await CommonFunctions.SignOutUser(db, playerUID);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine(ex.Message);
-                }
+                await CommonFunctions.SignOutUser(this.DbFactory, playerUID);
                 ShowToast("Signed out");
             }
         }

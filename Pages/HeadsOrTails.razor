@@ -196,30 +196,37 @@
         {
             // Redirect to the sign-in page
             NavigationManager.NavigateTo("/");
+            return;
         }
     }
 
     protected override async Task OnInitializedAsync()
     {
-        //rethink. this is absolutely necessary. If null, its a problem innit?
-        _giveawayData = await CommonFunctions.GetGiveawayDataFromFirebase();
-        //get latest data from firebase
-        userGamePlayData = await CommonFunctions.GetUserGamePlayDataFromFirebase(PlayerUID);
-        //check the size of the reads
-
         try
         {
             using (var db = await this.DbFactory.Create<JusGiveawayDB>())
             {
                 var user = CommonFunctions.GetUserInfoFromIndexedDb(db, PlayerUID);
 
-                //check if user is logged in
-                if (CommonFunctions.SendUserBackToLogInPageIfNotLoggedIn(user))
+                //check if user is logged in, if not, return to login screen
+                if (user == null || CommonFunctions.SendUserBackToLogInPageIfNotLoggedIn(user))
                 {
-                    NavigationManager.NavigateTo("/");
+                    NavigationManager.NavigateTo("/"); 
+                    return;
                 }
+                else
+                {
+                    //set auth token in case of a refresh of page
+                    FirebaseService.SetAuthToken(user.IdToken);
 
-                PlayerName = user?.Name ?? "GameError";
+                    //rethink. this is absolutely necessary. If null, its a problem innit?
+                    _giveawayData = await CommonFunctions.GetGiveawayDataFromFirebase();
+                    //get latest data from firebase
+                    userGamePlayData = await CommonFunctions.GetUserGamePlayDataFromFirebase(PlayerUID);
+                    //check the size of the reads
+
+                    PlayerName = user.Name ?? "GameError";
+                }
 
                 if (userGamePlayData == null)
                 {
@@ -437,7 +444,7 @@
             CoinImage = i % 2 == 0 ? "images/kobo_front.png" : "images/kobo_back.png"; // Alternate front/back
             StateHasChanged();
 
-            await Task.Delay(100); // Adjust this value to control the speed of spinning
+            await Task.Delay(50); // Adjust this value to control the speed of spinning
         }
 
         // Final outcome based on random result (0 = heads, 1 = tails)
@@ -1010,13 +1017,13 @@
     public async void HandleBackButtonPress()
     {
         Console.WriteLine("Browser Back button pressed");
-        CommonFunctions.SaveUserProgressOnExit(this.DbFactory, PlayerUID, HeadsCount, TailsCount);
+        await CommonFunctions.SaveUserProgressOnExit(this.DbFactory, PlayerUID, HeadsCount, TailsCount);
     }
 
-    private void OnBackBtnClicked()
+    private async void OnBackBtnClicked()
     {
         Console.WriteLine("Game Back button pressed");
-        CommonFunctions.SaveUserProgressOnExit(this.DbFactory, PlayerUID, HeadsCount, TailsCount);
+        await CommonFunctions.SaveUserProgressOnExit(this.DbFactory, PlayerUID, HeadsCount, TailsCount);
         NavigationManager.NavigateTo($"/mainpage/{PlayerUID}");
     }
 
@@ -1033,9 +1040,10 @@
         isUserLoggedIn = false;  // Set the flag to false on logout
 
         // Clear any user session data or tokens
-        //await YourLogoutFunction();
+        await CommonFunctions.SignOutUser(this.DbFactory, PlayerUID);
+
         Console.WriteLine("inside logoutuser - " + isUserLoggedIn);
-        CommonFunctions.SaveUserProgressOnExit(this.DbFactory, PlayerUID, HeadsCount, TailsCount);
+        await CommonFunctions.SaveUserProgressOnExit(this.DbFactory, PlayerUID, HeadsCount, TailsCount);
         // Optionally redirect to the login page
         NavigationManager.NavigateTo("/");
 

@@ -157,6 +157,7 @@
         {
             // Redirect to the sign-in page
             NavigationManager.NavigateTo("/");
+            return;
         }
         try
         {
@@ -172,6 +173,7 @@
                     if (CommonFunctions.SendUserBackToLogInPageIfNotLoggedIn(userInfo))
                     {
                         NavigationManager.NavigateTo("/");
+                        return;
                     }
 
                     email = userInfo.EmailAddress;

@@ -135,17 +135,28 @@ namespace JusGiveawayWebApp.Helpers
             return db.UserGameDatas.FirstOrDefault(u => u.UID == uid);
         }
 
-        public async Task SignOutUser(JusGiveawayDB db, string uid)
-        {   
-            var existingUser = GetUserInfoFromIndexedDb(db, uid);
-
-            if (existingUser != null)
+        public async Task SignOutUser(IIndexedDbFactory DbFactory, string uid)
+        {
+            try
             {
-                // Update the existing user's information
-                existingUser.IdToken = "";
+                //await FirebaseService.SignOutAsync();
+                using (var db = await DbFactory.Create<JusGiveawayDB>())
+                {
+                    var existingUser = GetUserInfoFromIndexedDb(db, uid);
 
-                // Save changes
-                await db.SaveChanges();
+                    if (existingUser != null)
+                    {
+                        // Update the existing user's information
+                        existingUser.IdToken = "";
+
+                        // Save changes
+                        await db.SaveChanges();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
             }
         }
         #endregion
@@ -153,7 +164,7 @@ namespace JusGiveawayWebApp.Helpers
         public bool SendUserBackToLogInPageIfNotLoggedIn(UserInfo currentUser)
         {
             //check if user is logged in
-            if (currentUser == null || currentUser.IdToken == "" || currentUser.IdToken == null)
+            if (currentUser.IdToken == "" || currentUser.IdToken == null)
             {
                 //send user back to log in page
                 return true;
@@ -161,7 +172,7 @@ namespace JusGiveawayWebApp.Helpers
             return false;
         }
 
-        public async void SaveUserProgressOnExit(IIndexedDbFactory DbFactory, string playerUID, int headsCount, int tailsCount)
+        public async Task SaveUserProgressOnExit(IIndexedDbFactory DbFactory, string playerUID, int headsCount, int tailsCount)
         {
             var userGamePlayData = new UserGamePlayData();
 
