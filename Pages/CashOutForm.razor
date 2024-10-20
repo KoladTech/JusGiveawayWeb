@@ -16,7 +16,11 @@
         @if(!cashOutInfoSubmitted)
         {
             <h2 class="form-title">Cash Out</h2>
-            <p class="small-text">Winner! Please enter details to cash out N@(userCashOutAmount.ToString("N0"))</p>
+            <p class="small-text">Winner! Please enter details to cash out</p>
+
+            <p class="cash-out-display">
+                Cash out amount - <span class="cash-out-amount">N@(userCashOutAmount.ToString("N0"))</span>
+            </p>
 
             <label>First Name</label>
             <div class="entry-frame">
@@ -117,7 +121,7 @@
     private string password; //should I do something like sign in again to make sure its user cashing out?
     private bool isToastVisible;
     private string toastMessage;
-    UserInfo userInfo;
+    UserInfo? userInfo;
     int userCashOutAmount; 
     private bool isMale
     {
@@ -165,23 +169,29 @@
             using (var db = await this.DbFactory.Create<JusGiveawayDB>())
             {
                 userInfo = CommonFunctions.GetUserInfoFromIndexedDb(db, PlayerUID); 
-                userCashOutAmount = await CommonFunctions.GetUserCashOutAmountFromFirebase(PlayerUID);
 
-                if (userInfo != null)
+                //check if user is logged in
+                if (userInfo == null || CommonFunctions.SendUserBackToLogInPageIfNotLoggedIn(userInfo))
                 {
-                    //check if user is logged in
-                    if (CommonFunctions.SendUserBackToLogInPageIfNotLoggedIn(userInfo))
-                    {
-                        NavigationManager.NavigateTo("/");
-                        return;
-                    }
-
-                    email = userInfo.EmailAddress;
+                    NavigationManager.NavigateTo("/");
+                    return;
                 }
+
+                bool authTokenExpired = await FirebaseService.SetAuthTokenIfNotExpired(userInfo.IdToken);
+                if (authTokenExpired)
+                {
+                    await CommonFunctions.SignOutUser(this.DbFactory, PlayerUID);
+                    NavigationManager.NavigateTo("/");
+                    return;
+                }
+
+                userCashOutAmount = await CommonFunctions.GetUserCashOutAmountFromFirebase(PlayerUID);
+                email = userInfo.EmailAddress;
             }
         }
         catch (Exception ex)
         {
+            await CommonFunctions.WriteErrorMessageToFirebase(ex.Message, "CashoutForm - OnInitializedAsync()", DateTime.Now.ToString());
             Console.WriteLine(ex.Message);
         }
     }
@@ -242,8 +252,6 @@
 
         // Handle successful cashout and redirect if necessary
         if(userInfo != null){
-            FirebaseService.SetAuthToken(userInfo.IdToken);
-
             //store user cashout info in firebase db
             try
             {

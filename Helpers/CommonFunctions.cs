@@ -112,6 +112,11 @@ namespace JusGiveawayWebApp.Helpers
         {
             await _firebaseService.WriteDataAsync<int>("Giveaways/A/LeftoverGiveawayFunds", leftoverFunds);
         }
+
+        public async Task WriteErrorMessageToFirebase(string errorMessage, string data, string errorTime)
+        {
+            await _firebaseService.WriteErrorMessagesAsync(errorMessage, data, errorTime);
+        }
         #endregion
 
         #region IndexedDB Functions
@@ -156,6 +161,7 @@ namespace JusGiveawayWebApp.Helpers
             }
             catch (Exception ex)
             {
+                await WriteErrorMessageToFirebase(ex.Message, "SignOutUser - "+uid, DateTime.Now.ToString());
                 Console.WriteLine(ex.Message);
             }
         }
@@ -186,6 +192,7 @@ namespace JusGiveawayWebApp.Helpers
             }
             catch (Exception ex)
             {
+                await WriteErrorMessageToFirebase(ex.Message, "SaveUserProgressOnExit - " + playerUID, DateTime.Now.ToString());
                 Console.WriteLine(ex.Message);
             }
 

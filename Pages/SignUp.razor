@@ -187,7 +187,14 @@
         {
             string uid = response.LocalId;
             string idToken = response.IdToken;
-            FirebaseService.SetAuthToken(idToken);
+            bool authTokenExpired = await FirebaseService.SetAuthTokenIfNotExpired(idToken);
+            if (authTokenExpired)
+            {
+                await CommonFunctions.SignOutUser(this.DbFactory, uid);
+                NavigationManager.NavigateTo("/");
+                return;
+            }
+
             //store userinfo in indexeddb
             try
             {
@@ -212,6 +219,7 @@
             }
             catch (Exception ex)
             {
+                await CommonFunctions.WriteErrorMessageToFirebase(ex.Message, "SignUp - OnSignUpClicked() - " + response.ToString(), DateTime.Now.ToString());
                 Console.WriteLine(ex.Message);
             }
 

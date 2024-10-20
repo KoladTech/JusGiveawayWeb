@@ -1,4 +1,6 @@
-﻿using Microsoft.AspNetCore.Components;
+﻿using JusGiveawayWebApp.Helpers;
+using Microsoft.AspNetCore.Components;
+using System.IdentityModel.Tokens.Jwt;
 using System.IO;
 using System.Net.Http;
 using System.Net.Http.Json;
@@ -6,6 +8,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using static System.Net.WebRequestMethods;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace JusGiveawayWebApp.Services
 {
@@ -22,10 +25,55 @@ namespace JusGiveawayWebApp.Services
             _firebaseBaseUrl = firebaseBaseUrl;
             _authToken = authToken;
         }
-        public void SetAuthToken(string authToken)
+        public async Task<bool> SetAuthTokenIfNotExpired(string authToken)
         {
+            //it token is expired, sign out user
+            if (await IsTokenExpired(authToken))
+            {
+                return true;
+            }
             _authToken = authToken;
+            return false;
         }
+
+        public async Task<bool> IsTokenExpired(string idToken)
+        {
+            try
+            {
+                //test token - an old one that's expired
+                //idToken = "eyJhbGciOiJSUzI1NiIsImtpZCI6IjhkOWJlZmQzZWZmY2JiYzgyYzgzYWQwYzk3MmM4ZWE5NzhmNmYxMzciLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL3NlY3VyZXRva2VuLmdvb2dsZS5jb20vanVzZ2l2ZWF3YXkiLCJhdWQiOiJqdXNnaXZlYXdheSIsImF1dGhfdGltZSI6MTcyODk4OTUzNiwidXNlcl9pZCI6ImdVc2NEUFdwcTBaN3dJVVlNU3U5VjZjSU5IdjEiLCJzdWIiOiJnVXNjRFBXcHEwWjd3SVVZTVN1OVY2Y0lOSHYxIiwiaWF0IjoxNzI4OTg5NTM2LCJleHAiOjE3Mjg5OTMxMzYsImVtYWlsIjoiaEBoLmNvbSIsImVtYWlsX3ZlcmlmaWVkIjpmYWxzZSwiZmlyZWJhc2UiOnsiaWRlbnRpdGllcyI6eyJlbWFpbCI6WyJoQGguY29tIl19LCJzaWduX2luX3Byb3ZpZGVyIjoicGFzc3dvcmQifX0.pfV5s7vKQ14jgzPM9FRQp46weyG9geo5ZLCCG8xBzUJBjBUnQDtdtdwAIJq1AIezCNpWa9Cfc4BmszUf-iMmFVrp8msubTXbEpHpawmxMJhiyup1-do1hn1k1VHSjIUKyCe5I0VYamoWSv_47ghlQjkvSjsmlr7lFnKWwzEUUlGo6HSYbwP1iwiaJidNdp4JvgSH8RHo_nh7ocLTgphB6diaM0JL7NsQZJwYkW4H81xTuwRfeFxIFiWzu9caUAa4RERNCI4Ybv4GqIYXKdfmpfwfSqslN8HoM2Cd6ga-tOJnD6Mx7rBB30wl3yfmRGqTTjxokf7PqS506ClMDBQs2g";
+
+                var jwtHandler = new JwtSecurityTokenHandler();
+
+                if (jwtHandler.CanReadToken(idToken))
+                {
+                    var jwtToken = jwtHandler.ReadJwtToken(idToken);
+                    //var exp = jwtToken.Payload.Exp; //Exp is obsolete
+                    var exp = jwtToken.Payload.Expiration; // Expiration time in seconds
+
+                    // Convert the exp (Unix timestamp) to DateTime
+                    var expirationTime = DateTimeOffset.FromUnixTimeSeconds(exp.Value).UtcDateTime;
+
+                    // Compare with current time
+                    if (expirationTime <= DateTime.UtcNow)
+                    {
+                        return true; // Token is expired
+                    }
+                }
+                else
+                {
+                    return true; //Invalid Token
+                }
+                return false; // Token is valid
+            }
+            catch (Exception ex)
+            {
+                await WriteErrorMessagesAsync($"Error checking expiration of authtoken : {ex.Message}", "FirebaseService - IsTokenExpired()", DateTime.Now.ToString());
+                Console.WriteLine($"Error checking expiration of authtoken : {ex.Message}");
+                return true; 
+            }
+        }
+
         public async Task<FirebaseAuthResponse?> SignUpUserAsync(string email, string password)
         {
             var requestUri = $"https://identitytoolkit.googleapis.com/v1/accounts:signUp?key={webApiKey}"; // Use string interpolation
@@ -50,6 +98,7 @@ namespace JusGiveawayWebApp.Services
             else
             {
                 var errorContent = await response.Content.ReadAsStringAsync();
+                await WriteErrorMessagesAsync($"Signup failed: {errorContent}", payload?.ToString() ?? "", DateTime.Now.ToString());
                 Console.WriteLine($"Signup failed: {errorContent}");
                 return null;
             }
@@ -81,6 +130,7 @@ namespace JusGiveawayWebApp.Services
             }
             else
             {
+                await WriteErrorMessagesAsync("Sign in failed.", content?.ToString() ?? "", DateTime.Now.ToString());
                 Console.WriteLine("Sign in failed.");
                 return null;
             }
@@ -161,10 +211,15 @@ namespace JusGiveawayWebApp.Services
                 }
 
                 var response = await _httpClient.PutAsJsonAsync(url, data);
-                return response.IsSuccessStatusCode;
+                var success = response.IsSuccessStatusCode;
+                if (!success) {
+                    await WriteErrorMessagesAsync($"Error writing to Firebase: {response.ReasonPhrase}", url + " - " + data?.ToString(), DateTime.Now.ToString());
+                }
+                return success;
             }
             catch (Exception ex)
             {
+                await WriteErrorMessagesAsync($"Error writing to Firebase: {ex.Message}", path + " - " + data?.ToString() ?? "", DateTime.Now.ToString());
                 Console.WriteLine($"Error writing to Firebase: {ex.Message}");
                 return false;
             }
@@ -191,14 +246,43 @@ namespace JusGiveawayWebApp.Services
                 }
                 else
                 {
+                    await WriteErrorMessagesAsync($"Error reading from Firebase: {response.ReasonPhrase}", url, DateTime.Now.ToString());
                     Console.WriteLine($"Error reading from Firebase: {response.ReasonPhrase}");
                     return default;
                 }
             }
             catch (Exception ex)
             {
+                await WriteErrorMessagesAsync($"Error reading from Firebase: {ex.Message}", path, DateTime.Now.ToString());
                 Console.WriteLine($"Error reading from Firebase: {ex.Message}");
                 return default;
+            }
+        }
+
+        // Method to write errorMessages to Firebase
+        public async Task WriteErrorMessagesAsync(string errorMessage, string data, string errorTime)
+        {
+            try
+            {
+                var url = $"{_firebaseBaseUrl}/ErrorMessages.json";
+                if (!string.IsNullOrEmpty(_authToken))
+                {
+                    url += $"?auth={_authToken}";
+                }
+
+                var errorMessageData = new { ErrorMessage = errorMessage , Data = data, Time = errorTime};
+                
+                string errorMessageJson = JsonSerializer.Serialize(errorMessageData);
+
+                var response = await _httpClient.PostAsync(url, new StringContent(errorMessageJson));
+                if (!response.IsSuccessStatusCode)
+                {
+                    Console.WriteLine($"Error writing errorMessage messages to Firebase: {response.StatusCode} - {response.ReasonPhrase}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error writing errorMessage messages to Firebase: {ex.Message}");
             }
         }
 
@@ -252,7 +336,8 @@ namespace JusGiveawayWebApp.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error fetching data: {ex.Message}");
+                await WriteErrorMessagesAsync($"Error polling data from firebase: {ex.Message}", "PollingFirebaseForLeftOverFunds", DateTime.Now.ToString());
+                Console.WriteLine($"Error polling data from firebase: {ex.Message}");
             }
             return null;
         }

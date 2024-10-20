@@ -139,23 +139,27 @@
             {
                 var currentActiveUser = db.UserInfo.FirstOrDefault(u => u.UID == PlayerUID);
 
-                if (currentActiveUser != null)
+                //check if user is logged in
+                if (currentActiveUser == null || CommonFunctions.SendUserBackToLogInPageIfNotLoggedIn(currentActiveUser))
                 {
-                    //check if user is logged in
-                    if (CommonFunctions.SendUserBackToLogInPageIfNotLoggedIn(currentActiveUser))
-                    {
-                        NavigationManager.NavigateTo("/");
-                        return;
-                    }
+                    NavigationManager.NavigateTo("/");
+                    return;
+                }
 
-                    PlayerName = currentActiveUser.Name;
-                    //set auth token in case of a refresh of page
-                    FirebaseService.SetAuthToken(currentActiveUser.IdToken);
+                PlayerName = currentActiveUser.Name;
+                //set auth token in case of a refresh of page
+                bool authTokenExpired = await FirebaseService.SetAuthTokenIfNotExpired(currentActiveUser.IdToken);
+                if (authTokenExpired)
+                {
+                    await CommonFunctions.SignOutUser(this.DbFactory, PlayerUID);
+                    NavigationManager.NavigateTo("/");
+                    return;
                 }
             }
         }
         catch (Exception ex)
         {
+            await CommonFunctions.WriteErrorMessageToFirebase(ex.Message, "MainPage - OnInitializedAsync()", DateTime.Now.ToString());
             Console.WriteLine(ex.Message);
         }
     }

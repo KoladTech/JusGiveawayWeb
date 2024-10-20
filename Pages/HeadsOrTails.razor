@@ -217,7 +217,14 @@
                 else
                 {
                     //set auth token in case of a refresh of page
-                    FirebaseService.SetAuthToken(user.IdToken);
+                    bool authTokenExpired = await FirebaseService.SetAuthTokenIfNotExpired(user.IdToken);
+                    if (authTokenExpired)
+                    {
+                        await CommonFunctions.SignOutUser(this.DbFactory, PlayerUID);
+                        NavigationManager.NavigateTo("/");
+                        return;
+                    }
+
 
                     //rethink. this is absolutely necessary. If null, its a problem innit?
                     _giveawayData = await CommonFunctions.GetGiveawayDataFromFirebase();
@@ -415,6 +422,7 @@
         }
         catch (Exception ex)
         {
+            await CommonFunctions.WriteErrorMessageToFirebase(ex.Message, "OnLockInSelectionClicked", DateTime.Now.ToString());
             Console.WriteLine(ex.Message);
         }
     }
@@ -480,6 +488,7 @@
             }
             catch (Exception ex)
             {
+                await CommonFunctions.WriteErrorMessageToFirebase(ex.Message, "OnCoinTapped", DateTime.Now.ToString());
                 Console.WriteLine(ex.Message);
             }
         }
@@ -573,6 +582,7 @@
         }
         catch (Exception ex)
         {
+            await CommonFunctions.WriteErrorMessageToFirebase(ex.Message, "HeadsOrTails - ResetDataInDBs()", DateTime.Now.ToString());
             Console.WriteLine(ex.Message);
         }
 
@@ -788,6 +798,7 @@
             }
             catch (Exception ex)
             {
+                await CommonFunctions.WriteErrorMessageToFirebase(ex.Message, "CheckWin()", DateTime.Now.ToString());
                 Console.WriteLine(ex.Message);
                 //await CommonFunctions.DisplayCustomAlertPage("Error", "Error saving game state to DB, please contact app devs", "Close", "", true, false, AlertType.Error, Navigation);
             }
@@ -866,12 +877,14 @@
                 }
                 catch (Exception ex)
                 {
+                    await CommonFunctions.WriteErrorMessageToFirebase(ex.Message, "HeadsOrTails - GetLeftOverGiveawayFundsFromFirebase()", DateTime.Now.ToString());
                     Console.WriteLine($"Error during polling: {ex.Message}");
                 }
             }, null, 0, 60000);
         }
         catch (Exception ex)
         {
+            await CommonFunctions.WriteErrorMessageToFirebase(ex.Message, "HeadsOrTails - GetLeftOverGiveawayFundsFromFirebase()", DateTime.Now.ToString());
             Console.WriteLine($"Error fetching data: {ex.Message}");
         }
     }
@@ -912,6 +925,7 @@
             }
             catch (Exception ex)
             {
+                await CommonFunctions.WriteErrorMessageToFirebase(ex.Message, "HeadsOrTails - UpdateMonetaryValuesBasedOnLeftOverFunds()", DateTime.Now.ToString());
                 Console.WriteLine(ex.Message);
             }
 

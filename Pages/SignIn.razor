@@ -61,8 +61,8 @@
     [CascadingParameter]
     private CustomNavigationStack CustomNavStack { get; set; }
     private string userName;
-    private string email = "f@f.com";
-    private string password = "Qwerty1!w";
+    private string email = "";
+    private string password = "";
     private bool isLoading = false;
     private bool isToastVisible;
     private string toastMessage;    
@@ -91,6 +91,7 @@
         }
         catch (Exception ex)
         {
+            await CommonFunctions.WriteErrorMessageToFirebase(ex.Message, "SignIn - OnInitializedAsync()", DateTime.Now.ToString());
             Console.WriteLine(ex.Message);
         }
         #endregion
@@ -137,7 +138,15 @@
         {
             string uid = response.LocalId;
             string idToken = response.IdToken;
-            FirebaseService.SetAuthToken(idToken);
+            bool authTokenExpired = await FirebaseService.SetAuthTokenIfNotExpired(idToken);
+            if (authTokenExpired)
+            {
+                await CommonFunctions.SignOutUser(this.DbFactory, uid);
+                ShowToast("Error logging in");
+                NavigationManager.NavigateTo("/");
+                return;
+            }
+
             //store userinfo in indexeddb
             try
             {
@@ -175,6 +184,7 @@
             }
             catch (Exception ex)
             {
+                await CommonFunctions.WriteErrorMessageToFirebase(ex.Message, "SignIn - OnSignInClicked()", DateTime.Now.ToString());
                 Console.WriteLine(ex.Message);
             }
             ShowToast("Signed in");

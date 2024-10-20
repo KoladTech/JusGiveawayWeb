@@ -116,6 +116,7 @@
         }
         catch (Exception ex)
         {
+            await CommonFunctions.WriteErrorMessageToFirebase(ex.Message, "CountdownPage - OnInitializedAsync() - ReadSurveyFromIndexedDB", DateTime.Now.ToString());
             Console.WriteLine(ex.Message);
         }
 
@@ -268,6 +269,7 @@
         }
         catch (Exception ex)
         {
+            await CommonFunctions.WriteErrorMessageToFirebase(ex.Message, "CountDownPage - SaveUserSurveyToIndexedDB", DateTime.Now.ToString());
             Console.WriteLine(ex.Message);
         }
     }
@@ -288,6 +290,7 @@
         }
         catch (Exception ex)
         {
+            await CommonFunctions.WriteErrorMessageToFirebase(ex.Message, "CountDownPage - SaveTesterToIndexedDB", DateTime.Now.ToString());
             Console.WriteLine(ex.Message);
         }
     }
