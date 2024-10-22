@@ -177,10 +177,6 @@
 
     private async Task OnSignUpClicked()
     {
-        // Call your registration logic here
-        //await Task.Delay(2000); // Simulate a delay
-
-
         // Handle successful registration and redirect if necessary
         var response = await FirebaseService.SignUpUserAsync(email, password);
         if (response != null)
@@ -194,6 +190,9 @@
                 NavigationManager.NavigateTo("/");
                 return;
             }
+
+            //send email verification email
+            await FirebaseService.SendEmailVerification(idToken);
 
             //store userinfo in indexeddb
             try

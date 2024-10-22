@@ -39,6 +39,12 @@ namespace JusGiveawayWebApp.Helpers
             return await _firebaseService.ReadDataAsync<int>($"Giveaways/A/LeftoverGiveawayFunds");
         }
 
+        public async Task<string> GetTestEmailsFromFirebase()
+        {
+            //if null, display error
+            return await _firebaseService.ReadDataAsync<string>($"TestEmails");
+        }
+
         public async Task<bool> SaveNewUserToFirebase(UserInfo newUser)
         {
             //if null, display error

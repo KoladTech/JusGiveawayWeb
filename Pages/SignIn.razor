@@ -5,41 +5,50 @@
 @inject IndexedDB.Blazor.IIndexedDbFactory DbFactory
 @using JusGiveawayWebApp.Helpers
 @using JusGiveawayWebApp.Models
+@using System.Text.Json
 @inject JusGiveawayWebApp.Services.UserInfoService UserInfoService
 
 <div class="phone-container">
     <div class="phone-screen">
         <img src="images/logo_green.png" class="jg-logo" alt="Logo" />
 
-        <!-- Sign Up label -->
-        <h2 class="form-title">Log In</h2>
-        <p class="small-text">Enter your email and password...</p>
-
-
-        <label>Email</label>
-        <div class="entry-frame">
-            <InputText @bind-Value="email" placeholder="Enter your email" type="email" class="entry" />
-        </div>
-
-        <label>Password</label>
-        <div class="entry-frame">
-            <div class="password-container">
-                <InputText @bind-Value="password"
-                           placeholder="Enter password"
-                           type="password"
-                           class="entry"
-                           maxlength="12"
-                           @oninput="e => ToggleBtn(e)" />
-            </div>
-        </div>
-
-        <div class="button-container">
-            <button class="centered-button" @onclick="OnSignInClicked" disabled="@(!btnEnabled)">Log In</button>
-        </div>
-
-        @if (isLoading)
+        @if (!ShowEmailVerificationMessage)
         {
-            <p>Loading...</p>
+            <!-- Sign Up label -->
+            <h2 class="form-title">Log In</h2>
+            <p class="small-text">Enter your email and password...</p>
+
+
+            <label>Email</label>
+            <div class="entry-frame">
+                <InputText @bind-Value="email" placeholder="Enter your email" type="email" class="entry" />
+            </div>
+
+            <label>Password</label>
+            <div class="entry-frame">
+                <div class="password-container">
+                    <InputText @bind-Value="password"
+                               placeholder="Enter password"
+                               type="password"
+                               class="entry"
+                               maxlength="12"
+                               @oninput="e => ToggleBtn(e)" />
+                </div>
+            </div>
+
+            <div class="button-container">
+                <button class="centered-button" @onclick="OnSignInClicked" disabled="@(!btnEnabled)">Log In</button>
+            </div>
+        }
+
+        @if (ShowEmailVerificationMessage)
+        {
+            <div style="text-align: center; margin-top: 50px;">
+                <h2 style="color: #333;">Please verify your email!</h2>
+                <p style="font-size: 1.2rem; color: #555;">
+                    We sent a verification link to your email. Click the link and log in again.
+                </p>
+            </div>
         }
 
         <div class="signup-signin-prompt">
@@ -69,6 +78,11 @@
     private string toastMessage;    
     private DateTime giveawayStartDate;
     private bool isTester;
+    string jsonStringTestEmails;
+    List<string>? testEmailList = new List<string>();
+    bool isTestEmail = false;
+    bool isEmailVerified = true;
+    bool ShowEmailVerificationMessage = false;
 
     private bool btnEnabled = false;
 
@@ -148,6 +162,43 @@
                 return;
             }
 
+            try
+            {
+                jsonStringTestEmails = await CommonFunctions.GetTestEmailsFromFirebase();
+                testEmailList = JsonSerializer.Deserialize<List<string>>(jsonStringTestEmails);
+                isTestEmail = testEmailList == null ? false : testEmailList.Contains(email);
+            }
+            catch (Exception ex)
+            {
+                await CommonFunctions.WriteErrorMessageToFirebase(ex.Message, "retrieving test emails from firebase", DateTime.Now.ToString());
+                Console.WriteLine(ex.Message + "retrieving test emails from firebase");
+            }
+
+            isEmailVerified = await FirebaseService.IsEmailVerified(idToken);
+            ShowEmailVerificationMessage = !isEmailVerified;
+            StateHasChanged();
+            // Hide the verification message after 10 seconds
+            var _ = Task.Delay(10000).ContinueWith(_ =>
+            {
+                InvokeAsync(() => ShowEmailVerificationMessage = !ShowEmailVerificationMessage);
+                StateHasChanged();
+            });
+
+            //check if user has verified their emails
+            if (isTestEmail || isEmailVerified)
+            {
+                // Proceed with login
+                Console.WriteLine("Email verified. Login successful.");
+            }
+            else
+            {
+                Console.WriteLine("Email not verified. Please verify your email.");
+                ShowToast("Please verify email to proceed");
+                // send another verification email
+                await FirebaseService.SendEmailVerification(idToken);
+                return;
+            }
+
             //store uid in UserInfoService singleton to use in NavMenu
             UserInfoService.PlayerUID = uid;
 
@@ -191,7 +242,7 @@
                 await CommonFunctions.WriteErrorMessageToFirebase(ex.Message, "SignIn - OnSignInClicked()", DateTime.Now.ToString());
                 Console.WriteLine(ex.Message);
             }
-            ShowToast("Signed in");
+            ShowToast("Logged in");
             // Redirect to the main page or home page after successful sign in
             CustomNavStack.AddPage("SignInPage", uid);
             CustomNavStack.AddPage("MainPage", uid);

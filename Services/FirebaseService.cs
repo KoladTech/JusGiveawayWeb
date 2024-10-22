@@ -104,6 +104,42 @@ namespace JusGiveawayWebApp.Services
             }
         }
 
+        public async Task SendEmailVerification(string idToken)
+        {
+            var url = $"https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key={webApiKey}";
+            var emailVerificationRequest = new
+            {
+                requestType = "VERIFY_EMAIL",
+                idToken
+            };
+
+            var response = await _httpClient.PostAsJsonAsync(url, emailVerificationRequest);
+
+            if (response.IsSuccessStatusCode)
+            {
+                Console.WriteLine("Email verification sent.");
+            }
+            else
+            {
+                Console.WriteLine("Failed to send verification email.");
+            }
+        }
+
+        public async Task<bool> IsEmailVerified(string idToken)
+        {
+            var url = $"https://identitytoolkit.googleapis.com/v1/accounts:lookup?key={webApiKey}";
+            var request = new
+            {
+                idToken
+            };
+
+            var response = await _httpClient.PostAsJsonAsync(url, request);
+            var result = await response.Content.ReadFromJsonAsync<LookupResponse>();
+
+            return result.Users.FirstOrDefault()?.EmailVerified ?? false;
+        }
+
+
         public async Task<FirebaseAuthResponse?> SignInEmailPassword(string email, string password)
         {
             var requestUri = $"https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key={webApiKey}";
@@ -130,8 +166,8 @@ namespace JusGiveawayWebApp.Services
             }
             else
             {
-                await WriteErrorMessagesAsync("Sign in failed.", content?.ToString() ?? "", DateTime.Now.ToString());
-                Console.WriteLine("Sign in failed.");
+                await WriteErrorMessagesAsync("Sign in failed. Possibly wrong credentials", content?.ToString() ?? "", DateTime.Now.ToString());
+                Console.WriteLine("Sign in failed. Possibly wrong credentials");
                 return null;
             }
         }
@@ -362,6 +398,16 @@ namespace JusGiveawayWebApp.Services
 
         [JsonPropertyName("registered")]
         public bool Registered { get; set; }
+    }
+    public class LookupResponse
+    {
+        public List<User> Users { get; set; }
+    }
+
+    public class User
+    {
+        public string Email { get; set; }
+        public bool EmailVerified { get; set; }
     }
 
 }
