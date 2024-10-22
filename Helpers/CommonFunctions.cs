@@ -96,6 +96,12 @@ namespace JusGiveawayWebApp.Helpers
             return await _firebaseService.ReadDataAsync<int>($"AllUsers/{uid}/GamePlayData/currentWinnings");
         }
 
+        public async Task<bool> GetUserCashOutStatusFromFirebase(string uid)
+        {
+            //if null, display error
+            return await _firebaseService.ReadDataAsync<bool>($"AllUsers/{uid}/GamePlayData/cashedOut");
+        }
+
         public async Task<bool> SaveUserCashOutDetailsToFirebase(UserInfo user, CashOutDetails userCashOutDetails)
         {
             //if null, display error
@@ -199,7 +205,7 @@ namespace JusGiveawayWebApp.Helpers
             //save usergameplaydata to firebase
             if (userGamePlayData != null)
             {
-                Console.WriteLine("Saving game play data, due to inactivity...");
+                Console.WriteLine("Saving game play data, on exiting the HeadsOrTails page...");
                 userGamePlayData.HeadsCount = headsCount;
                 userGamePlayData.TailsCount = tailsCount;
                 try

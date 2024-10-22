@@ -1,4 +1,6 @@
-﻿<div class="top-row ps-3 navbar navbar-dark">
+﻿@inject JusGiveawayWebApp.Services.UserInfoService UserInfoService
+
+<div class="top-row ps-3 navbar navbar-dark">
     <div class="container-fluid">
         <a class="navbar-brand" href="">JusGiveaway</a>
         <button title="Navigation menu" class="navbar-toggler" @onclick="ToggleNavMenu">
@@ -10,7 +12,7 @@
 <div class="@NavMenuCssClass nav-scrollable" @onclick="ToggleNavMenu">
     <nav class="flex-column">
         <div class="nav-item px-3">
-            <NavLink class="nav-link" href="/mainpage" Match="NavLinkMatch.All">
+            <NavLink class="nav-link" href="@($"/mainpage/{UserInfoService.PlayerUID}")" Match="NavLinkMatch.All">
                 <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Games
             </NavLink>
             <NavLink class="nav-link" href="https://www.instagram.com/jus_giveaway/" target="_blank" Match="NavLinkMatch.All">
@@ -42,9 +44,9 @@
             </NavLink>
         </div>
         <!-- Add a footer at the bottom of your navigation menu -->
-        <!-- Previous version - 1.0.4 -->
+        <!-- Previous version - 1.0.5 -->
         <div class="nav-footer">
-            <small>Version 1.0.5</small>
+            <small>Version 1.0.6</small>
         </div>
     </nav>
 </div>

@@ -14,5 +14,6 @@ builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.
 builder.Services.AddScoped(sp => new FirebaseService(new HttpClient(), "https://jusgiveaway-default-rtdb.europe-west1.firebasedatabase.app"));
 builder.Services.AddScoped<CommonFunctions>();
 builder.Services.AddSingleton<IIndexedDbFactory, IndexedDbFactory>();
+builder.Services.AddSingleton<UserInfoService>();
 
 await builder.Build().RunAsync();

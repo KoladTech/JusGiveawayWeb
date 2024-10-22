@@ -5,6 +5,7 @@
 @inject IndexedDB.Blazor.IIndexedDbFactory DbFactory
 @using JusGiveawayWebApp.Helpers
 @using JusGiveawayWebApp.Models
+@inject JusGiveawayWebApp.Services.UserInfoService UserInfoService
 
 <div class="phone-container">
     <div class="phone-screen">
@@ -146,6 +147,9 @@
                 NavigationManager.NavigateTo("/");
                 return;
             }
+
+            //store uid in UserInfoService singleton to use in NavMenu
+            UserInfoService.PlayerUID = uid;
 
             //store userinfo in indexeddb
             try

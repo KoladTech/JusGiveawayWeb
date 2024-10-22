@@ -33,6 +33,7 @@
     </div>
     <script src="_framework/blazor.webassembly.js"></script>
     <script src="_content/TG.Blazor.IndexedDB/indexedDb.Blazor.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
     <script>
         window.onPageExit = function (callback) {
             // Listen for back button press (popstate event)
@@ -52,63 +53,241 @@
     </script>
     <script>
         let timer;
-        let isUserLoggedOut = false; // Add a flag to track logout state
+        let isUserLoggedOut = false;
+        let timeRemaining;
+        let logoutAfter = 10 * 60 * 1000; // 10 minutes in milliseconds
 
         window.inactivityTimer = function (dotNetHelper) {
             if (!dotNetHelper || isUserLoggedOut) {
-                console.error("DotNetHelper is undefined. or userLoggedout");
+                console.error("DotNetHelper is undefined or user is logged out.");
                 return;
             }
-;
-            let timer;
-            //10 mins * 60 secs/min * 1000 milliseconds/sec = 600,000 milliseconds
-            let logoutAfter = 10 * 60 * 1000; 
 
+            // Clear any existing timer before starting a new one
+            clearInterval(timer);  // Important: clear the interval if one exists
+            clearTimeout(timer);
 
-            // Reset the timer on any user activity
-            // Add event listeners for both desktop and mobile devices
-            window.onload = resetTimer;
-            document.onmousemove = resetTimer;  // Mouse movement (desktop)
-            document.onkeydown = resetTimer;    // Keypress (desktop)
-            document.onclick = resetTimer;      // Clicks (desktop)
-            document.ontouchstart = resetTimer; // Touch (mobile)
-            document.ontouchmove = resetTimer;  // Scrolling/touch movement (mobile)
-            document.onscroll = resetTimer;     // Scrolling (both desktop and mobile)
-                        
+            // Start the countdown and log time remaining
+            function startCountdown() {
+                timeRemaining = logoutAfter;
+                //console.log(`Timer started. Time remaining: ${timeRemaining / 1000} seconds`);
+
+                timer = setInterval(() => {
+                    timeRemaining -= 1000;
+                    //console.log(`Time remaining: ${timeRemaining / 1000} seconds`);
+
+                    if (timeRemaining <= 0) {
+                        clearInterval(timer);
+                        logoutUser(); // Log the user out when time expires
+                    }
+                }, 1000); // Update every second
+            }
 
             // Log the user out when time expires
             function logoutUser() {
                 if (!isUserLoggedOut) {
-                    // Call the Blazor method using the DotNetHelper
+                    console.error("Logging out user due to inactivity.");
                     dotNetHelper.invokeMethodAsync('LogoutUser')
                         .catch(err => console.error("Error invoking LogoutUser:", err));
-                    console.error("inside logoutUser js func.");
+                    isUserLoggedOut = true;
+                    clearInterval(timer); // Stop the countdown
                 }
             }
 
-            // Reset the inactivity timer
+            // Reset the inactivity timer and restart countdown
             function resetTimer() {
                 if (!isUserLoggedOut) {
-                    clearTimeout(timer);
-                    timer = setTimeout(logoutUser, logoutAfter);
-                    //console.error("inside resetTimer js func.");
+                    clearInterval(timer); // Clear any existing timer
+                    console.log("User activity detected. Timer reset.");
+                    startCountdown(); // Restart the countdown
                 }
             }
-        };
-        window.clearInactivityTimer = function () {
-            clearTimeout(inactivityTimer);
-            inactivityTimer = null; // Clear the timer when logged out
-            console.error("inside clearInactivityTimer js func.");
-            isUserLoggedOut = true; // Set the flag to stop further timer setups
+
+            // Reset the timer on user activity
+            window.onload = resetTimer;
+            document.onmousemove = resetTimer;
+            document.onkeydown = resetTimer;
+            document.onclick = resetTimer;
+            document.ontouchstart = resetTimer;
+            document.ontouchmove = resetTimer;
+            document.onscroll = resetTimer;
+
+            // Start countdown on first load
+            startCountdown();
         };
 
+        // Clear the inactivity timer and stop it when navigating away
+        window.clearInactivityTimer = function () {
+            clearInterval(timer);
+            clearTimeout(timer);  // Clear timeout if there is any
+            isUserLoggedOut = true; // Set flag to stop further actions
+            console.log("Inactivity timer cleared.");
+        };
+
+        // Reset user-logged-out flag
         window.resetUserLoggedOutFlag = function () {
-            isUserLoggedOut = false; // Reset the flag when the user logs back in
-            console.log("inside resetUserLoggedOutFlag")
+            isUserLoggedOut = false;
+            console.log("User has logged back in, reset logout flag.");
         };
     </script>
+    <script>
+        window.triggerConfetti = function () {
+            var duration = 5 * 1000; // 5 seconds
+            var animationEnd = Date.now() + duration;
+            var defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 1000 };
 
+            function randomInRange(min, max) {
+                return Math.random() * (max - min) + min;
+            }
 
+            var interval = setInterval(function () {
+                var timeLeft = animationEnd - Date.now();
+
+                if (timeLeft <= 0) {
+                    return clearInterval(interval);
+                }
+
+                var particleCount = 50 * (timeLeft / duration);
+                confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } }));
+                confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } }));
+            }, 250);
+        };
+    </script>
+    <script>
+        window.triggerLossEffect = function () {
+            var duration = 3 * 1000; // 3 seconds
+            var animationEnd = Date.now() + duration;
+
+            function randomInRange(min, max) {
+                return Math.random() * (max - min) + min;
+            }
+
+            function createSadFace() {
+                var sadFace = document.createElement('div');
+                sadFace.textContent = '😢';  // Sad face emoji
+                sadFace.style.position = 'fixed';
+                sadFace.style.zIndex = 1000;
+                sadFace.style.fontSize = randomInRange(20, 40) + 'px';
+                sadFace.style.left = randomInRange(0, window.innerWidth) + 'px';
+                sadFace.style.top = '-50px';  // Start above the screen
+                document.body.appendChild(sadFace);
+
+                var fallDuration = randomInRange(2, 4) * 1000;  // Fall time between 2-4 seconds
+                sadFace.animate([
+                    { transform: 'translateY(0px)' },
+                    { transform: `translateY(${window.innerHeight + 50}px)` }
+                ], {
+                    duration: fallDuration,
+                    easing: 'linear',
+                    iterations: 1,
+                    fill: 'forwards'
+                });
+
+                // Remove the element after it "falls" off the screen
+                setTimeout(() => sadFace.remove(), fallDuration);
+            }
+
+            var interval = setInterval(function () {
+                var timeLeft = animationEnd - Date.now();
+
+                if (timeLeft <= 0) {
+                    return clearInterval(interval);
+                }
+
+                var faceCount = 10 * (timeLeft / duration);  // Adjust the number of faces
+                for (var i = 0; i < faceCount; i++) {
+                    createSadFace();
+                }
+            }, 300);  // Sad faces will fall every 300ms
+        };
+    </script>
+    <script>
+        window.triggerSpecialWinEffect = function () {
+            var duration = 5 * 1000; // Fireworks will last for 5 seconds
+            var animationEnd = Date.now() + duration;
+            var defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 1000 };
+
+            function randomInRange(min, max) {
+                return Math.random() * (max - min) + min;
+            }
+
+            var interval = setInterval(function () {
+                var timeLeft = animationEnd - Date.now();
+
+                if (timeLeft <= 0) {
+                    return clearInterval(interval); // Stop the fireworks when time is up
+                }
+
+                var particleCount = 50 * (timeLeft / duration); // Adjust particle count over time
+                confetti(Object.assign({}, defaults, {
+                    particleCount,
+                    origin: { x: randomInRange(0.2, 0.8), y: Math.random() - 0.2 },
+                    colors: ['#FFD700', '#FF4500', '#00FF00', '#00BFFF', '#FF69B4'] // Gold, red, green, blue, pink
+                }));
+            }, 250); // Fire every 250ms
+        };
+    </script>
+    <style>
+        .congrats-badge {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #FFD700; /* Gold */
+            color: #fff;
+            font-size: 3rem;
+            padding: 20px 40px;
+            border-radius: 15px;
+            text-align: center;
+            z-index: 9999;
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.8);
+            animation: bounceIn 0.8s ease, glow 1.5s infinite alternate;
+        }
+
+        /* Bounce Animation */
+        @keyframes bounceIn {
+            0% {
+                transform: translate(-50%, -50%) scale(0);
+            }
+
+            60% {
+                transform: translate(-50%, -50%) scale(1.2);
+            }
+
+            100% {
+                transform: translate(-50%, -50%) scale(1);
+            }
+        }
+
+        /* Glowing Effect */
+        @keyframes glow {
+            0% {
+                box-shadow: 0 0 10px rgba(255, 215, 0, 0.8);
+            }
+
+            50% {
+                box-shadow: 0 0 30px rgba(255, 215, 0, 1);
+            }
+
+            100% {
+                box-shadow: 0 0 10px rgba(255, 215, 0, 0.8);
+            }
+        }
+    </style>
+    <script>
+        function showCongratsBadge() {
+            const badge = document.createElement('div');
+            badge.classList.add('congrats-badge');
+            badge.innerText = 'BINGO!!!';
+
+            document.body.appendChild(badge);
+
+            // Remove the badge after 5 seconds
+            setTimeout(() => {
+                badge.remove();
+            }, 5000);
+        }
+    </script>
 </body>
 
 </html>

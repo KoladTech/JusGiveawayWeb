@@ -414,19 +414,137 @@
     }
 }
 
-.win-message {
+.end-round-message {
     position: fixed; /* Stay fixed on the screen */
-    bottom: 0; /* Start at the bottom */
+    bottom: -100px; /* Start below the viewport */
     left: 50%; /* Center horizontally */
     transform: translateX(-50%); /* Center alignment */
-    background-color: rgba(255, 215, 0, 0.8); /* Gold color for the message */
-    padding: 10px 20px; /* Padding for better appearance */
-    border-radius: 5px; /* Rounded corners */
-    font-size: 1.5rem; /* Adjust font size as needed */
+    padding: 10px 20px; /* Extra padding for a better appearance */
+    border-radius: 8px; /* Slightly more rounded corners */
+    font-size: 1.2rem; /* Adjust font size as needed */
+    color: white; /* White text for contrast */
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2); /* Add a subtle shadow */
     z-index: 1000; /* Ensure it appears above other elements */
-    display: none; /* Hide by default */
+    display: none; /* Hidden by default */
 }
-    .win-message.animate {
+    .end-round-message.animate {
         display: block; /* Make it visible */
-        animation: bounceIn 0.5s forwards, bounceOut 0.5s 1.5s forwards; /* Bounce in, then out */
+        animation: slideInUp 0.6s forwards, fadeOut 0.5s 5s forwards; /* Slide in from below, fade out after 5s */
     }
+    /* Green background for win */
+    .end-round-message.win {
+        background-color: rgba(0, 128, 0, 0.9); /* Dark green for win */
+    }
+
+    /* Red background for loss */
+    .end-round-message.loss {
+        background-color: rgba(255, 0, 0, 0.8); /* Red for loss */
+    }
+
+    /* Grayish-blue background for bingo */
+    .end-round-message.bingo {
+        background-color: rgba(70, 130, 180, 0.9); /* Steel blue for draw */
+    }
+
+/* Slide up from the bottom */
+@keyframes slideInUp {
+    0% {
+        bottom: -100px;
+        opacity: 0;
+    }
+
+    100% {
+        bottom: 20px;
+        opacity: 1;
+    }
+}
+
+/* Fade out after showing */
+@keyframes fadeOut {
+    0% {
+        bottom: 20px;
+        opacity: 1;
+    }
+
+    100% {
+        bottom: -100px;
+        opacity: 0;
+    }
+}
+/* Styles for the prompt message */
+.prompt-message {
+    position: fixed;
+    top: 30%;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 15px 25px;
+    background-color: rgba(0, 0, 0, 0.8); /* Semi-transparent black */
+    color: white;
+    border-radius: 8px;
+    font-size: 1.2rem;
+    text-align: center;
+    opacity: 0; /* Hidden initially */
+    z-index: 1000;
+}
+
+    .prompt-message.show {
+        animation: fadeInPrompt 1s forwards, fadeOutPrompt 1s 3s forwards;
+    }
+
+/* Fade in animation */
+@keyframes fadeInPrompt {
+    0% {
+        opacity: 0;
+    }
+
+    100% {
+        opacity: 1;
+    }
+}
+
+/* Fade out animation */
+@keyframes fadeOutPrompt {
+    0% {
+        opacity: 1;
+    }
+
+    100% {
+        opacity: 0;
+    }
+}
+
+.game-over-message {
+    position: fixed; /* Keeps it in a fixed position on the screen */
+    top: 50%; /* Vertical center */
+    left: 50%; /* Horizontal center */
+    transform: translate(-50%, -50%); /* Adjust position for perfect centering */
+    font-size: 5rem; /* Big, readable font */
+    font-weight: bold; /* Bold for emphasis */
+    color: black; /* White text for visibility */
+    background-color: #e74c3c; /* Red background for the game over message */
+    padding: 10px 20px; /* Padding for a larger button-like feel */
+    border-radius: 10px; /* Rounded corners */
+    z-index: 1000; /* Ensure it overlays everything */
+    opacity: 0.9; /* Start as invisible */
+    animation: fadeInOut 5s forwards; /* Apply fade-in and fade-out animation */
+    text-align: center; /* Center the text within the box */
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.5); /* Add shadow for better visibility */
+}
+/* Keyframes for fading in and out with a slide off the screen */
+@keyframes fadeInOut {
+    0% {
+        opacity: 0; /* Initially invisible */
+        transform: translate(-50%, -50%) scale(0.8); /* Start smaller and centered */
+    }
+
+    50% {
+        opacity: 0.8; /* Fully visible */
+        transform: translate(-50%, -50%) scale(1.1); /* Slightly bigger and centered */
+    }
+
+    100% {
+        opacity: 0; /* Fade out */
+        transform: translate(-50%, 150%) scale(0.8); /* Move off the bottom of the screen */
+        display: none
+    }
+}

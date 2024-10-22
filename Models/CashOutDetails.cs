@@ -11,5 +11,6 @@
         public required string BankAccountNumber { get; set; }
         public required string BankName { get; set; }
         public required int CashoutAmount { get; set; }
+        public string? InstagramAccount { get; set; }
     }
 }

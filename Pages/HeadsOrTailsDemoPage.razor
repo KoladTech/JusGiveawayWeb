@@ -126,6 +126,10 @@
                 <button @onclick="OnResetClicked" class="centered-button transition-fade @(ShowResetBtn ? "show" : "hidden")">
                     Switch to @ResetBtnText
                 </button>
+
+                <div class="end-round-message @(wonRound ? "win animate" : "") @(lostRound ? "loss animate" : "") @(bingoRound ? "bingo animate" : "")">
+                    @(EndOfRoundMessage)
+                </div>
             </div>
         </div>
     </div>
@@ -143,6 +147,9 @@
     private double LeftoverGiveawayFunds { get; set; } = 0;
     private double MaxPossibleWinnings { get; set; } = 50000;
     private double CurrentWinnings { get; set; } = 0;
+    private double animateVarForLeftoverGiveawayFunds { get; set; } = 0;
+    private double animateVarForMaximumWin { get; set; } = 0;
+    private double animateVarForWinnings { get; set; } = 0;
     private int TotalFlips => HeadsCount + TailsCount;
     private int HeadsCount { get; set; } = 0;
     private int TailsCount { get; set; } = 0;
@@ -152,6 +159,7 @@
     private bool ShowResetBtn { get; set; } = true;
     private string ResetBtnText { get; set; } = "Heads/Tails";
     private bool SideSelected = false;
+    private string EndOfRoundMessage { get; set; } = "";
     // Calculate height for the bars based on counts
     private double HeadsBarHeight => TotalFlips > 0 ? (double)HeadsCount / TotalFlips * 100 : 0;
     private double TailsBarHeight => TotalFlips > 0 ? (double)TailsCount / TotalFlips * 100 : 0;
@@ -300,19 +308,19 @@
             CoinImage = i % 2 == 0 ? "images/kobo_front.png" : "images/kobo_back.png"; // Alternate front/back
             StateHasChanged();
 
-            await Task.Delay(100); // Adjust this value to control the speed of spinning
+            await Task.Delay(50); // Adjust this value to control the speed of spinning
         }
 
         // Final outcome based on random result (0 = heads, 1 = tails)
         if (random.Next(2) == 0)
         {
             CoinImage = "images/kobo_front.png"; // Set to heads
-            HeadsCount += 5;
+            HeadsCount += 10;
         }
         else
         {
             CoinImage = "images/kobo_back.png"; // Set to tails
-            TailsCount += 5;
+            TailsCount += 10;
         }
 
         CheckForWin();
@@ -359,8 +367,7 @@
 
         alertDialogParams.AlertTitle = $"Switch to {ResetBtnText}?";
         alertDialogParams.AlertMessage = new MarkupString($"There will be a penalty of <strong>N{resetPenalty}</strong>!<br/><br/>" +
-                $"Maximum possible winnings will be reduced to <strong>N{resetMaxPossibleWinnings.ToString("N0")}</strong>! " +
-                 $"<br/><br/>Winnings will be reduced to <strong>N{resetCurrentWinnings.ToString("N0")}</strong>!");
+                $"Maximum possible winnings will be reduced to <strong>N{resetMaxPossibleWinnings.ToString("N0")}</strong>! ");
         alertDialogParams.OnPrimaryButtonClick = EventCallback.Factory.Create(this, AlertDialogPrimaryClicked);
         alertDialogParams.OnSecondaryButtonClick = EventCallback.Factory.Create(this, AlertDialogSecondaryClicked);
         //await LoadGameDataFromDb();
@@ -371,7 +378,6 @@
     {
         await Task.WhenAll(
         AnimateNumberChange(value => MaxPossibleWinnings = value, MaxPossibleWinnings, MaxPossibleWinnings - 2000),
-        AnimateNumberChange(value => CurrentWinnings = value, CurrentWinnings, Math.Max(CurrentWinnings - 2000, 0)),
         AnimateNumberChange(value => HeadsCount = value, HeadsCount, 0),
         AnimateNumberChange(value => TailsCount = value, TailsCount, 0),
         TriggerHeartAnimation(ResetsLeft)
@@ -464,6 +470,9 @@
         string additionalMsg = string.Empty;
         double winning = 0;
         int loss = 0;
+        bool wonRound = false;
+        bool lostRound = false;
+        bool bingoRound = false;
 
         // Check for win only when total flips reach a multiple of 100
         if (TotalFlips >= 100 && TotalFlips % 100 == 0)
@@ -475,29 +484,44 @@
                 if (Score == 0)     //A draw (BINGO)
                 {
                     winning = 5000;
+                    bingoRound = true;
                 }
                 else if (Score >= 10)    //A big win
                 {
                     winning = 2000;
+                    wonRound = true;
                 }
                 else    //A small win
                 {
-                    winning = 500;
+                    winning = 1000;
+                    wonRound = true;
                 }
 
-                await AnimateNumberChange(value => CurrentWinnings = value, CurrentWinnings, CurrentWinnings + winning);
+                animateVarForWinnings = CurrentWinnings;
 
-                //CurrentWinnings += winning;
-
-                //check if current round winning puts you above max possible win
-                if (CurrentWinnings > MaxPossibleWinnings)
+                //check if current round winning puts you equal/above max possible win
+                if ((CurrentWinnings + winning) >= MaxPossibleWinnings)
                 {
-                    CurrentWinnings -= winning;
                     winning = MaxPossibleWinnings - CurrentWinnings;
                     CurrentWinnings = MaxPossibleWinnings;
+                    //isGameOver = isMaxWinAchieved();
+                }
+                else
+                {
+                    CurrentWinnings += winning;
                 }
 
                 winMsg = $"You won N{winning.ToString("N0")}! ";
+                ShowWinningMessage(wonRound, lostRound, bingoRound, winMsg);
+                if (bingoRound)
+                {
+                    // Trigger the Congrats Badge animation
+                    await JSRuntime.InvokeVoidAsync("showCongratsBadge");
+                }
+                // Call the JS function to trigger confetti
+                await JSRuntime.InvokeVoidAsync("triggerConfetti");
+
+                await AnimateNumberChange(value => animateVarForWinnings = value, animateVarForWinnings, CurrentWinnings);
             }
             else
             {
@@ -508,17 +532,28 @@
                     if (Score <= -10)    //A big loss
                     {
                         loss = 1000;
+                        lostRound = true;
                     }
                     else    //A small loss
                     {
                         loss = 500;
+                        lostRound = true;
                     }
 
-                    await AnimateNumberChange(value => CurrentWinnings = value, CurrentWinnings, CurrentWinnings - loss);
-
                     lossMsg = $"You lost N{loss.ToString("N0")}!";
+                    ShowWinningMessage(wonRound, lostRound, bingoRound, lossMsg);
+                    // Call the JavaScript function to trigger the loss effect
+                    await JSRuntime.InvokeVoidAsync("triggerLossEffect");
+
+                    animateVarForWinnings = CurrentWinnings;
+                    CurrentWinnings -= loss;
+                    await AnimateNumberChange(value => animateVarForWinnings = value, animateVarForWinnings, CurrentWinnings);
                 }
             }
+
+            // ShowCashOutBtn = CurrentWinnings >= userGamePlayData.MinCashOut;
+            // winMsg += ShowCashOutBtn ? "\nYou can cashout or Play for more" : "";
+            // ShowResetBtn = !ShowCashOutBtn;
 
             if (playerWon)
             {
@@ -533,8 +568,6 @@
                 // Player did not meet winning criteria
                 additionalMsg = lossMsg;
             }
-
-            ShowToast(additionalMsg);
         }
     }
 
@@ -606,5 +639,30 @@
     private void OnBackBtnClicked()
     {
         NavigationManager.NavigateTo("/countdownpage");
+    }
+
+    private bool wonRound;
+    private bool lostRound;
+    private bool bingoRound;
+
+    private void ShowWinningMessage(bool win, bool loss, bool bingo, string msg)
+    {
+        EndOfRoundMessage = msg;
+        wonRound = win; // Show the winning message
+        lostRound = loss; // Show the losing message
+        bingoRound = bingo; // Show the bingo message
+        StateHasChanged(); // Trigger a UI update
+
+        // Start the animation
+        Task.Delay(2000).ContinueWith(_ =>
+        {
+            InvokeAsync(() =>
+            {
+                wonRound = false; // Hide the winning message
+                lostRound = false; // Hide the losing message
+                bingoRound = false; // Hide the bingo message
+                StateHasChanged(); // Trigger a UI update
+            });
+        });
     }
 }

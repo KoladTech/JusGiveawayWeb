@@ -21,18 +21,18 @@
             </div>
             <div class="giveaway-info">
                 <p>Giveaway Balance</p>
-                <p class="funds">N@(LeftoverGiveawayFunds.ToString("N0"))</p>
+                <p class="funds">N@(animateVarForLeftoverGiveawayFunds.ToString("N0"))</p>
                 <p @onclick="OnSponsoredByTapped" class="sponsored-link">Sponsored by...</p>
             </div>
 
             <!-- Second Row -->
             <div class="winning-info">
                 <p>Maximum Win</p>
-                <p class="funds">N@(MaxPossibleWinnings.ToString("N0"))</p>
+                <p class="funds">N@(animateVarForMaximumWin.ToString("N0"))</p>
             </div>
             <div class="giveaway-info">
                 <p>Your Winnings</p>
-                <p class="funds">N@(CurrentWinnings.ToString("N0"))</p>
+                <p class="funds">N@(animateVarForWinnings.ToString("N0"))</p>
             </div>
 
             <!-- Third Row -->
@@ -70,6 +70,18 @@
         
         <!--Game play section -->
         <div class="transition-fade @(SideSelected ? "show" : "hidden")">
+            @if (isGameOver)
+            {
+                <div class="game-over-message">
+                    Game Over
+                </div>
+            }
+
+             @if (!isGameOver)
+            {
+                <div id="tap-prompt" class="prompt-message show">Tap the coin to flip!</div>
+            }
+
             <!-- Coin Image -->
 			<div class="gameplay-content-centered">
                 <img class="coin-image  @(isFlipping ? "flipping" : "") @(isShaking ? "shake-effect" : "")" src="@CoinImage" alt="Coin" @onclick="OnCoinTapped" />
@@ -132,11 +144,9 @@
                 </button>
             </div>
 
-
-            <div class="win-message @(isWinning ? "animate" : "")">
+            <div class="end-round-message @(wonRound ? "win animate" : "") @(lostRound ? "loss animate" : "") @(bingoRound ? "bingo animate" : "")">
                 @(EndOfRoundMessage)
             </div>
-
 
         </div>
     </div>
@@ -154,6 +164,9 @@
     private double LeftoverGiveawayFunds { get; set; } = 0;
     private double MaxPossibleWinnings { get; set; } = 0;
     private double CurrentWinnings { get; set; } = 0;
+    private double animateVarForLeftoverGiveawayFunds { get; set; } = 0;
+    private double animateVarForMaximumWin { get; set; } = 0;
+    private double animateVarForWinnings { get; set; } = 0;
     private int TotalFlips => HeadsCount + TailsCount;
     private int HeadsCount { get; set; } = 0;
     private int TailsCount { get; set; } = 0;
@@ -189,6 +202,7 @@
     private bool isShaking = false;
     private DotNetObjectReference<HeadsOrTails>? objRef; 
     private bool isUserLoggedIn = true; // Assume user is logged in initially
+    private bool isGameOver = false;
 
     protected override void OnInitialized()
     {
@@ -459,43 +473,53 @@
         if (random.Next(2) == 0)
         {
             CoinImage = "images/kobo_front.png"; // Set to heads
-            HeadsCount += 5;
+            HeadsCount += 10;
         }
         else
         {
             CoinImage = "images/kobo_back.png"; // Set to tails
-            TailsCount += 5;
+            TailsCount += 10;
         }
 
-        CheckForWin(userGamePlayData, _giveawayData);
+        CheckForWin();
 
         //save coin flips to indexeddb after every 10 flips
         if (TotalFlips % 10 == 0)
         {
-            try
-            {
-                using (var db = await this.DbFactory.Create<JusGiveawayDB>())
-                {
-                    userGamePlayData = CommonFunctions.GetUserGamePlayDataFromIndexedDb(db, PlayerUID);
-                    if (userGamePlayData != null)
-                    {
-                        userGamePlayData.HeadsCount = HeadsCount;
-                        userGamePlayData.TailsCount = TailsCount;
-
-                        await db.SaveChanges();
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                await CommonFunctions.WriteErrorMessageToFirebase(ex.Message, "OnCoinTapped", DateTime.Now.ToString());
-                Console.WriteLine(ex.Message);
-            }
+            SaveGamePlayProgressToIndexedDB();
         }
 
         isFlipping = isMaxWinAchieved();
 
         StateHasChanged(); // Update UI after flipping is complete
+    }
+
+    //in the future, use this everywhere you do saves to IndexedDB to make the code cleaner
+    private async void SaveGamePlayProgressToIndexedDB()
+    {
+        try
+        {
+            using (var db = await this.DbFactory.Create<JusGiveawayDB>())
+            {
+                userGamePlayData = CommonFunctions.GetUserGamePlayDataFromIndexedDb(db, PlayerUID);
+                if (userGamePlayData != null)
+                {
+                    userGamePlayData.HeadsCount = HeadsCount;
+                    userGamePlayData.TailsCount = TailsCount;
+                    userGamePlayData.MaxPossibleWinnings = (int)MaxPossibleWinnings;
+                    userGamePlayData.CurrentWinnings = (int)CurrentWinnings; // casting to int, but I should probably change CurrentWinnings to a double in the first place
+                    userGamePlayData.GameOver = isGameOver;
+
+                    await db.SaveChanges();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            await CommonFunctions.WriteErrorMessageToFirebase(ex.Message, "SaveGamePlayProgressToIndexedDB", DateTime.Now.ToString());
+            Console.WriteLine(ex.Message);
+            //await CommonFunctions.DisplayCustomAlertPage("Error", "Error saving game state to DB, please contact app devs", "Close", "", true, false, AlertType.Error, Navigation);
+        }
     }
 
     private async void startGameUISetup(UserGamePlayData userGamePlayData, GiveawayData giveawayData)
@@ -515,13 +539,21 @@
         TailsCount = userGamePlayData.TailsCount;
         ResetsLeft = userGamePlayData.TotalResetsLeft;
         scoreAdjuster = userGamePlayData.PlayingHeads ? 1 : -1;
-        ShowCashOutBtn = ((userGamePlayData.HeadsCount + userGamePlayData.TailsCount) % 10 == 0) && userGamePlayData.CurrentWinnings >= userGamePlayData.MinCashOut && !userGamePlayData.CashedOut;
+        ShowCashOutBtn = ((userGamePlayData.HeadsCount + userGamePlayData.TailsCount) % 100 == 0) && (userGamePlayData.CurrentWinnings >= userGamePlayData.MinCashOut) && !userGamePlayData.CashedOut;
         ShowResetBtn = !ShowCashOutBtn && !userGamePlayData.GameOver;
+        isGameOver = userGamePlayData.GameOver;
+
+        animateVarForLeftoverGiveawayFunds = LeftoverGiveawayFunds;
+        animateVarForMaximumWin = MaxPossibleWinnings;
+        animateVarForWinnings = CurrentWinnings;
+        LeftoverGiveawayFunds = giveawayData.LeftoverGiveawayFunds;
+        MaxPossibleWinnings = userGamePlayData.MaxPossibleWinnings;
+        CurrentWinnings = userGamePlayData.CurrentWinnings;
 
         await Task.WhenAll(
-            AnimateNumberChange(value => LeftoverGiveawayFunds = value, LeftoverGiveawayFunds, giveawayData.LeftoverGiveawayFunds), 
-        AnimateNumberChange(value => MaxPossibleWinnings = value, MaxPossibleWinnings, userGamePlayData.MaxPossibleWinnings),
-        AnimateNumberChange(value => CurrentWinnings = value, CurrentWinnings, userGamePlayData.CurrentWinnings)
+            AnimateNumberChange(value => animateVarForLeftoverGiveawayFunds = value, animateVarForLeftoverGiveawayFunds, LeftoverGiveawayFunds),
+        AnimateNumberChange(value => animateVarForMaximumWin = value, animateVarForMaximumWin, MaxPossibleWinnings),
+        AnimateNumberChange(value => animateVarForWinnings = value, animateVarForWinnings, CurrentWinnings)
         );
 
         //if gameover, we lock the game
@@ -534,10 +566,23 @@
     private void OnCashOutClicked()
     {
         ShowDialog = true;
-        alertDialogParams.AlertTitle = "Cash Out?";
-        alertDialogParams.AlertMessage = new MarkupString($"Are you sure you are ready to cash out N{CurrentWinnings.ToString("N0")}?");
-        alertDialogParams.OnPrimaryButtonClick = EventCallback.Factory.Create(this, AlertDialogPrimaryClicked);
-        alertDialogParams.OnSecondaryButtonClick = EventCallback.Factory.Create(this, AlertDialogSecondaryClicked);
+
+        if (!isGameOver)
+        {
+            alertDialogParams.AlertTitle = "Cash Out?";
+            alertDialogParams.AlertMessage = new MarkupString($"Are you sure you are ready to cash out N{CurrentWinnings.ToString("N0")}?<br/><br/> If you proceed with cashing out, it will be game over!");
+            alertDialogParams.OnPrimaryButtonClick = EventCallback.Factory.Create(this, AlertDialogPrimaryClicked);
+            alertDialogParams.OnSecondaryButtonClick = EventCallback.Factory.Create(this, AlertDialogSecondaryClicked);
+        }
+        else
+        {
+            alertDialogParams.AlertTitle = "Cash Out!";
+            alertDialogParams.AlertMessage = new MarkupString($"Please cash out your winnings of N{CurrentWinnings.ToString("N0")}?<br/><br/> Thanks for playing!");
+            alertDialogParams.PrimaryBtnText = "Cash out";
+            alertDialogParams.SecondaryBtnText = "Exit";
+            alertDialogParams.OnPrimaryButtonClick = EventCallback.Factory.Create(this, AlertDialogPrimaryClicked);
+            alertDialogParams.OnSecondaryButtonClick = EventCallback.Factory.Create(this, AlertDialogSecondaryClicked);
+        }
     }
 
     private async void OnResetClicked()
@@ -549,7 +594,7 @@
         resetMaxPossibleWinnings = Math.Max(resetMaxPossibleWinnings, _giveawayData.MinCashoutPerPerson);
 
         alertDialogParams.AlertTitle = $"Switch to {ResetBtnText}?";
-        alertDialogParams.AlertMessage = new MarkupString($"There will be a penalty of <strong>N{resetPenalty}</strong>!<br/><br/>"+
+        alertDialogParams.AlertMessage = new MarkupString($"There will be a penalty of <strong>N{resetPenalty.ToString("N0")}</strong>!<br/><br/>" +
                 $"Maximum possible winnings will be reduced to <strong>N{resetMaxPossibleWinnings.ToString("N0")}</strong>! ");
         alertDialogParams.OnPrimaryButtonClick = EventCallback.Factory.Create(this, AlertDialogPrimaryClicked);
         alertDialogParams.OnSecondaryButtonClick = EventCallback.Factory.Create(this, AlertDialogSecondaryClicked);
@@ -599,8 +644,11 @@
 
     private async Task ResetUI()
     {
+        animateVarForMaximumWin = MaxPossibleWinnings;
+        MaxPossibleWinnings -= _giveawayData.MonetaryResetPenalty;
+
         await Task.WhenAll(
-        AnimateNumberChange(value => MaxPossibleWinnings = value, MaxPossibleWinnings, MaxPossibleWinnings - _giveawayData.MonetaryResetPenalty),
+        AnimateNumberChange(value => animateVarForMaximumWin = value, animateVarForMaximumWin, MaxPossibleWinnings),
         AnimateNumberChange(value => HeadsCount = value, HeadsCount, 0),
         AnimateNumberChange(value => TailsCount = value, TailsCount, 0),
         TriggerHeartAnimation(ResetsLeft)
@@ -684,7 +732,7 @@
         // Logic for resetting the game
     }
 
-    private async void CheckForWin(UserGamePlayData userGamePlayData, GiveawayData giveawayData)
+    private async void CheckForWin()
     {
         bool playerWon = false;
         //ShowCashOutBtn = false;
@@ -695,6 +743,9 @@
         string additionalMsg = string.Empty;
         double winning = 0;
         int loss = 0;
+        bool wonRound = false;
+        bool lostRound = false;
+        bool bingoRound = false;
 
         // Check for win only when total flips reach a multiple of 100
         if (TotalFlips >= 100 && TotalFlips % 100 == 0)
@@ -705,30 +756,48 @@
 
                 if (Score == 0)     //A draw (BINGO)
                 {
-                    winning = giveawayData.RoundDrawMonetaryValue;
+                    winning = _giveawayData.RoundDrawMonetaryValue;
+                    bingoRound = true;
                 }
                 else if (Score >= 10)    //A big win
                 {
-                    winning = giveawayData.RoundBigWinMonetaryValue;
+                    winning = _giveawayData.RoundBigWinMonetaryValue;
+                    wonRound = true;
                 }
                 else    //A small win
                 {
-                    winning = giveawayData.RoundSmallWinMonetaryValue;
+                    winning = _giveawayData.RoundSmallWinMonetaryValue;
+                    wonRound = true;
                 }
 
-                await AnimateNumberChange(value => CurrentWinnings = value, CurrentWinnings, CurrentWinnings + winning);
+                animateVarForWinnings = CurrentWinnings;
 
-                //CurrentWinnings += winning;
-
-                //check if current round winning puts you above max possible win
-                if (CurrentWinnings > MaxPossibleWinnings)
+                //check if current round winning puts you equal/above max possible win
+                if ((CurrentWinnings + winning) >= MaxPossibleWinnings)
                 {
-                    CurrentWinnings -= winning;
                     winning = MaxPossibleWinnings - CurrentWinnings;
                     CurrentWinnings = MaxPossibleWinnings;
+                    isGameOver = isMaxWinAchieved();
                 }
+                else
+                {
+                    CurrentWinnings += winning;
+                }
+                ShowCashOutBtn = CurrentWinnings >= userGamePlayData.MinCashOut;
+                //winMsg += ShowCashOutBtn ? "\nYou can cashout or Play for more" : "";
+                ShowResetBtn = !ShowCashOutBtn;
 
                 winMsg = $"You won N{winning.ToString("N0")}! ";
+                ShowWinningMessage(wonRound, lostRound, bingoRound, winMsg);
+                if (bingoRound)
+                {
+                    // Trigger the Congrats Badge animation
+                    await JSRuntime.InvokeVoidAsync("showCongratsBadge");
+                }
+                // Call the JS function to trigger confetti
+                await JSRuntime.InvokeVoidAsync("triggerConfetti");
+
+                await AnimateNumberChange(value => animateVarForWinnings = value, animateVarForWinnings, CurrentWinnings);
             }
             else
             {
@@ -738,22 +807,32 @@
                 {
                     if (Score <= -10)    //A big loss
                     {
-                        loss = giveawayData.RoundBigLossMonetaryValue;
+                        loss = _giveawayData.RoundBigLossMonetaryValue;
+                        lostRound = true;
                     }
                     else    //A small loss
                     {
-                        loss = giveawayData.RoundSmallLossMonetaryValue;
+                        loss = _giveawayData.RoundSmallLossMonetaryValue;
+                        lostRound = true;
                     }
-
-                    await AnimateNumberChange(value => CurrentWinnings = value, CurrentWinnings, CurrentWinnings - loss);
+                    ShowCashOutBtn = (CurrentWinnings - loss) >= userGamePlayData.MinCashOut;
+                    //winMsg += ShowCashOutBtn ? "\nYou can cashout or Play for more" : "";
+                    ShowResetBtn = !ShowCashOutBtn;
 
                     lossMsg = $"You lost N{loss.ToString("N0")}!";
+                    ShowWinningMessage(wonRound, lostRound, bingoRound, lossMsg);
+                    // Call the JavaScript function to trigger the loss effect
+                    await JSRuntime.InvokeVoidAsync("triggerLossEffect");
+
+                    animateVarForWinnings = CurrentWinnings;
+                    CurrentWinnings -= loss;
+                    await AnimateNumberChange(value => animateVarForWinnings = value, animateVarForWinnings, CurrentWinnings);
                 }
             }
 
-            ShowCashOutBtn = CurrentWinnings >= userGamePlayData.MinCashOut;
-            winMsg += ShowCashOutBtn ? "\nYou can cashout or Play for more" : "";
-            ShowResetBtn = !ShowCashOutBtn;
+            // ShowCashOutBtn = CurrentWinnings >= userGamePlayData.MinCashOut;
+            // winMsg += ShowCashOutBtn ? "\nYou can cashout or Play for more" : "";
+            // ShowResetBtn = !ShowCashOutBtn;
 
             if (playerWon)
             {
@@ -780,28 +859,7 @@
             // alertDialogParams.OnSecondaryButtonClick = EventCallback.Factory.Create(this, AlertDialogSecondaryClicked);
 
             //save usergameplaydata to indexeddb
-            try
-            {
-                using (var db = await this.DbFactory.Create<JusGiveawayDB>())
-                {
-                    userGamePlayData = CommonFunctions.GetUserGamePlayDataFromIndexedDb(db, PlayerUID);
-
-                    if (userGamePlayData != null)
-                    {
-                        userGamePlayData.HeadsCount = HeadsCount;
-                        userGamePlayData.TailsCount = TailsCount;
-                        userGamePlayData.CurrentWinnings = (int)CurrentWinnings; // casting to int, but I should probably change CurrentWinnings to a double in the first place
-
-                        await db.SaveChanges();
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                await CommonFunctions.WriteErrorMessageToFirebase(ex.Message, "CheckWin()", DateTime.Now.ToString());
-                Console.WriteLine(ex.Message);
-                //await CommonFunctions.DisplayCustomAlertPage("Error", "Error saving game state to DB, please contact app devs", "Close", "", true, false, AlertType.Error, Navigation);
-            }
+            SaveGamePlayProgressToIndexedDB();
 
             //save usergameplaydata to firebase
             try
@@ -825,7 +883,7 @@
         }
         return false;
     }
-
+    
     private async void LockGame()
     {
         ShowCashOutBtn = CurrentWinnings >= userGamePlayData.MinCashOut && !userGamePlayData.CashedOut;
@@ -835,19 +893,19 @@
         StateHasChanged();
 
         //Write to firebase db signifying end of game
-        if (userGamePlayData != null && !userGamePlayData.GameOver)
-        {
-            Console.WriteLine("Game over");
-            userGamePlayData.GameOver = true;
-            try
-            {
-                bool userSaved = await CommonFunctions.SaveUserGamePlayDataToFirebase(userGamePlayData);
-            }
-            catch (Exception x)
-            {
-                Console.WriteLine($"Error saving gameplay data to firebase - {x.Message}");
-            }
-        }
+        // if (userGamePlayData != null && !userGamePlayData.GameOver)
+        // {
+        //     Console.WriteLine("Game over");
+        //     userGamePlayData.GameOver = true;
+        //     try
+        //     {
+        //         bool userSaved = await CommonFunctions.SaveUserGamePlayDataToFirebase(userGamePlayData);
+        //     }
+        //     catch (Exception x)
+        //     {
+        //         Console.WriteLine($"Error saving gameplay data to firebase - {x.Message}");
+        //     }
+        // }
     }
 
     private async Task GetLeftoverGiveawayFundsFromFirebase()
@@ -869,8 +927,8 @@
                         StateHasChanged();
                         _lastETag = httpResponseMessage.Headers.ETag?.Tag ?? null;
 
-                        var currentLeftoverGiveawayFunds = int.Parse(await response.Content.ReadAsStringAsync());
-                        await AnimateNumberChange(value => LeftoverGiveawayFunds = value, LeftoverGiveawayFunds, currentLeftoverGiveawayFunds);
+                        LeftoverGiveawayFunds = int.Parse(await response.Content.ReadAsStringAsync());
+                        await AnimateNumberChange(value => animateVarForLeftoverGiveawayFunds = value, animateVarForLeftoverGiveawayFunds, LeftoverGiveawayFunds);
 
                         await UpdateMonetaryValuesBasedOnLeftverFunds();
                     }
@@ -896,13 +954,21 @@
         {
             if (LeftoverGiveawayFunds <= CurrentWinnings)
             {
+                animateVarForMaximumWin = MaxPossibleWinnings;
+                animateVarForWinnings = CurrentWinnings;
+                MaxPossibleWinnings = LeftoverGiveawayFunds;
+                CurrentWinnings = LeftoverGiveawayFunds;
+
                 await Task.WhenAll(
-                     AnimateNumberChange(value => CurrentWinnings = value, CurrentWinnings, LeftoverGiveawayFunds),
-                 AnimateNumberChange(value => MaxPossibleWinnings = value, MaxPossibleWinnings, LeftoverGiveawayFunds));
+                     AnimateNumberChange(value => animateVarForWinnings = value, animateVarForWinnings, CurrentWinnings),
+                 AnimateNumberChange(value => animateVarForMaximumWin = value, animateVarForMaximumWin, MaxPossibleWinnings));
             }
             else if (LeftoverGiveawayFunds <= MaxPossibleWinnings)
             {
-                await AnimateNumberChange(value => MaxPossibleWinnings = value, MaxPossibleWinnings, LeftoverGiveawayFunds);
+                animateVarForMaximumWin = MaxPossibleWinnings;
+                MaxPossibleWinnings = LeftoverGiveawayFunds;
+
+                await AnimateNumberChange(value => animateVarForMaximumWin = value, animateVarForMaximumWin, MaxPossibleWinnings);
             }
 
             var userGamePlayData = new UserGamePlayData();
@@ -980,7 +1046,9 @@
         if (ShowCashOutBtn)
         {
             LockGame();
-            await Task.Delay(1000); // Simulate a delay
+
+            //maybe save gamedata to fb here, to make sure everything gets saved properly
+
             NavigationManager.NavigateTo($"/cashout/{PlayerUID}");
         }
     }
@@ -1051,6 +1119,7 @@
     [JSInvokable]
     public async Task LogoutUser()
     {
+        //function to log out user due to inactivity
         isUserLoggedIn = false;  // Set the flag to false on logout
 
         // Clear any user session data or tokens
@@ -1076,12 +1145,16 @@
         await JSRuntime.InvokeVoidAsync("inactivityTimer", objRef);
     }
 
-    private bool isWinning;
+    private bool wonRound;
+    private bool lostRound;
+    private bool bingoRound;
 
-    private void ShowWinningMessage(string msg)
+    private void ShowWinningMessage(bool win, bool loss, bool bingo, string msg)
     {
         EndOfRoundMessage = msg;
-        isWinning = true; // Show the winning message
+        wonRound = win; // Show the winning message
+        lostRound = loss; // Show the losing message
+        bingoRound = bingo; // Show the bingo message
         StateHasChanged(); // Trigger a UI update
 
         // Start the animation
@@ -1089,7 +1162,9 @@
         {
             InvokeAsync(() =>
             {
-                isWinning = false; // Hide the winning message
+                wonRound = false; // Hide the winning message
+                lostRound = false; // Hide the losing message
+                bingoRound = false; // Hide the bingo message
                 StateHasChanged(); // Trigger a UI update
             });
         });
