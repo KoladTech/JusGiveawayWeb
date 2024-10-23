@@ -29,10 +29,20 @@
                 <div class="password-container">
                     <InputText @bind-Value="password"
                                placeholder="Enter password"
-                               type="password"
+                               type=@passwordType
                                class="entry"
                                maxlength="12"
                                @oninput="e => ToggleBtn(e)" />
+                    <i class="password-toggle-icon" @onclick="TogglePasswordVisibility">
+                        @if (passwordType == "password")
+                        {
+                            <span class="eye-icon">👁️</span> <!-- Eye icon when password is hidden -->
+                        }
+                        else
+                        {
+                            <span class="eye-icon">🙈</span> <!-- Eye-off icon when password is visible -->
+                        }
+                    </i>
                 </div>
             </div>
 
@@ -73,6 +83,7 @@
     private string userName;
     private string email = "";
     private string password = "";
+    private string passwordType = "password";
     private bool isLoading = false;
     private bool isToastVisible;
     private string toastMessage;    
@@ -85,6 +96,12 @@
     bool ShowEmailVerificationMessage = false;
 
     private bool btnEnabled = false;
+
+    private void TogglePasswordVisibility()
+    {
+        // Toggle the password visibility
+        passwordType = passwordType == "password" ? "text" : "password";
+    }
 
     protected override async Task OnInitializedAsync()
     {

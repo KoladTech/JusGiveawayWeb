@@ -35,10 +35,20 @@
                            placeholder="Enter password"
                            type="@passwordType"
                            class="entry"
-                           maxlength="12"
+                           maxlength="20"
                            @onfocus="HandleFocus"
                            @oninput="e => UpdatePassword(e)"
                            @onblur="HandleBlur" />
+                <i class="password-toggle-icon" @onclick="TogglePasswordVisibility">
+                    @if (passwordType == "password")
+                    {
+                        <span class="eye-icon">👁️</span> <!-- Eye icon when password is hidden -->
+                    }
+                    else
+                    {
+                        <span class="eye-icon">🙈</span> <!-- Eye-off icon when password is visible -->
+                    }
+                </i>
             </div>
         </div>
 
@@ -71,9 +81,20 @@
         <label>Confirm Password</label>
         <div class="entry-frame">
             <div class="password-container">
-                <InputText @bind-Value="confirmPassword" placeholder="Confirm password" type="@confirmPasswordType" class="entry" maxlength="12" @oninput="e => UpdateConfirmPassword(e)" />
+                <InputText @bind-Value="confirmPassword" placeholder="Confirm password" type="@confirmPasswordType" class="entry" maxlength="20" @oninput="e => UpdateConfirmPassword(e)" />
+                <i class="password-toggle-icon" @onclick="ToggleConfirmPasswordVisibility">
+                    @if (confirmPasswordType == "password")
+                    {
+                        <span class="eye-icon">👁️</span> <!-- Eye icon when password is hidden -->
+                    }
+                    else
+                    {
+                        <span class="eye-icon">🙈</span> <!-- Eye-off icon when password is visible -->
+                    }
+                </i>
             </div>
         </div>
+
 
         <div class="button-container">
 			<button class="centered-button" @onclick="OnSignUpClicked" disabled="@(!isFormValid)">Sign Up</button>
@@ -162,11 +183,23 @@
         ValidateForm();
     }
 
+    private void TogglePasswordVisibility()
+    {
+        // Toggle the password visibility
+        passwordType = passwordType == "password" ? "text" : "password";
+    }
+
     private void UpdatePassword(ChangeEventArgs e)
     {
         password = e.Value?.ToString() ?? string.Empty;
         ValidateForm();
         ValidatePassword(e);
+    }
+
+    private void ToggleConfirmPasswordVisibility()
+    {
+        // Toggle the password visibility
+        confirmPasswordType = confirmPasswordType == "password" ? "text" : "password";
     }
 
     private void UpdateConfirmPassword(ChangeEventArgs e)

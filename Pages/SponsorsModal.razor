@@ -1,0 +1,38 @@
+﻿@if (ShowModal)
+{
+    <div class="modal-overlay" @onclick="CloseModal">
+        <div class="modal-content" @onclick:stopPropagation="true">
+            <div class="modal-frame">
+                <h3 class="modal-title">Sponsors</h3>
+                <p class="modal-body">
+                    This giveaway is sponsored by <strong>@SponsorName</strong>
+                </p>
+
+                <div class="sponsor-section">
+                    <img src="images/dbf_logo.png" class="sponsor-avatar" alt="Sponsor Avatar" />
+                    <div>
+                        <label>Instagram:</label>
+                        <a href="https://www.instagram.com/@SponsorInstagramAcct" target="_blank" class="sponsor-link">@SponsorName</a>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button class="modal-close-btn" @onclick="CloseModal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public bool ShowModal { get; set; }
+    [Parameter] public EventCallback<bool> ShowModalChanged { get; set; }
+    [Parameter] public string SponsorName { get; set; } = "Sponsor_placeholder";
+    [Parameter] public string SponsorInstagramAcct { get; set; } = "Sponsor_instagram_acct";
+
+    private void CloseModal()
+    {
+        ShowModal = false;
+        ShowModalChanged.InvokeAsync(ShowModal);
+    }
+}

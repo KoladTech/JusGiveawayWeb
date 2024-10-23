@@ -53,7 +53,7 @@
             </div>
         </div>
 
-        
+
         <!-- Side choice section -->
         <div class="side-choice-section transition-fade @(SideSelected ? "hidden" : "show")">
             <p>@PlayerChoice</p>
@@ -147,10 +147,12 @@
             <div class="end-round-message @(wonRound ? "win animate" : "") @(lostRound ? "loss animate" : "") @(bingoRound ? "bingo animate" : "")">
                 @(EndOfRoundMessage)
             </div>
-
         </div>
     </div>
 </div>
+
+<!-- Sponsors Modal -->
+<SponsorsModal ShowModal="ShowModal" ShowModalChanged="OnModalStateChanged" SponsorName=@SponsorName SponsorInstagramAcct=@SponsorInstagramAcct />
 
 <Toast Message="@toastMessage" IsVisible="@isToastVisible" IsVisibleChanged="@(val => isToastVisible = val)" />
 
@@ -202,7 +204,12 @@
     private bool isShaking = false;
     private DotNetObjectReference<HeadsOrTails>? objRef; 
     private bool isUserLoggedIn = true; // Assume user is logged in initially
-    private bool isGameOver = false;
+    private bool isGameOver = false; 
+    private bool isSaving = false;
+    private bool ShowModal { get; set; } = false;
+    private string SponsorName { get; set; } = "Sponsor_placeholder";
+    private string SponsorInstagramAcct { get; set; } = "Sponsor_instagram_acct";
+
 
     protected override void OnInitialized()
     {
@@ -212,6 +219,8 @@
             NavigationManager.NavigateTo("/");
             return;
         }
+        // Subscribe to the NavigationManager's LocationChanged event
+        NavigationManager.LocationChanged += OnLocationChanged;
     }
 
     protected override async Task OnInitializedAsync()
@@ -247,6 +256,8 @@
                     //check the size of the reads
 
                     PlayerName = user.Name ?? "GameError";
+                    SponsorName = _giveawayData.Sponsor;
+                    SponsorInstagramAcct = _giveawayData.SponsorInstagramAccount;
                 }
 
                 if (userGamePlayData == null)
@@ -292,8 +303,6 @@
                     else
                     {
                         db.UserGameDatas.Remove(userGamePlayDataFromIndexedDB);
-                        await db.SaveChanges();//seems I can actually remove this line
-
                         db.UserGameDatas.Add(userGamePlayData);
                         await db.SaveChanges();
                     }
@@ -658,6 +667,7 @@
         IsUserMakingChoice = false;
         ResetsLeft -= 1;
         AddHeartImages();
+        ShowResetBtn = true;
         StateHasChanged();
     }
 
@@ -725,11 +735,6 @@
         await Task.Delay(50);
         heartClass[heartId - 1] = "heart-drop";
         StateHasChanged();  // Re-render the UI
-    }
-
-    private void OnSponsoredByTapped()
-    {
-        // Logic for resetting the game
     }
 
     private async void CheckForWin()
@@ -883,7 +888,7 @@
         }
         return false;
     }
-    
+
     private async void LockGame()
     {
         ShowCashOutBtn = CurrentWinnings >= userGamePlayData.MinCashOut && !userGamePlayData.CashedOut;
@@ -1029,7 +1034,10 @@
         _timer?.Dispose();  // Dispose the timer when the component is destroyed
                             // Dispose the object reference to prevent memory leaks
         objRef?.Dispose();
+        // Unsubscribe when the component is disposed
+        NavigationManager.LocationChanged -= OnLocationChanged;
         Console.WriteLine("inside dispose function #####################");
+        var _ =  CommonFunctions.WriteErrorMessageToFirebase("Inside Dispose()", "inside dispose()", DateTime.Now.ToString());
     }
 
     private async void AlertDialogPrimaryClicked()
@@ -1038,6 +1046,7 @@
 
         if (ShowResetBtn)
         {
+            ShowResetBtn = false;
             await ResetDataInDBs();
             await ResetUI();
             ShowToast($"You can switch now");
@@ -1072,6 +1081,19 @@
                 StateHasChanged();
             });
         });
+    }
+
+    private async void OnLocationChanged(object sender, LocationChangedEventArgs e)
+    {
+        // Check if saving is in progress to prevent multiple saves
+        if (!isSaving)
+        {
+            isSaving = true;
+            Console.WriteLine("Saving progress due to navigation away from page");
+            //currently buggy
+            await CommonFunctions.SaveUserProgressOnExit(this.DbFactory, PlayerUID, HeadsCount, TailsCount); 
+            isSaving = false;
+        }
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -1168,5 +1190,16 @@
                 StateHasChanged(); // Trigger a UI update
             });
         });
+    }
+
+    private void OnSponsoredByTapped()
+    {
+        ShowModal = true;
+    }
+
+    private Task OnModalStateChanged(bool isVisible)
+    {
+        ShowModal = isVisible;
+        return Task.CompletedTask;
     }
 }

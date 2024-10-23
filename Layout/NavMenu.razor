@@ -2,7 +2,9 @@
 
 <div class="top-row ps-3 navbar navbar-dark">
     <div class="container-fluid">
-        <a class="navbar-brand" href="">JusGiveaway</a>
+        <a class="navbar-brand" href="@($"/mainpage/{UserInfoService.PlayerUID}")">
+            <img src="images/jg_white_logo.png" alt="Logo" style="height:30px; width:auto; margin-right:5px;" />
+        </a>
         <button title="Navigation menu" class="navbar-toggler" @onclick="ToggleNavMenu">
             <span class="navbar-toggler-icon"></span>
         </button>
@@ -44,9 +46,9 @@
             </NavLink>
         </div>
         <!-- Add a footer at the bottom of your navigation menu -->
-        <!-- Previous version - 1.0.5 -->
+        <!-- Previous version - 1.0.6 -->
         <div class="nav-footer">
-            <small>Version 1.0.6</small>
+            <small>Version 1.0.7</small>
         </div>
     </nav>
 </div>

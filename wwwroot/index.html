@@ -18,8 +18,10 @@
             <img src="images/splash.png" alt="Splash Image" class="splash-image" />
             <div class="loading-progress">
                 <svg viewBox="0 0 36 36">
-                    <circle cx="18" cy="18" r="16"></circle>
-                    <circle cx="18" cy="18" r="16"></circle>
+                    <!-- Only the coral fill circle -->
+                    <circle cx="18" cy="18" r="16" style="fill: coral;"></circle>
+                    <!-- teal stroke circle -->
+                    <circle cx="18" cy="18" r="16" style="fill: none; stroke: teal; stroke-width: 7;"></circle>
                 </svg>
                 <div class="loading-progress-text"></div>
             </div>
@@ -86,7 +88,7 @@
             // Log the user out when time expires
             function logoutUser() {
                 if (!isUserLoggedOut) {
-                    console.error("Logging out user due to inactivity.");
+                    console.log("Logging out user due to inactivity.");
                     dotNetHelper.invokeMethodAsync('LogoutUser')
                         .catch(err => console.error("Error invoking LogoutUser:", err));
                     isUserLoggedOut = true;

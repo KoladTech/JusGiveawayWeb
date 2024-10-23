@@ -26,3 +26,23 @@
         color: #a9a9a9; /* Light grey text for disabled state */
         cursor: not-allowed; /* Change cursor to indicate disabled state */
     }
+.password-container {
+    position: relative;
+}
+
+.entry {
+    padding-right: 30px; /* Add padding so text doesn't overlap with icon */
+}
+
+.password-toggle-icon {
+    position: absolute;
+    right: 10px; /* Adjust for positioning */
+    top: 50%; /* Vertically center */
+    transform: translateY(-50%);
+    cursor: pointer;
+}
+
+.eye-icon {
+    font-size: 1.5rem; /* Adjust the size of the icon */
+    color: #888; /* Change the color as needed */
+}
