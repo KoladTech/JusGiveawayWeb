@@ -130,6 +130,11 @@ namespace JusGiveawayWebApp.Helpers
         {
             await _firebaseService.WriteDataAsync<int>("Giveaways/A/LeftoverGiveawayFunds", leftoverFunds);
         }
+        public async void RecordBingoRoundsToFirebase(string uid, string playerName)
+        {
+            int bingoCounts = await _firebaseService.ReadDataAsync<int>($"BingoRounds/{uid} - {playerName}");
+            await _firebaseService.WriteDataAsync<int>($"BingoRounds/{uid} - {playerName}", ++bingoCounts);
+        }
 
         public async Task WriteErrorMessageToFirebase(string errorMessage, string data, string errorTime)
         {
