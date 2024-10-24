@@ -44,7 +44,7 @@ namespace JusGiveawayWebApp.Services
             {
                 //test token - an old one that's expired
                 //idToken = "eyJhbGciOiJSUzI1NiIsImtpZCI6IjhkOWJlZmQzZWZmY2JiYzgyYzgzYWQwYzk3MmM4ZWE5NzhmNmYxMzciLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL3NlY3VyZXRva2VuLmdvb2dsZS5jb20vanVzZ2l2ZWF3YXkiLCJhdWQiOiJqdXNnaXZlYXdheSIsImF1dGhfdGltZSI6MTcyODk4OTUzNiwidXNlcl9pZCI6ImdVc2NEUFdwcTBaN3dJVVlNU3U5VjZjSU5IdjEiLCJzdWIiOiJnVXNjRFBXcHEwWjd3SVVZTVN1OVY2Y0lOSHYxIiwiaWF0IjoxNzI4OTg5NTM2LCJleHAiOjE3Mjg5OTMxMzYsImVtYWlsIjoiaEBoLmNvbSIsImVtYWlsX3ZlcmlmaWVkIjpmYWxzZSwiZmlyZWJhc2UiOnsiaWRlbnRpdGllcyI6eyJlbWFpbCI6WyJoQGguY29tIl19LCJzaWduX2luX3Byb3ZpZGVyIjoicGFzc3dvcmQifX0.pfV5s7vKQ14jgzPM9FRQp46weyG9geo5ZLCCG8xBzUJBjBUnQDtdtdwAIJq1AIezCNpWa9Cfc4BmszUf-iMmFVrp8msubTXbEpHpawmxMJhiyup1-do1hn1k1VHSjIUKyCe5I0VYamoWSv_47ghlQjkvSjsmlr7lFnKWwzEUUlGo6HSYbwP1iwiaJidNdp4JvgSH8RHo_nh7ocLTgphB6diaM0JL7NsQZJwYkW4H81xTuwRfeFxIFiWzu9caUAa4RERNCI4Ybv4GqIYXKdfmpfwfSqslN8HoM2Cd6ga-tOJnD6Mx7rBB30wl3yfmRGqTTjxokf7PqS506ClMDBQs2g";
-
+                
                 var jwtHandler = new JwtSecurityTokenHandler();
 
                 if (jwtHandler.CanReadToken(idToken))

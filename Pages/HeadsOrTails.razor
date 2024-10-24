@@ -550,6 +550,12 @@
 
     private async void startGameUISetup(UserGamePlayData userGamePlayData, GiveawayData giveawayData)
     {
+        //if gameover, we lock the game
+        if (userGamePlayData.GameOver)
+        {
+            LockGame();
+        }
+
         SideSelected = userGamePlayData.SelectedSides;
         if (SideSelected)
         {
@@ -565,7 +571,8 @@
         TailsCount = userGamePlayData.TailsCount;
         ResetsLeft = userGamePlayData.TotalResetsLeft;
         scoreAdjuster = userGamePlayData.PlayingHeads ? 1 : -1;
-        ShowCashOutBtn = ((userGamePlayData.HeadsCount + userGamePlayData.TailsCount) % 100 == 0) && (userGamePlayData.CurrentWinnings >= userGamePlayData.MinCashOut) && !userGamePlayData.CashedOut;
+        ShowCashOutBtn = (!userGamePlayData.GameOver && ((userGamePlayData.HeadsCount + userGamePlayData.TailsCount) % 100 == 0) && (userGamePlayData.CurrentWinnings >= userGamePlayData.MinCashOut)) ||
+        userGamePlayData.GameOver && !userGamePlayData.CashedOut && (userGamePlayData.CurrentWinnings >= userGamePlayData.MinCashOut);
         ShowResetBtn = !ShowCashOutBtn && !userGamePlayData.GameOver;
         isGameOver = userGamePlayData.GameOver;
 
@@ -581,16 +588,17 @@
         AnimateNumberChange(value => animateVarForMaximumWin = value, animateVarForMaximumWin, MaxPossibleWinnings),
         AnimateNumberChange(value => animateVarForWinnings = value, animateVarForWinnings, CurrentWinnings)
         );
-
-        //if gameover, we lock the game
-        if (userGamePlayData.GameOver)
-        {
-            LockGame();
-        }
     }
 
     private void OnCashOutClicked()
     {
+        //if user happens to have cashout button, hide cashout button
+        if (LeftoverGiveawayFunds < userGamePlayData.MinCashOut)
+        {
+            ShowCashOutBtn = false;
+            StateHasChanged();
+            return;
+        }
         ShowDialog = true;
 
         if (!isGameOver)
@@ -914,11 +922,15 @@
         CoinImage = "images/coin_locked.png";
         StateHasChanged();
 
+        //save usergameplaydata to indexeddb
+        SaveGamePlayProgressToIndexedDB();
+
         //Write to firebase db signifying end of game
         if (userGamePlayData != null && !userGamePlayData.GameOver)
         {
-            Console.WriteLine("Game over");
+            Console.WriteLine("Game over, writing to firebase");
             userGamePlayData.GameOver = true;
+            isGameOver = true;
             try
             {
                 bool userSaved = await CommonFunctions.SaveUserGamePlayDataToFirebase(userGamePlayData);
@@ -934,7 +946,35 @@
     {
         try
         {
-            // Start polling every 60 seconds (60000 milliseconds)
+            #region revisit this code to make sure it is handled the right way
+            //check if token is still valid. this is a temp hack bcos this timer doesnt seem to be killed when user is signed out
+            using (var db = await this.DbFactory.Create<JusGiveawayDB>())
+            {
+                var user = CommonFunctions.GetUserInfoFromIndexedDb(db, PlayerUID);
+
+                //check if user is logged in, if not, return to login screen
+                if (user == null || CommonFunctions.SendUserBackToLogInPageIfNotLoggedIn(user))
+                {
+                    NavigationManager.NavigateTo("/", true);
+                    return;
+                }
+                else
+                {
+                    //set auth token in case of a refresh of page
+                    bool authTokenExpired = await FirebaseService.SetAuthTokenIfNotExpired(user.IdToken);
+                    if (authTokenExpired)
+                    {
+                        _timer.Dispose();
+                        await CommonFunctions.WriteErrorMessageToFirebase("Authtoken expired for ", user.UID + " - " + user.Name, DateTime.Now.ToString());
+                        await CommonFunctions.SignOutUser(this.DbFactory, PlayerUID);
+                        NavigationManager.NavigateTo("/", true);
+                        return;
+                    }
+                }
+            }
+            #endregion
+
+            // Start polling every 60 * 5 seconds (300,000 milliseconds) - 5 minutes
             _timer = new Timer(async _ =>
             {
                 try
@@ -960,7 +1000,7 @@
                     await CommonFunctions.WriteErrorMessageToFirebase(ex.Message, "HeadsOrTails - GetLeftOverGiveawayFundsFromFirebase()", DateTime.Now.ToString());
                     Console.WriteLine($"Error during polling: {ex.Message}");
                 }
-            }, null, 0, 60000);
+            }, null, 0, 300000);
         }
         catch (Exception ex)
         {
@@ -972,9 +1012,9 @@
     private async Task UpdateMonetaryValuesBasedOnLeftverFunds()
     {
         //adjust users current winnings and maximum win amounts to match leftoverfunds
-        if (LeftoverGiveawayFunds <= CurrentWinnings || LeftoverGiveawayFunds <= MaxPossibleWinnings)
+        if (LeftoverGiveawayFunds < CurrentWinnings || LeftoverGiveawayFunds < MaxPossibleWinnings)
         {
-            if (LeftoverGiveawayFunds <= CurrentWinnings)
+            if (LeftoverGiveawayFunds < CurrentWinnings)
             {
                 animateVarForMaximumWin = MaxPossibleWinnings;
                 animateVarForWinnings = CurrentWinnings;
@@ -985,7 +1025,7 @@
                      AnimateNumberChange(value => animateVarForWinnings = value, animateVarForWinnings, CurrentWinnings),
                  AnimateNumberChange(value => animateVarForMaximumWin = value, animateVarForMaximumWin, MaxPossibleWinnings));
             }
-            else if (LeftoverGiveawayFunds <= MaxPossibleWinnings)
+            else if (LeftoverGiveawayFunds < MaxPossibleWinnings)
             {
                 animateVarForMaximumWin = MaxPossibleWinnings;
                 MaxPossibleWinnings = LeftoverGiveawayFunds;
@@ -1023,6 +1063,7 @@
                 try
                 {
                     bool userSaved = await CommonFunctions.SaveUserGamePlayDataToFirebase(userGamePlayData);
+                    //Console.WriteLine("UpdateMonetaryValuesBasedOnLeftverFunds - " + userGamePlayData.GameOver);
                 }
                 catch (Exception x)
                 {
