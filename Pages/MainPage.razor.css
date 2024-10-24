@@ -40,6 +40,17 @@
     width: 25px; /* Set a specific width for the icon */
     height: 25px; /* Set a specific height for the icon */
     cursor: pointer; /* Change cursor to pointer to indicate interactivity */
+    animation: bounce 1s ease-in-out 0s 3; /* Animation runs 3 times */
+}
+
+@keyframes bounce {
+    0%, 100% {
+        transform: translateY(0); /* Original position */
+    }
+
+    50% {
+        transform: translateY(-10px); /* Moves icon up */
+    }
 }
 
 .player-info {
@@ -79,7 +90,12 @@
         height: 10vh;
         width: auto; /* Maintain the aspect ratio */
         margin-top: 0px; /* Create some space between the icon and the image */
+        cursor: pointer; /* Change cursor to indicate interactivity */
+        transition: transform 0.2s ease; /* Smooth transition back to original */
     }
+        .game-card img.game-image:active {
+            animation: wobble 0.5s ease;
+        }
 
     .game-card span.game-label {
         font-size: 1rem; /* Responsive font size */
@@ -107,6 +123,36 @@
             background-color: #cccccc;
             cursor: not-allowed;
         }
+
+@keyframes wobble {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    15% {
+        transform: rotate(-25deg);
+    }
+
+    30% {
+        transform: rotate(25deg);
+    }
+
+    45% {
+        transform: rotate(-25deg);
+    }
+
+    60% {
+        transform: rotate(25deg);
+    }
+
+    75% {
+        transform: rotate(-25deg);
+    }
+
+    100% {
+        transform: rotate(0deg);
+    }
+}
 
 /* Logout button */
 .logout-button {
@@ -141,3 +187,33 @@
     justify-content: center;
     font-size: 1.25rem; /* Responsive font size */
 }
+
+.button-container {
+    display: flex; /* Enables Flexbox */
+    justify-content: center; /* Horizontally center the button */
+    align-items: center; /* Vertically center the button */
+    width: 100%; /* Optional: Make container full width */
+    margin-top: 0px; /* Optional: Add some spacing at the top */
+}
+
+.centered-button {
+    margin-top: 20px; /* Add spacing above the button */
+    padding: 10px 20px;
+    font-size: 16px;
+    background-color: #468fa2; /* Optional: Button color */
+    color: white;
+    border: none;
+    border-radius: 10px; /* Rounded corners for a modern look */
+    cursor: pointer;
+    transition: background-color 0.3s ease; /* Smooth hover effect */
+}
+
+    .centered-button:hover {
+        background-color: #267724; /* Darker shade on hover */
+    }
+
+    .centered-button:disabled {
+        background-color: #d3d3d3; /* Grey background for disabled state */
+        color: #a9a9a9; /* Light grey text for disabled state */
+        cursor: not-allowed; /* Change cursor to indicate disabled state */
+    }

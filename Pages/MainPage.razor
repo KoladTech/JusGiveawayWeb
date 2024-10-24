@@ -35,7 +35,7 @@
             </div>
 
             <div class="game-card">
-                <img src="images/info_icon.png" class="info-icon" alt="Info Icon" @onclick="ShowHeadsOrTailsInstructions" style="cursor: pointer;" />
+                <img src="images/info_icon.png" class="info-icon" alt="Info Icon" @onclick="ShowComingSoonInstructions" style="cursor: pointer;" />
                 <img src="images/question_mark.png" class="game-image" />
                 <span class="game-label">Coming Soon</span>
                 <button class="play-button" disabled>Play</button>
@@ -43,14 +43,14 @@
 
             <!-- Second row -->
             <div class="game-card">
-                <img src="images/info_icon.png" class="info-icon" alt="Info Icon" @onclick="ShowHeadsOrTailsInstructions" style="cursor: pointer;" />
+                <img src="images/info_icon.png" class="info-icon" alt="Info Icon" @onclick="ShowComingSoonInstructions" style="cursor: pointer;" />
                 <img src="images/question_mark.png" class="game-image" />
                 <span class="game-label">Coming Soon</span>
                 <button class="play-button" disabled>Play</button>
             </div>
 
             <div class="game-card">
-                <img src="images/info_icon.png" class="info-icon" alt="Info Icon" @onclick="ShowHeadsOrTailsInstructions" style="cursor: pointer;" />
+                <img src="images/info_icon.png" class="info-icon" alt="Info Icon" @onclick="ShowComingSoonInstructions" style="cursor: pointer;" />
                 <img src="images/question_mark.png" class="game-image" />
                 <span class="game-label">Coming Soon</span>
                 <button class="play-button" disabled>Play</button>
@@ -58,9 +58,10 @@
         </div>
 
         <!-- Logout button -->
-        <div style="text-align: center;">
-            <button @onclick="Logout" class="logout-button">
-                <img src="images/logout_icon.png" class="logout-icon" />
+        <div class="button-container">
+            <button @onclick="Logout" class="centered-button">
+                <img src="images/logout_icon.png?v=2" alt="Button Image" style="width: 30px; height: 30px; margin-right: 2px;" />
+                Sign out
             </button>
         </div>
 
@@ -183,7 +184,12 @@
 
     private void ShowComingSoonInstructions()
     {
-        // Handle instructions button click for coming soon games
+        ShowDialog = true;
+        alertDialogParams.AlertTitle = "Coming Soon";
+        alertDialogParams.AlertMessage = new MarkupString("More games will be available soon 😊");
+        alertDialogParams.SecondaryBtnText = "Ok";
+        alertDialogParams.ShowPrimaryBtn = false;
+        alertDialogParams.OnSecondaryButtonClick = EventCallback.Factory.Create(this, AlertDialogSecondaryClicked);
     }
 
 

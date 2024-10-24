@@ -40,14 +40,37 @@ input[type="checkbox"] {
     text-align: center;
     font-size: 1.2rem;
     color: #333;
-    text-align: center; /* Center the text */
-    background-color: #f0f4f8; /* Light background color */
-    padding: 5px 20px; /* Padding around the text */
-    border-radius: 8px; /* Rounded corners */
-    border: 2px solid #28a745; /* Green border */
-    /*display: inline-block; /* Ensures it doesn't take full width */
+    background: linear-gradient(135deg, #dff0d8, #f0f4f8);
+    padding: 5px 20px;
+    border-radius: 12px;
+    border: 2px solid #28a745;
     margin: 0px 0px 20px 0px;
-    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1); /* Subtle shadow for depth */
+    box-shadow: 0px 6px 10px rgba(0, 0, 0, 0.15);
+    opacity: 0; /* Start invisible */
+    animation: slowAppear 5s ease forwards; /* Slow fade-in over 2 seconds */
+    transition: transform 0.2s ease, box-shadow 0.2s ease; /* Smooth hover transition */
+}
+
+    .cash-out-display:hover {
+        transform: translateY(-5px); /* Lift on hover */
+        box-shadow: 0px 8px 12px rgba(0, 0, 0, 0.2); /* Add shadow on hover */
+        background: linear-gradient(135deg, #c3e6cb, #f0f4f8); /* Subtle color change */
+    }
+
+    .cash-out-display:active {
+        transform: translateY(2px); /* Push effect when active */
+        box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1); /* Softer shadow when clicked */
+    }
+
+/* Slow Appear Animation */
+@keyframes slowAppear {
+    0% {
+        opacity: 0; /* Start invisible */
+    }
+
+    100% {
+        opacity: 1; /* Fully visible at the end */
+    }
 }
 
 .cash-out-amount {
@@ -55,4 +78,44 @@ input[type="checkbox"] {
     color: #28a745; /* Green color for the amount */
     font-size: 1.4rem;
     padding-left: 10px;
+}
+
+.attention-message {
+    font-weight: bold;
+    color: #d9534f; /* Bright red for text */
+    background-color: #f8f9fa; /* Light background for contrast */
+    padding: 15px; /* More padding for a spacious feel */
+    border-radius: 10px; /* Rounded corners */
+    text-align: center; /* Centered text */
+    border: 3px dashed #5cb85c; /* Thicker dashed border */
+    box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.2); /* Subtle shadow for depth */
+    animation: shake 0.5s ease infinite; /* Shake animation */
+}
+
+/* Shake Animation */
+@keyframes shake {
+    0% {
+        transform: translate(0);
+    }
+
+    25% {
+        transform: translate(-2px, 0);
+    }
+
+    50% {
+        transform: translate(2px, 0);
+    }
+
+    75% {
+        transform: translate(-2px, 0);
+    }
+
+    100% {
+        transform: translate(0);
+    }
+}
+
+.icon {
+    font-size: 1.5rem; /* Larger size for the icon */
+    margin-right: 10px; /* Space between icon and text */
 }

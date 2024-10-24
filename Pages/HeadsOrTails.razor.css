@@ -164,6 +164,42 @@
     Percentage Bars Ended
 ==========================*/
 
+
+.progress-container {
+    width: 80%; /* Set the desired width, e.g., 80% of the parent */
+    max-width: 600px; /* Optional: Set a maximum width for larger screens */
+    margin: 0 auto 15px; /* Center the container with left and right auto margins, and 20px bottom margin */
+    position: relative; /* Positioning for absolute child elements */
+}
+
+.round-label {
+    position: absolute; /* Position it absolutely within the container */
+    width: 100%; /* Take full width */
+    text-align: center; /* Center the text */
+    z-index: 1; /* Ensure the label is above the progress bar */
+    color: #333; /* Dark color for visibility */
+    font-weight: bold; /* Bold text for emphasis */
+    font-size: 1.0em;
+    font-weight: bold;
+}
+
+.progress-bar {
+    background-color: rgba(224, 224, 224, 0.7); /* Light gray background with transparency */
+    border-radius: 5px; /* Rounded corners */
+    border: 2px solid #ccc;
+    height: 20px; /* Height of the progress bar */
+    overflow: hidden; /* Hide overflow */
+    position: relative; /* Relative positioning for child elements */
+    margin-top: 5px; /* Space between label and progress bar */
+}
+
+.progress-fill {
+    background-color: rgba(70, 143, 162, 0.5);
+    height: 100%; /* Full height of the parent */
+    transition: width 0.5s ease; /* Smooth transition for width changes */
+}
+
+
 /*=========================
     Coin Flipping
 ==========================*/
@@ -412,17 +448,6 @@
         transform: translateY(100%); /* Move down and disappear */
         opacity: 0; /* Fade out */
     }
-}
-
-.round-label {
-    font-size: 1.0em;
-    font-weight: bold;
-    color: #007BFF;
-    margin: 10px 70px 0px 70px;
-    padding: 5px;
-    background-color: #f0f8ff;
-    border-radius: 5px;
-    border: 2px solid #007BFF;
 }
 
 .end-round-message {

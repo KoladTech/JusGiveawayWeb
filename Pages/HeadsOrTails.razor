@@ -22,18 +22,18 @@
             </div>
             <div class="giveaway-info">
                 <p>Giveaway Balance</p>
-                <p class="funds">N@(animateVarForLeftoverGiveawayFunds.ToString("N0"))</p>
+                <p class="funds">₦@(animateVarForLeftoverGiveawayFunds.ToString("N0"))</p>
                 <p @onclick="OnSponsoredByTapped" class="sponsored-link">Sponsored by...</p>
             </div>
 
             <!-- Second Row -->
             <div class="winning-info">
                 <p>Maximum Win</p>
-                <p class="funds">N@(animateVarForMaximumWin.ToString("N0"))</p>
+                <p class="funds">₦@(animateVarForMaximumWin.ToString("N0"))</p>
             </div>
             <div class="giveaway-info">
                 <p>Your Winnings</p>
-                <p class="funds">N@(animateVarForWinnings.ToString("N0"))</p>
+                <p class="funds">₦@(animateVarForWinnings.ToString("N0"))</p>
             </div>
 
             <!-- Third Row -->
@@ -84,11 +84,15 @@
             }
 
             <!-- Rounds Complete -->
-           
-            <p class="round-label gameplay-content-centered" title="Total rounds completed: @(TotalFlips / 100)">
-				Round: @(TotalFlips / 100 + 1)
-				<i class="fas fa-flag-checkered"></i>
-            </p>
+            <div class="progress-container">
+                <span class="round-label" title="Total rounds completed: @(TotalFlips / 100)">
+                    Round: @(TotalFlips / 100 + 1)
+                    <i class="fas fa-flag-checkered"></i>
+                </span>
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: @(TotalFlips % 100 / 100.0 * 100)%"></div>
+                </div>
+            </div>
 
             <!-- Coin Image -->
 			<div class="gameplay-content-centered">
@@ -592,14 +596,14 @@
         if (!isGameOver)
         {
             alertDialogParams.AlertTitle = "Cash Out?";
-            alertDialogParams.AlertMessage = new MarkupString($"Are you sure you are ready to cash out N{CurrentWinnings.ToString("N0")}?<br/><br/> If you proceed with cashing out, it will be game over!");
+            alertDialogParams.AlertMessage = new MarkupString($"Are you sure you are ready to cash out ₦{CurrentWinnings.ToString("N0")}?<br/><br/> If you proceed with cashing out, it will be game over!");
             alertDialogParams.OnPrimaryButtonClick = EventCallback.Factory.Create(this, AlertDialogPrimaryClicked);
             alertDialogParams.OnSecondaryButtonClick = EventCallback.Factory.Create(this, AlertDialogSecondaryClicked);
         }
         else
         {
             alertDialogParams.AlertTitle = "Cash Out!";
-            alertDialogParams.AlertMessage = new MarkupString($"Please cash out your winnings of N{CurrentWinnings.ToString("N0")}?<br/><br/> Thanks for playing!");
+            alertDialogParams.AlertMessage = new MarkupString($"Please cash out your winnings of ₦{CurrentWinnings.ToString("N0")}?<br/><br/> Thanks for playing!");
             alertDialogParams.PrimaryBtnText = "Cash out";
             alertDialogParams.SecondaryBtnText = "Exit";
             alertDialogParams.OnPrimaryButtonClick = EventCallback.Factory.Create(this, AlertDialogPrimaryClicked);
@@ -616,8 +620,8 @@
         resetMaxPossibleWinnings = Math.Max(resetMaxPossibleWinnings, _giveawayData.MinCashoutPerPerson);
 
         alertDialogParams.AlertTitle = $"Switch to {ResetBtnText}?";
-        alertDialogParams.AlertMessage = new MarkupString($"There will be a penalty of <strong>N{resetPenalty.ToString("N0")}</strong>!<br/><br/>" +
-                $"Maximum possible winnings will be reduced to <strong>N{resetMaxPossibleWinnings.ToString("N0")}</strong>! ");
+        alertDialogParams.AlertMessage = new MarkupString($"There will be a penalty of <strong>₦{resetPenalty.ToString("N0")}</strong>!<br/><br/>" +
+                $"Maximum possible winnings will be reduced to <strong>₦{resetMaxPossibleWinnings.ToString("N0")}</strong>! ");
         alertDialogParams.OnPrimaryButtonClick = EventCallback.Factory.Create(this, AlertDialogPrimaryClicked);
         alertDialogParams.OnSecondaryButtonClick = EventCallback.Factory.Create(this, AlertDialogSecondaryClicked);
         //await LoadGameDataFromDb();
@@ -805,7 +809,7 @@
                 //winMsg += ShowCashOutBtn ? "\nYou can cashout or Play for more" : "";
                 ShowResetBtn = !ShowCashOutBtn;
 
-                winMsg = $"You won N{winning.ToString("N0")}! ";
+                winMsg = $"You won ₦{winning.ToString("N0")}! ";
                 ShowWinningMessage(wonRound, lostRound, bingoRound, winMsg);
                 if (bingoRound)
                 {
@@ -837,7 +841,7 @@
                     //winMsg += ShowCashOutBtn ? "\nYou can cashout or Play for more" : "";
                     ShowResetBtn = !ShowCashOutBtn;
 
-                    lossMsg = $"You lost N{loss.ToString("N0")}!";
+                    lossMsg = $"You lost ₦{loss.ToString("N0")}!";
                     ShowWinningMessage(wonRound, lostRound, bingoRound, lossMsg);
                     // Call the JavaScript function to trigger the loss effect
                     await JSRuntime.InvokeVoidAsync("triggerLossEffect");
@@ -856,7 +860,7 @@
             {
                 if (isMaxWinAchieved())
                 {
-                    winMsg = $"You can now cashout your winnings of N{CurrentWinnings.ToString("N0")}";
+                    winMsg = $"You can now cashout your winnings of ₦{CurrentWinnings.ToString("N0")}";
                 }
                 additionalMsg = winMsg;
             }

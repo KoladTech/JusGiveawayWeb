@@ -11,7 +11,7 @@
 
 <div class="phone-container">
     <div class="phone-screen">
-        <img src="images/logo_green.png" class="jg-logo" alt="Logo" />
+        <img src="images/about_us_logo.png" class="jg-logo" alt="Logo" />
 
         @if(!cashOutInfoSubmitted)
         {
@@ -19,7 +19,7 @@
             <p class="small-text">Winner! Please enter details to cash out</p>
 
             <p class="cash-out-display">
-                Cash out amount - <span class="cash-out-amount">N@(userCashOutAmount.ToString("N0"))</span>
+                Cashing out - <span class="cash-out-amount">₦@(userCashOutAmount.ToString("N0"))</span>
             </p>
 
             <label>First Name</label>
@@ -70,7 +70,8 @@
                 <InputText @bind-Value="instagramAccount" placeholder="Enter IG handle" class="entry" @oninput="e => UpdateInstagramAcct(e)" />
             </div>
 
-            <div style="font-weight: bold; color: red; background-color: ghostwhite; padding: 10px; border-radius: 10px; text-align:center; border-style: dashed; border-color:seagreen">
+            <div class="attention-message">
+                <span class="icon">⚠️</span> <!-- Add an icon for emphasis -->
                 Please make sure your information is accurate before submission
             </div>
 
