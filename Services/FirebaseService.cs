@@ -4,9 +4,11 @@ using System.IdentityModel.Tokens.Jwt;
 using System.IO;
 using System.Net.Http;
 using System.Net.Http.Json;
+using System.Reflection;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using static System.Net.Mime.MediaTypeNames;
 using static System.Net.WebRequestMethods;
 using static System.Runtime.InteropServices.JavaScript.JSType;
 
@@ -376,6 +378,28 @@ namespace JusGiveawayWebApp.Services
                 Console.WriteLine($"Error polling data from firebase: {ex.Message}");
             }
             return null;
+        }
+
+        public async Task<VersionInfo?> GetLocalVersionAsync()
+        {
+            var assembly = Assembly.GetExecutingAssembly();
+            var resourceName = "JusGiveawayWebApp.version.json";
+
+            using (Stream stream = assembly.GetManifestResourceStream(resourceName))
+            {
+                if (stream == null) return null;
+
+                using (StreamReader reader = new StreamReader(stream))
+                {
+                    var json = await reader.ReadToEndAsync();
+                    return JsonSerializer.Deserialize<VersionInfo>(json);
+                }
+            }
+        }
+        public class VersionInfo
+        {
+            public string version { get; set; }
+            public string releaseDate { get; set; }
         }
     }
 

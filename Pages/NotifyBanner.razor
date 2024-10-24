@@ -1,0 +1,18 @@
+﻿@inject NavigationManager NavigationManager
+
+@if (ShowVersionBanner)
+{
+    <div class="version-banner">
+        <p>Your app version is outdated. Please reload to get the latest updates.</p>
+        <button @onclick="ReloadPage">Reload Page</button>
+    </div>
+}
+
+@code {
+    [Parameter] public bool ShowVersionBanner { get; set; }
+
+    private void ReloadPage()
+    {
+        NavigationManager.NavigateTo("/", forceLoad: true);
+    }
+}

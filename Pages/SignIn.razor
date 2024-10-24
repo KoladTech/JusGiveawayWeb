@@ -67,12 +67,12 @@
 
         <div class="form-footer-template">
             <div class="form-footer-text copyright">© 2024 JusGiveaway. All rights reserved.</div>
-            <div class="form-footer-text">DavidBukola Foundation</div>
-            <div class="form-footer-text tagline">Where care meets community</div>
+            <div class="form-footer-text">To Win A Giveaway Today</div>
+            <div class="form-footer-text tagline">All You Have To Do Is Play</div>
         </div>
 
         <Toast Message="@toastMessage" IsVisible="@isToastVisible" IsVisibleChanged="@(val => isToastVisible = val)" />
-
+        <NotifyBanner ShowVersionBanner="ShowNotificationBanner" />
     </div>
 </div>
 
@@ -94,6 +94,8 @@
     bool isTestEmail = false;
     bool isEmailVerified = true;
     bool ShowEmailVerificationMessage = false;
+    private bool ShowNotificationBanner = false;
+    //private List<string> navigationHistory = new List<string>();
 
     private bool btnEnabled = false;
 
@@ -165,6 +167,11 @@
 
     private async Task OnSignInClicked()
     {
+        if (await CheckNeedForHardRefresh())
+        {
+            return;
+        }
+
         var response = await FirebaseService.SignInEmailPassword(email, password);
         if (response != null)
         {
@@ -296,5 +303,45 @@
                 StateHasChanged();
             });
         });
+    }
+
+    private async Task<bool> CheckNeedForHardRefresh()
+    {
+        try
+        {
+            //first check if there is a new version of the app
+            string versionFromFirebase = await CommonFunctions.GetAppVersionFromFirebase();
+            var versionFromClient = await FirebaseService.GetLocalVersionAsync();
+
+            if (versionFromFirebase != null && versionFromClient != null && versionFromClient.version != versionFromFirebase)
+            {
+                //show banner
+                ShowNotificationBanner = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            await CommonFunctions.WriteErrorMessageToFirebase(ex.Message, "error comparing versions of app", DateTime.Now.ToString());
+            Console.WriteLine(ex.Message + " error comparing versions of app");
+        }
+        return ShowNotificationBanner;
+    }
+
+    // private void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
+    // {
+    //     // Add the new URL to your navigation history
+    //     navigationHistory.Add(e.Location);
+
+    //     // Log the history to the console
+    //     Console.WriteLine("Navigation history:**************************");
+    //     foreach (var historyUrl in navigationHistory)
+    //     {
+    //         Console.WriteLine(historyUrl);
+    //     }
+    // }
+
+    protected void Dispose(bool disposing)
+    {
+        //NavigationManager.LocationChanged -= OnLocationChanged;
     }
 }

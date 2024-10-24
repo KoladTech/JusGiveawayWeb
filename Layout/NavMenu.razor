@@ -46,9 +46,9 @@
             </NavLink>
         </div>
         <!-- Add a footer at the bottom of your navigation menu -->
-        <!-- Previous version - 1.0.6 -->
+        <!-- Previous version - 1.0.7 -->
         <div class="nav-footer">
-            <small>Version 1.0.7</small>
+            <small>Version 1.0.8</small>
         </div>
     </nav>
 </div>
@@ -61,5 +61,17 @@
     private void ToggleNavMenu()
     {
         collapseNavMenu = !collapseNavMenu;
+        Console.WriteLine("UserInfoService.PlayerUID - Navmenu page - " + UserInfoService.PlayerUID);
+    }
+
+    protected override void OnInitialized()
+    {
+        UserInfoService.OnChange -= StateHasChanged; // Unsubscribe first
+        UserInfoService.OnChange += StateHasChanged; // Subscribe to UID change event
+    }
+
+    public void Dispose()
+    {
+        UserInfoService.OnChange -= StateHasChanged; // Unsubscribe on dispose
     }
 }

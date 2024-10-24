@@ -10,6 +10,7 @@
     <link rel="stylesheet" href="css/app.css" />
     <link rel="icon" type="image/png" href="favicon.png" />
     <link href="JusGiveawayWebApp.styles.css" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
 
 <body>
@@ -36,28 +37,70 @@
     <script src="_framework/blazor.webassembly.js"></script>
     <script src="_content/TG.Blazor.IndexedDB/indexedDb.Blazor.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
+    <!--<script>
+        document.addEventListener('visibilitychange', function () {
+            if (document.visibilityState === 'visible') {
+                console.log('Page became visible, reloading...');
+                window.location.reload(true); // Force refresh the app to ensure latest version
+            }
+        });
+    </script>-->
     <script>
         window.onPageExit = function (callback) {
             // Listen for back button press (popstate event)
-            window.addEventListener('popstate', function (event) {
-                console.log("Back button pressed...");
-                callback.invokeMethodAsync('HandleBackButtonPress');
-            });
+            //window.addEventListener('popstate', function (event) {
+            //    console.log("Back button pressed...");
+            //    callback.invokeMethodAsync('HandleBackButtonPress');
+            //});
 
             // Attach the beforeunload event listener for other exits
             window.addEventListener('beforeunload', function (event) {
                 // Prevents default browser prompt from showing up
-                event.preventDefault();
+                //event.preventDefault();
                 console.log("Page is about to exit...");
                 callback.invokeMethodAsync('SaveProgressOnExit');
             });
         };
+        //window.addBackButtonListener = function (dotNetHelper) {
+        //    if (!window.hasAddedBackButtonListener) {
+        //        window.popStateHandler = function (event) {
+        //            console.log("Back button pressed...");
+        //            dotNetHelper.invokeMethodAsync('HandleBackButtonPress');
+        //        };
+        //        window.addEventListener('popstate', window.popStateHandler);
+        //        window.hasAddedBackButtonListener = true;
+        //    }
+        //};
+        window.addBackButtonListener = function (dotNetHelper) {
+            // Remove the previous listener if it exists
+            if (window.popStateHandler) {
+                window.removeEventListener('popstate', window.popStateHandler);
+            }
+
+            // Define the new listener
+            window.popStateHandler = function (event) {
+                console.log("Back button pressed...");
+                dotNetHelper.invokeMethodAsync('HandleBackButtonPress');
+            };
+
+            // Add the new listener
+            window.addEventListener('popstate', window.popStateHandler);
+        };
+
+        window.removeBackButtonListener = function () {
+            if (window.hasAddedBackButtonListener) {
+                window.removeEventListener('popstate', window.popStateHandler);
+                window.hasAddedBackButtonListener = false;
+            }
+        };
+
     </script>
     <script>
         let timer;
         let isUserLoggedOut = false;
         let timeRemaining;
         let logoutAfter = 10 * 60 * 1000; // 10 minutes in milliseconds
+        let startTime = Date.now(); // Log the start time
 
         window.inactivityTimer = function (dotNetHelper) {
             if (!dotNetHelper || isUserLoggedOut) {
@@ -73,13 +116,21 @@
             function startCountdown() {
                 timeRemaining = logoutAfter;
                 //console.log(`Timer started. Time remaining: ${timeRemaining / 1000} seconds`);
-
+                startTime = Date.now();
                 timer = setInterval(() => {
                     timeRemaining -= 1000;
                     //console.log(`Time remaining: ${timeRemaining / 1000} seconds`);
 
                     if (timeRemaining <= 0) {
                         clearInterval(timer);
+
+                        console.log(`Start time: ${new Date(startTime).toLocaleTimeString()}`);
+                        let endTime = Date.now(); // Log the end time
+                        console.log(`End time: ${new Date(endTime).toLocaleTimeString()}`);
+
+                        let elapsedTime = endTime - startTime; // Calculate elapsed time in milliseconds
+                        console.log(`Elapsed time: ${elapsedTime / 1000 / 60} minutes`);
+
                         logoutUser(); // Log the user out when time expires
                     }
                 }, 1000); // Update every second
@@ -100,7 +151,7 @@
             function resetTimer() {
                 if (!isUserLoggedOut) {
                     clearInterval(timer); // Clear any existing timer
-                    console.log("User activity detected. Timer reset.");
+                    //console.log("User activity detected. Timer reset.");
                     startCountdown(); // Restart the countdown
                 }
             }

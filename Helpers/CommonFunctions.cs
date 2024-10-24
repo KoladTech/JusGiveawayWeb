@@ -45,6 +45,12 @@ namespace JusGiveawayWebApp.Helpers
             return await _firebaseService.ReadDataAsync<string>($"TestEmails");
         }
 
+        public async Task<string> GetAppVersionFromFirebase()
+        {
+            //if null, display error
+            return await _firebaseService.ReadDataAsync<string>("JGVersionNumber");
+        }
+
         public async Task<bool> SaveNewUserToFirebase(UserInfo newUser)
         {
             //if null, display error

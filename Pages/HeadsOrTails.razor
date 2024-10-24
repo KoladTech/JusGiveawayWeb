@@ -2,6 +2,7 @@
 @inject NavigationManager NavigationManager
 @inject JusGiveawayWebApp.Helpers.CommonFunctions CommonFunctions
 @inject JusGiveawayWebApp.Services.FirebaseService FirebaseService
+@inject JusGiveawayWebApp.Services.UserInfoService UserInfoService
 @inject IndexedDB.Blazor.IIndexedDbFactory DbFactory
 @inject IJSRuntime JSRuntime
 @using JusGiveawayWebApp.Models
@@ -81,6 +82,13 @@
             {
                 <div id="tap-prompt" class="prompt-message show">Tap the coin to flip!</div>
             }
+
+            <!-- Rounds Complete -->
+           
+            <p class="round-label gameplay-content-centered" title="Total rounds completed: @(TotalFlips / 100)">
+				Round: @(TotalFlips / 100 + 1)
+				<i class="fas fa-flag-checkered"></i>
+            </p>
 
             <!-- Coin Image -->
 			<div class="gameplay-content-centered">
@@ -209,6 +217,7 @@
     private bool ShowModal { get; set; } = false;
     private string SponsorName { get; set; } = "Sponsor_placeholder";
     private string SponsorInstagramAcct { get; set; } = "Sponsor_instagram_acct";
+    //private bool navigationManagerForceReload { get; set; } = true;
 
 
     protected override void OnInitialized()
@@ -219,8 +228,12 @@
             NavigationManager.NavigateTo("/");
             return;
         }
-        // Subscribe to the NavigationManager's LocationChanged event
-        NavigationManager.LocationChanged += OnLocationChanged;
+
+        //store uid in UserInfoService singleton to use in NavMenu
+        UserInfoService.PlayerUID = PlayerUID;
+
+        // NavigationManager.LocationChanged -= OnLocationChanged;        
+        // NavigationManager.LocationChanged += OnLocationChanged;
     }
 
     protected override async Task OnInitializedAsync()
@@ -234,7 +247,7 @@
                 //check if user is logged in, if not, return to login screen
                 if (user == null || CommonFunctions.SendUserBackToLogInPageIfNotLoggedIn(user))
                 {
-                    NavigationManager.NavigateTo("/"); 
+                    NavigationManager.NavigateTo("/");
                     return;
                 }
                 else
@@ -898,19 +911,19 @@
         StateHasChanged();
 
         //Write to firebase db signifying end of game
-        // if (userGamePlayData != null && !userGamePlayData.GameOver)
-        // {
-        //     Console.WriteLine("Game over");
-        //     userGamePlayData.GameOver = true;
-        //     try
-        //     {
-        //         bool userSaved = await CommonFunctions.SaveUserGamePlayDataToFirebase(userGamePlayData);
-        //     }
-        //     catch (Exception x)
-        //     {
-        //         Console.WriteLine($"Error saving gameplay data to firebase - {x.Message}");
-        //     }
-        // }
+        if (userGamePlayData != null && !userGamePlayData.GameOver)
+        {
+            Console.WriteLine("Game over");
+            userGamePlayData.GameOver = true;
+            try
+            {
+                bool userSaved = await CommonFunctions.SaveUserGamePlayDataToFirebase(userGamePlayData);
+            }
+            catch (Exception x)
+            {
+                Console.WriteLine($"Error saving gameplay data to firebase - {x.Message}");
+            }
+        }
     }
 
     private async Task GetLeftoverGiveawayFundsFromFirebase()
@@ -1034,6 +1047,9 @@
         _timer?.Dispose();  // Dispose the timer when the component is destroyed
                             // Dispose the object reference to prevent memory leaks
         objRef?.Dispose();
+        JSRuntime.InvokeVoidAsync("removeBackButtonListener");
+
+
         // Unsubscribe when the component is disposed
         NavigationManager.LocationChanged -= OnLocationChanged;
         Console.WriteLine("inside dispose function #####################");
@@ -1091,7 +1107,7 @@
             isSaving = true;
             Console.WriteLine("Saving progress due to navigation away from page");
             //currently buggy
-            await CommonFunctions.SaveUserProgressOnExit(this.DbFactory, PlayerUID, HeadsCount, TailsCount); 
+            //await CommonFunctions.SaveUserProgressOnExit(this.DbFactory, PlayerUID, HeadsCount, TailsCount); 
             isSaving = false;
         }
     }
@@ -1106,6 +1122,8 @@
             await JSRuntime.InvokeVoidAsync("onPageExit", objRef);
             // Load the JavaScript to track inactivity
             await JSRuntime.InvokeVoidAsync("inactivityTimer", objRef);
+
+            await JSRuntime.InvokeVoidAsync("addBackButtonListener", objRef);
         }
     }
 
@@ -1120,13 +1138,13 @@
     [JSInvokable]
     public async void HandleBackButtonPress()
     {
-        Console.WriteLine("Browser Back button pressed");
+        Console.WriteLine("Browser Back button pressed" + " -> H-" + HeadsCount + "T-" + TailsCount);
         await CommonFunctions.SaveUserProgressOnExit(this.DbFactory, PlayerUID, HeadsCount, TailsCount);
     }
 
     private async void OnBackBtnClicked()
     {
-        Console.WriteLine("Game Back button pressed");
+        Console.WriteLine("Game Back button pressed" + " -> H-" + HeadsCount + "T-" + TailsCount);
         await CommonFunctions.SaveUserProgressOnExit(this.DbFactory, PlayerUID, HeadsCount, TailsCount);
         NavigationManager.NavigateTo($"/mainpage/{PlayerUID}");
     }
@@ -1134,7 +1152,7 @@
     private static async Task YourLogoutFunction()
     {
         // Logic to log out the user (e.g., clear session, token)
-        Console.WriteLine("inside logoutfunction");
+        //Console.WriteLine("inside logoutfunction");
         //CommonFunctions.SaveUserProgressOnExit(this.DbFactory, PlayerUID, HeadsCount, TailsCount);
     }
 

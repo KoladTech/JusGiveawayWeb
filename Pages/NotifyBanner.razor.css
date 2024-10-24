@@ -1,0 +1,13 @@
+﻿
+.version-banner {
+    position: fixed;
+    top: 50%; /* Move to the middle of the screen vertically */
+    left: 50%; /* Move to the middle of the screen horizontally */
+    transform: translate(-50%, -50%); /* Shift it back to center */
+    background-color: yellow;
+    color: black;
+    text-align: center;
+    padding: 10px;
+    z-index: 1000;
+    box-sizing: border-box; /* Ensure padding is included in width */
+}
