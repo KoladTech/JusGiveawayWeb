@@ -174,7 +174,7 @@
 }
 .bar {
     width: 100%;
-    background-color: Green; /* Default color */
+    background-color: #80CBC4; /* Default color */
     transition: height 0.3s ease; /* Smooth height transition */
     position: absolute; /* Position the bar absolutely */
     bottom: 0; /* Start filling from the bottom */
@@ -184,10 +184,10 @@
 
     /* Custom color for Tails bar */
     .bar:nth-child(2) .bar {
-        background-color: Orange;
+        background-color: #CE93D8;
     }
     .bar.tails-bar {
-        background-color: Orange;
+        background-color: #CE93D8;
     }
 
 .label, .count-label {

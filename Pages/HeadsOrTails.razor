@@ -480,7 +480,7 @@
 
         isFlipping = true;
         ShowCashOutBtn = isMaxWinAchieved();
-        ShowResetBtn = !ShowCashOutBtn;
+        ShowResetBtn = !ShowCashOutBtn && ResetsLeft > 0;
         StateHasChanged();
 
         Random random = new Random();
@@ -566,15 +566,12 @@
             PlayerChoice = "Choose Heads/Tails";
         }
 
+        isGameOver = userGamePlayData.GameOver;
         ResetBtnText = PlayerChoice == "Heads" ? "Tails" : "Heads";
         HeadsCount = userGamePlayData.HeadsCount;
         TailsCount = userGamePlayData.TailsCount;
         ResetsLeft = userGamePlayData.TotalResetsLeft;
         scoreAdjuster = userGamePlayData.PlayingHeads ? 1 : -1;
-        ShowCashOutBtn = (!userGamePlayData.GameOver && ((userGamePlayData.HeadsCount + userGamePlayData.TailsCount) % 100 == 0) && (userGamePlayData.CurrentWinnings >= userGamePlayData.MinCashOut)) ||
-        userGamePlayData.GameOver && !userGamePlayData.CashedOut && (userGamePlayData.CurrentWinnings >= userGamePlayData.MinCashOut);
-        ShowResetBtn = !ShowCashOutBtn && !userGamePlayData.GameOver;
-        isGameOver = userGamePlayData.GameOver;
 
         animateVarForLeftoverGiveawayFunds = LeftoverGiveawayFunds;
         animateVarForMaximumWin = MaxPossibleWinnings;
@@ -582,6 +579,10 @@
         LeftoverGiveawayFunds = giveawayData.LeftoverGiveawayFunds;
         MaxPossibleWinnings = userGamePlayData.MaxPossibleWinnings;
         CurrentWinnings = userGamePlayData.CurrentWinnings;
+
+        ShowCashOutBtn = (!isGameOver && (TotalFlips % 100 == 0) && (CurrentWinnings >= userGamePlayData.MinCashOut) && TotalFlips != 0) ||
+        isGameOver && !userGamePlayData.CashedOut && (CurrentWinnings >= userGamePlayData.MinCashOut);
+        ShowResetBtn = !ShowCashOutBtn && !isGameOver && ResetsLeft > 0;
 
         await Task.WhenAll(
             AnimateNumberChange(value => animateVarForLeftoverGiveawayFunds = value, animateVarForLeftoverGiveawayFunds, LeftoverGiveawayFunds),
@@ -627,9 +628,11 @@
         double resetMaxPossibleWinnings = MaxPossibleWinnings - resetPenalty;
         resetMaxPossibleWinnings = Math.Max(resetMaxPossibleWinnings, _giveawayData.MinCashoutPerPerson);
 
+        MarkupString penaltyString = resetMaxPossibleWinnings == _giveawayData.MinCashoutPerPerson ? new MarkupString() : new MarkupString($"There will be a penalty of <strong>₦{resetPenalty.ToString("N0")}</strong>!<br/><br/>" +
+                $"Maximum possible winnings will be reduced to <strong>₦{resetMaxPossibleWinnings.ToString("N0")}</strong>! "); ;
+
         alertDialogParams.AlertTitle = $"Switch to {ResetBtnText}?";
-        alertDialogParams.AlertMessage = new MarkupString($"There will be a penalty of <strong>₦{resetPenalty.ToString("N0")}</strong>!<br/><br/>" +
-                $"Maximum possible winnings will be reduced to <strong>₦{resetMaxPossibleWinnings.ToString("N0")}</strong>! ");
+        alertDialogParams.AlertMessage = penaltyString;
         alertDialogParams.OnPrimaryButtonClick = EventCallback.Factory.Create(this, AlertDialogPrimaryClicked);
         alertDialogParams.OnSecondaryButtonClick = EventCallback.Factory.Create(this, AlertDialogSecondaryClicked);
         //await LoadGameDataFromDb();
@@ -649,8 +652,8 @@
                     userGamePlayData.PlayingHeads = false;
                     userGamePlayData.HeadsCount = 0;
                     userGamePlayData.TailsCount = 0;
-                    userGamePlayData.MaxPossibleWinnings -= _giveawayData.MonetaryResetPenalty;
-                    userGamePlayData.CurrentWinnings = (int)CurrentWinnings;
+                    userGamePlayData.MaxPossibleWinnings = (int)Math.Max((userGamePlayData.MaxPossibleWinnings - _giveawayData.MonetaryResetPenalty), _giveawayData.MinCashoutPerPerson);
+                    userGamePlayData.CurrentWinnings = (int)Math.Min(userGamePlayData.CurrentWinnings, Math.Max(userGamePlayData.MaxPossibleWinnings, _giveawayData.MinCashoutPerPerson)); //convoluted, I know
                     userGamePlayData.TotalResetsLeft -= 1;
                     userGamePlayData.LifetimeHeadsCount += HeadsCount;
                     userGamePlayData.LifetimeTailsCount += TailsCount;
@@ -680,9 +683,14 @@
     {
         animateVarForMaximumWin = MaxPossibleWinnings;
         MaxPossibleWinnings -= _giveawayData.MonetaryResetPenalty;
+        MaxPossibleWinnings = Math.Max(MaxPossibleWinnings, _giveawayData.MinCashoutPerPerson);
+
+        animateVarForWinnings = CurrentWinnings;
+        CurrentWinnings = Math.Min(CurrentWinnings, MaxPossibleWinnings);
 
         await Task.WhenAll(
         AnimateNumberChange(value => animateVarForMaximumWin = value, animateVarForMaximumWin, MaxPossibleWinnings),
+        AnimateNumberChange(value => animateVarForWinnings = value, animateVarForWinnings, CurrentWinnings),
         AnimateNumberChange(value => HeadsCount = value, HeadsCount, 0),
         AnimateNumberChange(value => TailsCount = value, TailsCount, 0),
         TriggerHeartAnimation(ResetsLeft)
@@ -692,7 +700,7 @@
         IsUserMakingChoice = false;
         ResetsLeft -= 1;
         AddHeartImages();
-        ShowResetBtn = true;
+        ShowResetBtn = ResetsLeft > 0;
         StateHasChanged();
     }
 
@@ -816,7 +824,7 @@
                 }
                 ShowCashOutBtn = CurrentWinnings >= userGamePlayData.MinCashOut;
                 //winMsg += ShowCashOutBtn ? "\nYou can cashout or Play for more" : "";
-                ShowResetBtn = !ShowCashOutBtn;
+                ShowResetBtn = !ShowCashOutBtn && ResetsLeft > 0;
 
                 winMsg = $"You won ₦{winning.ToString("N0")}! ";
                 ShowWinningMessage(wonRound, lostRound, bingoRound, winMsg);
@@ -848,7 +856,7 @@
                     }
                     ShowCashOutBtn = (CurrentWinnings - loss) >= userGamePlayData.MinCashOut;
                     //winMsg += ShowCashOutBtn ? "\nYou can cashout or Play for more" : "";
-                    ShowResetBtn = !ShowCashOutBtn;
+                    ShowResetBtn = !ShowCashOutBtn && ResetsLeft > 0;
 
                     lossMsg = $"You lost ₦{loss.ToString("N0")}!";
                     ShowWinningMessage(wonRound, lostRound, bingoRound, lossMsg);
