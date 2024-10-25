@@ -16,13 +16,13 @@
             <div class="player-info">
                 <img src="images/avatar_green.png" alt="Player Avatar" />
                 <div>
-                    <p>@PlayerName</p>
-                    <p>@PlayerChoice</p>
+                    <p class="player-name">@PlayerName</p>
+                    <p class="player-choice">@PlayerChoice</p>
                 </div>
             </div>
             <div class="giveaway-info">
                 <p>Giveaway Balance</p>
-                <p class="funds">₦@(animateVarForLeftoverGiveawayFunds.ToString("N0"))</p>
+                <p class="funds giveaway-balance">₦@(animateVarForLeftoverGiveawayFunds.ToString("N0"))</p>
                 <p @onclick="OnSponsoredByTapped" class="sponsored-link">Sponsored by...</p>
             </div>
 
@@ -107,7 +107,7 @@
             <div class="grid-layout">
                 <!-- Heads Column -->
                 <div class="bar-column">
-                    <div class="bar-frame">
+                    <div class="bar-frame @(PlayerChoice == "Heads" ? "highlight" : "" )">
                         <div class="bar" style="height: @HeadsBarHeight%;"> </div>
                     </div>
                     <label class="label">Heads</label>
@@ -116,7 +116,7 @@
 
                 <!-- Tails Column -->
                 <div class="bar-column">
-                    <div class="bar-frame">
+                    <div class="bar-frame @(PlayerChoice == "Tails" ? "highlight" : "")">
                         <div class="bar tails-bar" style="height: @TailsBarHeight%;"> </div>
                     </div>
                     <label class="label">Tails</label>

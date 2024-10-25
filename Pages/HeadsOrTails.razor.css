@@ -15,7 +15,7 @@
 }
 
     .player-info img {
-        margin-right: 5px; /* Space between image and text */
+        margin-right: 3px; /* Space between image and text */
         width: 40px;
         height: 40px;
         border-radius: 50%; /* Circular image */
@@ -23,16 +23,29 @@
     .player-info p {
         margin: 0px; /* Reduce the margin for paragraph elements */
     }
+    /* Style for PlayerName */
+    .player-info .player-name {
+        font-size: 1.0rem; /* Larger size for player name */
+        font-weight: bold; /* Make the name bold */
+    }
+
+    /* Style for PlayerChoice */
+    .player-info .player-choice {
+        font-size: 0.75rem; /* Smaller size for player choice */
+        color: gray; /* Optional: make it gray for distinction */
+    }
 
 .giveaway-info {
     text-align: right; /* Align text to the right */
 }
     .giveaway-info p {
         margin: 0px; /* Reduce the margin for paragraph elements */
+        line-height: 1.2; /* Tighter line spacing */
     }
     .giveaway-info .giveaway-balance {
-        font-size: 1.2em;
+        font-size: 1.1em;
         color: green;
+        font-weight: bold;
     }
     .giveaway-info .sponsored-link {
         font-size: 0.7em;
@@ -43,9 +56,10 @@
     }
 .winning-info p {
     margin: 0px;
+    line-height: 1.2; /* Tighter line spacing */
 }
 .funds{
-    color: green
+    color: green;
 }
 
 /*=========================
@@ -137,7 +151,27 @@
     position: relative;
     overflow: hidden; /* Prevent overflowing content */
 }
+    .bar-frame.highlight {
+        border: 2px solid #FFD700; /* Golden border to highlight */
+        /*box-shadow: 0 0 10px rgba(255, 215, 0, 0.7);*/ /* Optional glowing effect */
+        animation: pulse 1.5s infinite; /* Pulsing effect */
+    }
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+        box-shadow: 0 0 10px rgba(255, 215, 0, 0.7);
+    }
 
+    50% {
+        transform: scale(1.05);
+        box-shadow: 0 0 15px rgba(255, 215, 0, 1);
+    }
+
+    100% {
+        transform: scale(1);
+        box-shadow: 0 0 10px rgba(255, 215, 0, 0.7);
+    }
+}
 .bar {
     width: 100%;
     background-color: Green; /* Default color */
@@ -524,7 +558,7 @@
 }
 
     .prompt-message.show {
-        animation: fadeInPrompt 1s forwards, fadeOutPrompt 1s 3s forwards;
+        animation: fadeInPrompt 1s forwards, fadeOutAndSlideUpPrompt 1s 3s forwards;
     }
 
 /* Fade in animation */
@@ -538,14 +572,16 @@
     }
 }
 
-/* Fade out animation */
-@keyframes fadeOutPrompt {
+/* Slide and fade out animation */
+@keyframes fadeOutAndSlideUpPrompt {
     0% {
         opacity: 1;
+        transform: translateX(-50%) translateY(0);
     }
 
     100% {
         opacity: 0;
+        transform: translateX(-50%) translateY(-100vh); /* Moves it completely off the screen */
     }
 }
 

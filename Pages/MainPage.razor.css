@@ -57,6 +57,11 @@
     margin-left: 10px;
     font-size: 1rem; /* Responsive font size */
 }
+    /* Style for PlayerName */
+    .player-info .player-name {
+        font-size: 1.0rem; /* Larger size for player name */
+        font-weight: bold; /* Make the name bold */
+    }
 
 /* Games title */
 .games-title {
@@ -65,6 +70,19 @@
     color: #008000;
     text-align: left;
     margin-bottom: 5px;
+    position: relative; /* Allows the element to be moved */
+    animation: moveSideToSide 2s ease-in-out infinite; /* Add the animation */
+}
+
+/* Animation for side-to-side movement */
+@keyframes moveSideToSide {
+    0%, 100% {
+        left: 0; /* Start and end at original position */
+    }
+
+    50% {
+        left: 10px; /* Move 10px to the right */
+    }
 }
 
 /* Games grid */
