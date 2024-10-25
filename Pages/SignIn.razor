@@ -177,6 +177,7 @@
         {
             string uid = response.LocalId;
             string idToken = response.IdToken;
+            FirebaseService.SetRefreshToken(response.RefreshToken);
             bool authTokenExpired = await FirebaseService.SetAuthTokenIfNotExpired(idToken);
             if (authTokenExpired)
             {

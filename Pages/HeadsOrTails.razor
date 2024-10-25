@@ -605,14 +605,14 @@
         if (!isGameOver)
         {
             alertDialogParams.AlertTitle = "Cash Out?";
-            alertDialogParams.AlertMessage = new MarkupString($"Are you sure you are ready to cash out ₦{CurrentWinnings.ToString("N0")}?<br/><br/> If you proceed with cashing out, it will be game over!");
+            alertDialogParams.AlertMessage = new MarkupString($"Are you sure you are ready to cash out <strong>₦{CurrentWinnings.ToString("N0")}</strong>?<br/><br/> If you proceed with cashing out, it will be <strong>game over!</strong>");
             alertDialogParams.OnPrimaryButtonClick = EventCallback.Factory.Create(this, AlertDialogPrimaryClicked);
             alertDialogParams.OnSecondaryButtonClick = EventCallback.Factory.Create(this, AlertDialogSecondaryClicked);
         }
         else
         {
             alertDialogParams.AlertTitle = "Cash Out!";
-            alertDialogParams.AlertMessage = new MarkupString($"Please cash out your winnings of ₦{CurrentWinnings.ToString("N0")}?<br/><br/> Thanks for playing!");
+            alertDialogParams.AlertMessage = new MarkupString($"Please cash out your winnings of <strong>₦{CurrentWinnings.ToString("N0")}</strong>!<br/><br/> Thanks for playing!");
             alertDialogParams.PrimaryBtnText = "Cash out";
             alertDialogParams.SecondaryBtnText = "Exit";
             alertDialogParams.OnPrimaryButtonClick = EventCallback.Factory.Create(this, AlertDialogPrimaryClicked);
@@ -672,6 +672,11 @@
         try
         {
             bool userSaved = await CommonFunctions.SaveUserGamePlayDataToFirebase(userGamePlayData);
+            if (!userSaved)
+            {
+                Console.WriteLine($"Error saving gameplay data to firebase");
+                await CommonFunctions.WriteErrorMessageToFirebase("Error saving gameplay data to firebase", "HeadsOrTails - ResetDataInDBs - ", DateTime.Now.ToString());
+            }
         }
         catch (Exception x)
         {
@@ -796,7 +801,13 @@
                 {
                     winning = _giveawayData.RoundDrawMonetaryValue;
                     bingoRound = true;
-                    CommonFunctions.RecordBingoRoundsToFirebase(PlayerUID, PlayerName);
+
+                    var bingoRecorded = await CommonFunctions.RecordBingoRoundsToFirebase(PlayerUID, PlayerName);
+                    if (!bingoRecorded)
+                    {
+                        Console.WriteLine($"Error writing bingo to firebase");
+                        await CommonFunctions.WriteErrorMessageToFirebase("Error writing bingo to firebase", "HeadOrTails - CheckForWin()", DateTime.Now.ToString());
+                    }
                 }
                 else if (Score >= 10)    //A big win
                 {
@@ -904,6 +915,11 @@
             try
             {
                 bool userSaved = await CommonFunctions.SaveUserGamePlayDataToFirebase(userGamePlayData);
+                if (!userSaved)
+                {
+                    Console.WriteLine($"Error saving gameplay data to firebase");
+                    await CommonFunctions.WriteErrorMessageToFirebase("Error saving gameplay data to firebase", "HeadsOrTails - CheckForWin() - ", DateTime.Now.ToString());
+                }
             }
             catch(Exception x)
             {
@@ -943,6 +959,11 @@
             try
             {
                 bool userSaved = await CommonFunctions.SaveUserGamePlayDataToFirebase(userGamePlayData);
+                if (!userSaved)
+                {
+                    Console.WriteLine($"Error saving gameplay data to firebase");
+                    await CommonFunctions.WriteErrorMessageToFirebase("Error saving gameplay data to firebase", "HeadsOrTails - LockGame() - ", DateTime.Now.ToString());
+                }
             }
             catch (Exception x)
             {
@@ -989,7 +1010,7 @@
                 try
                 {
                     // Capture the response from the Firebase service call
-                    var response = await FirebaseService.PollFirebaseForLeftoverGiveawayFunds(_lastETag);
+                    var response = await FirebaseService.PollFirebaseForLeftoverGiveawayFunds(_lastETag, needsAuthToken: true);
 
                     // Store the response in a variable
                     if (response != null)
@@ -1072,7 +1093,11 @@
                 try
                 {
                     bool userSaved = await CommonFunctions.SaveUserGamePlayDataToFirebase(userGamePlayData);
-                    //Console.WriteLine("UpdateMonetaryValuesBasedOnLeftverFunds - " + userGamePlayData.GameOver);
+                    if (!userSaved)
+                    {
+                        Console.WriteLine($"Error saving gameplay data to firebase");
+                        await CommonFunctions.WriteErrorMessageToFirebase("Error saving gameplay data to firebase", "HeadsOrTails - UpdateMonetaryValuesBasedOnLeftOverFunds - ", DateTime.Now.ToString());
+                    }
                 }
                 catch (Exception x)
                 {

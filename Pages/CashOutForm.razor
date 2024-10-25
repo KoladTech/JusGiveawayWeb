@@ -276,19 +276,28 @@
             //store user cashout info in firebase db
             try
             {
-                bool cashedOut = await CommonFunctions.SaveUserCashOutDetailsToFirebase(userInfo,cashOutDetails);
-                await CommonFunctions.SetUserHasCashedOutToFirebase(userInfo);
+                bool cashedOut = await CommonFunctions.SaveUserCashOutDetailsToFirebase(userInfo, cashOutDetails);
+                bool saveUserCashoutStatus = await CommonFunctions.SetUserHasCashedOutToFirebase(userInfo);
 
                 int currentLeftoverFunds = await CommonFunctions.GetLeftoverGiveawayFundsFromFirebase();
-                CommonFunctions.UpdateLeftoverGiveawayFundsInFirebase(currentLeftoverFunds - userCashOutAmount);
+                bool updateLeftoverFunds = await CommonFunctions.UpdateLeftoverGiveawayFundsInFirebase(currentLeftoverFunds - userCashOutAmount);
 
-                if (cashedOut)
+                if (!cashedOut)
+                {
+                    Console.WriteLine($"Error saving cashout details to firebase");
+                    await CommonFunctions.WriteErrorMessageToFirebase("Error saving cashout details to firebase", "CashOutForm - OnSubmitClick - ", DateTime.Now.ToString());
+                    ShowToast("Cashout error!");
+                }
+                if (!updateLeftoverFunds)
+                {
+                    Console.WriteLine($"Error updating leftover funds to firebase");
+                    await CommonFunctions.WriteErrorMessageToFirebase("Error updating leftover funds to firebase", "CashOutForm - OnSubmitClick - ", DateTime.Now.ToString());
+                    ShowToast("Cashout error!");
+                }
+
+                if(cashedOut && updateLeftoverFunds)
                 {
                     ShowToast("Cashout successful!");
-                }
-                else
-                {
-                    ShowToast("Cashout error!");
                 }
             }
             catch

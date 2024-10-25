@@ -216,6 +216,7 @@
         {
             string uid = response.LocalId;
             string idToken = response.IdToken;
+            FirebaseService.SetRefreshToken(response.RefreshToken);
             bool authTokenExpired = await FirebaseService.SetAuthTokenIfNotExpired(idToken);
             if (authTokenExpired)
             {
@@ -262,18 +263,22 @@
 
                 if (!userSaved)
                 {
-                    //alertdialog/toast
+                    await CommonFunctions.WriteErrorMessageToFirebase("Error during sign up, saving user to firebase", "SignUp - OnSignUpClicked() - " + response.ToString(), DateTime.Now.ToString());
+                    Console.WriteLine("Error during sign up, saving user to firebase");
+                    ShowToast("Error during sign up!");
+                }
+                else
+                {
+                    ShowToast("Sign-up successful!");
                 }
             }
             catch
             {
-                //alertDialog/toast
+                await CommonFunctions.WriteErrorMessageToFirebase("Error during sign up, saving user to firebase", "SignUp - OnSignUpClicked() - " + response.ToString(), DateTime.Now.ToString());
+                Console.WriteLine("Error during sign up, saving user to firebase");
+                ShowToast("Error during sign up!");
             }
 
-            ShowToast("Sign-up successful!");
-
-            await Task.Delay(2000); // Simulate a delay
-            // After successful sign up in your sign-up component
             NavigationManager.NavigateTo("/");
         }
         else

@@ -26,66 +26,66 @@ namespace JusGiveawayWebApp.Helpers
         public async Task<GiveawayData> GetGiveawayDataFromFirebase()
         {
             //if null, display error
-            return await _firebaseService.ReadDataAsync<GiveawayData>($"Giveaways/A");
+            return await _firebaseService.ReadDataAsync<GiveawayData>($"Giveaways/A", needsAuthToken: true);
         }
         public async Task<string> GetGiveawayStartDateFromFirebase()
         {
             //if null, display error
-            return await _firebaseService.ReadDataAsync<string>($"Giveaways/A/StartDate");
+            return await _firebaseService.ReadDataAsync<string>($"Giveaways/A/StartDate", needsAuthToken: false);
         }
         public async Task<int> GetLeftoverGiveawayFundsFromFirebase()
         {
             //if null, display error
-            return await _firebaseService.ReadDataAsync<int>($"Giveaways/A/LeftoverGiveawayFunds");
+            return await _firebaseService.ReadDataAsync<int>($"Giveaways/A/LeftoverGiveawayFunds", needsAuthToken: true);
         }
 
         public async Task<string> GetTestEmailsFromFirebase()
         {
             //if null, display error
-            return await _firebaseService.ReadDataAsync<string>($"TestEmails");
+            return await _firebaseService.ReadDataAsync<string>($"TestEmails", needsAuthToken: true);
         }
 
         public async Task<string> GetAppVersionFromFirebase()
         {
             //if null, display error
-            return await _firebaseService.ReadDataAsync<string>("JGVersionNumber");
+            return await _firebaseService.ReadDataAsync<string>("JGVersionNumber", needsAuthToken: false);
         }
 
         public async Task<bool> SaveNewUserToFirebase(UserInfo newUser)
         {
             //if null, display error
-            return await _firebaseService.WriteDataAsync<UserInfo>($"AllUsers/{newUser.UID}/UserInfo", newUser);
+            return await _firebaseService.WriteDataAsync<UserInfo>($"AllUsers/{newUser.UID}/UserInfo", newUser, needsAuthToken: true);
         }
 
         public async Task<bool> SaveUserGamePlayDataToFirebase(UserGamePlayData userGamePlayData)
         {
             //if null, display error
-            return await _firebaseService.WriteDataAsync<UserGamePlayData>($"AllUsers/{userGamePlayData.UID}/GamePlayData", userGamePlayData);
+            return await _firebaseService.WriteDataAsync<UserGamePlayData>($"AllUsers/{userGamePlayData.UID}/GamePlayData", userGamePlayData, needsAuthToken: true);
         }
         public async Task<bool> SaveUserSurveyToFirebase(bool interested)
         {
             if (interested)
             {
-                int interestedCount = await _firebaseService.ReadDataAsync<int>($"Survey/Interested");
-                return await _firebaseService.WriteDataAsync<int>($"Survey/Interested", ++interestedCount);
+                int interestedCount = await _firebaseService.ReadDataAsync<int>($"Survey/Interested", needsAuthToken: false);
+                return await _firebaseService.WriteDataAsync<int>($"Survey/Interested", ++interestedCount, needsAuthToken: false);
             }
             else
             {
-                int notInterestedCount = await _firebaseService.ReadDataAsync<int>($"Survey/NotInterested");
-                return await _firebaseService.WriteDataAsync<int>($"Survey/NotInterested", ++notInterestedCount);
+                int notInterestedCount = await _firebaseService.ReadDataAsync<int>($"Survey/NotInterested", needsAuthToken: false);
+                return await _firebaseService.WriteDataAsync<int>($"Survey/NotInterested", ++notInterestedCount, needsAuthToken: false);
             }
         }
         public async Task<bool> SaveUserStatsForCountDownPageToFirebase(bool demoClicked, bool instructionsClicked)
         {
             if (demoClicked)
             {
-                int demoClicks = await _firebaseService.ReadDataAsync<int>("CountdownPage/ClickedDemo");
-                return await _firebaseService.WriteDataAsync<int>("CountdownPage/ClickedDemo", ++demoClicks);
+                int demoClicks = await _firebaseService.ReadDataAsync<int>("CountdownPage/ClickedDemo", needsAuthToken: false);
+                return await _firebaseService.WriteDataAsync<int>("CountdownPage/ClickedDemo", ++demoClicks, needsAuthToken: false);
             }
             if (instructionsClicked)
             {
-                int instructionsClicks = await _firebaseService.ReadDataAsync<int>("CountdownPage/ClickedInstructions");
-                return await _firebaseService.WriteDataAsync<int>("CountdownPage/ClickedInstructions", ++instructionsClicks);
+                int instructionsClicks = await _firebaseService.ReadDataAsync<int>("CountdownPage/ClickedInstructions", needsAuthToken: false);
+                return await _firebaseService.WriteDataAsync<int>("CountdownPage/ClickedInstructions", ++instructionsClicks, needsAuthToken: false);
             }
             return false;
         }
@@ -93,52 +93,52 @@ namespace JusGiveawayWebApp.Helpers
         public async Task<string> GetUsersNameFromFirebase(string uid)
         {
             //if null, display error
-            return await _firebaseService.ReadDataAsync<string>($"AllUsers/{uid}/UserInfo/name");
+            return await _firebaseService.ReadDataAsync<string>($"AllUsers/{uid}/UserInfo/name", needsAuthToken: true);
         }
 
         public async Task<UserGamePlayData?> GetUserGamePlayDataFromFirebase(string uid)
         {
             //if null, display error
-            return await _firebaseService.ReadDataAsync<UserGamePlayData>($"AllUsers/{uid}/GamePlayData");
+            return await _firebaseService.ReadDataAsync<UserGamePlayData>($"AllUsers/{uid}/GamePlayData", needsAuthToken: true);
         }
 
         public async Task<int> GetUserCashOutAmountFromFirebase(string uid)
         {
             //if null, display error
-            return await _firebaseService.ReadDataAsync<int>($"AllUsers/{uid}/GamePlayData/currentWinnings");
+            return await _firebaseService.ReadDataAsync<int>($"AllUsers/{uid}/GamePlayData/currentWinnings", needsAuthToken: true);
         }
 
         public async Task<bool> GetUserCashOutStatusFromFirebase(string uid)
         {
             //if null, display error
-            return await _firebaseService.ReadDataAsync<bool>($"AllUsers/{uid}/GamePlayData/cashedOut");
+            return await _firebaseService.ReadDataAsync<bool>($"AllUsers/{uid}/GamePlayData/cashedOut", needsAuthToken: true);
         }
 
         public async Task<bool> SaveUserCashOutDetailsToFirebase(UserInfo user, CashOutDetails userCashOutDetails)
         {
             //if null, display error
-            return await _firebaseService.WriteDataAsync<CashOutDetails>($"CashOuts/{user.UID}", userCashOutDetails);
+            return await _firebaseService.WriteDataAsync<CashOutDetails>($"CashOuts/{user.UID}", userCashOutDetails, needsAuthToken: true);
         }
 
         public async Task<bool> SetUserHasCashedOutToFirebase(UserInfo user)
         {
             //if null, display error
-            return await _firebaseService.WriteDataAsync<bool>($"AllUsers/{user.UID}/GamePlayData/cashedOut", true);
+            return await _firebaseService.WriteDataAsync<bool>($"AllUsers/{user.UID}/GamePlayData/cashedOut", true, needsAuthToken: true);
         }
 
-        public async void UpdateLeftoverGiveawayFundsInFirebase(int leftoverFunds)
+        public async Task<bool> UpdateLeftoverGiveawayFundsInFirebase(int leftoverFunds)
         {
-            await _firebaseService.WriteDataAsync<int>("Giveaways/A/LeftoverGiveawayFunds", leftoverFunds);
+            return await _firebaseService.WriteDataAsync<int>("Giveaways/A/LeftoverGiveawayFunds", leftoverFunds, needsAuthToken: true);
         }
-        public async void RecordBingoRoundsToFirebase(string uid, string playerName)
+        public async Task<bool> RecordBingoRoundsToFirebase(string uid, string playerName)
         {
-            int bingoCounts = await _firebaseService.ReadDataAsync<int>($"BingoRounds/{uid} - {playerName}");
-            await _firebaseService.WriteDataAsync<int>($"BingoRounds/{uid} - {playerName}", ++bingoCounts);
+            int bingoCounts = await _firebaseService.ReadDataAsync<int>($"BingoRounds/{uid} - {playerName}", needsAuthToken: true);
+            return await _firebaseService.WriteDataAsync<int>($"BingoRounds/{uid} - {playerName}", ++bingoCounts, needsAuthToken: true);
         }
 
         public async Task WriteErrorMessageToFirebase(string errorMessage, string data, string errorTime)
         {
-            await _firebaseService.WriteErrorMessagesAsync(errorMessage, data, errorTime);
+            await _firebaseService.WriteErrorMessagesAsync(errorMessage, data, errorTime, needsAuthToken: false);
         }
         #endregion
 
@@ -228,6 +228,11 @@ namespace JusGiveawayWebApp.Helpers
                 try
                 {
                     bool userSaved = await SaveUserGamePlayDataToFirebase(userGamePlayData);
+                    if (!userSaved)
+                    {
+                        Console.WriteLine($"Error saving gameplay data to firebase"); 
+                        await WriteErrorMessageToFirebase("Error saving gameplay data to firebase", "SaveUserProgressOnExit - " + playerUID, DateTime.Now.ToString());
+                    }
                 }
                 catch (Exception x)
                 {
