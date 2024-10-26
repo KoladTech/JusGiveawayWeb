@@ -117,7 +117,7 @@ namespace JusGiveawayWebApp.Helpers
         public async Task<bool> SaveUserCashOutDetailsToFirebase(UserInfo user, CashOutDetails userCashOutDetails)
         {
             //if null, display error
-            return await _firebaseService.WriteDataAsync<CashOutDetails>($"CashOuts/{user.UID}", userCashOutDetails, needsAuthToken: true);
+            return await _firebaseService.WriteDataAsync<CashOutDetails>($"CashOuts/{user.UID}-{user.Name}", userCashOutDetails, needsAuthToken: true);
         }
 
         public async Task<bool> SetUserHasCashedOutToFirebase(UserInfo user)
@@ -132,8 +132,8 @@ namespace JusGiveawayWebApp.Helpers
         }
         public async Task<bool> RecordBingoRoundsToFirebase(string uid, string playerName)
         {
-            int bingoCounts = await _firebaseService.ReadDataAsync<int>($"BingoRounds/{uid} - {playerName}", needsAuthToken: true);
-            return await _firebaseService.WriteDataAsync<int>($"BingoRounds/{uid} - {playerName}", ++bingoCounts, needsAuthToken: true);
+            var bingoCounts = await _firebaseService.ReadDataAsync<int>($"BingoRounds/{uid}-{playerName}", needsAuthToken: true);
+            return await _firebaseService.WriteDataAsync<int>($"BingoRounds/{uid}-{playerName}", ++bingoCounts, needsAuthToken: true);
         }
 
         public async Task WriteErrorMessageToFirebase(string errorMessage, string data, string errorTime)

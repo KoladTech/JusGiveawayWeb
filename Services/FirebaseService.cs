@@ -321,6 +321,12 @@ namespace JusGiveawayWebApp.Services
                 var response = await _httpClient.GetAsync(url);
                 if (response.IsSuccessStatusCode)
                 {
+                    var contentString = await response.Content.ReadAsStringAsync();
+                    if (string.IsNullOrEmpty(contentString) || contentString == "null")
+                    {
+                        Console.WriteLine("Key does not exist or value is null.");
+                        return default;
+                    }
                     return await response.Content.ReadFromJsonAsync<T>();
                 }
                 else
