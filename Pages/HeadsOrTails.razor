@@ -60,11 +60,11 @@
             <p>@PlayerChoice</p>
             <div class="coin-images">
                 <img src="images/kobo_front.png" alt="Coin Front"
-                        class="@((PlayerChoice == "Heads") ? "coin selected" : "coin")"
-                        style="width: 100px; height: 100px;" @onclick="OnChooseHeadsTapped" />
+                     class="@((PlayerChoice == "Heads") ? "coin selected" : "coin")"
+                     style="width: 100px; height: 100px;" @onclick="OnChooseHeadsTapped" />
                 <img src="images/kobo_back.png" alt="Coin Back"
-                        class="@((PlayerChoice == "Tails") ? "coin selected" : "coin")"
-                        style="width: 100px; height: 100px;" @onclick="OnChooseTailsTapped" />
+                     class="@((PlayerChoice == "Tails") ? "coin selected" : "coin")"
+                     style="width: 100px; height: 100px;" @onclick="OnChooseTailsTapped" />
             </div>
             <button class="centered-button" @onclick="OnLockInSelectionClicked" disabled="@(!IsUserMakingChoice)">Start Game</button>
         </div>

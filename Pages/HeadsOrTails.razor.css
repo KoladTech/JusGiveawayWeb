@@ -112,16 +112,32 @@
 
 .coin-images {
     display: flex;
-    gap: 10px; /* Add space between the coin images */
-    justify-content: center; /* Center the coin images */
+    gap: 10px;
+    justify-content: center;
 }
+
     .coin-images img {
         width: auto;
         height: 70px;
+        transition: transform 0.3s ease;
+        cursor: pointer;
     }
-.coin {
-    transition: transform 0.3s ease; /* Smooth scaling animation */
+
+.coin.selected {
+    animation: rotate 3s linear infinite; /* Continuous rotation */
+    transform: scale(1.2); /* Magnify */
 }
+
+@keyframes rotate {
+    from {
+        transform: scale(1.2) rotate(0deg); /* Start position */
+    }
+
+    to {
+        transform: scale(1.2) rotate(360deg); /* Full rotation */
+    }
+}
+
 /*=========================
     Side Selection End
 ==========================*/

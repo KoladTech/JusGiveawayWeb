@@ -28,22 +28,34 @@
 .centered-button {
     padding: 10px 20px;
     font-size: 16px;
-    background-color: #468fa2; /* Optional: Button color */
+    background-color: #468fa2;
     color: white;
     border: none;
-    border-radius: 10px; /* Rounded corners for a modern look */
+    border-radius: 10px;
     cursor: pointer;
-    transition: background-color 0.3s ease; /* Smooth hover effect */
+    transition: background-color 0.3s ease, transform 0.3s ease;
+    animation: slideEffect 1.8s ease-in-out infinite alternate;
 }
 
-    .centered-button:hover {
-        background-color: #267724; /* Darker shade on hover */
+@keyframes slideEffect {
+    from {
+        transform: translateX(-15px);
     }
 
+    to {
+        transform: translateX(15px);
+    }
+}
+
+.centered-button:hover {
+    background-color: #267724;
+}
+
 .centered-button:disabled {
-    background-color: #d3d3d3; /* Grey background for disabled state */
-    color: #a9a9a9; /* Light grey text for disabled state */
-    cursor: not-allowed; /* Change cursor to indicate disabled state */
+    background-color: #d3d3d3;
+    color: #a9a9a9;
+    cursor: not-allowed;
+    animation: none; /* Stop sliding effect when disabled */
 }
 
 .password-container {
