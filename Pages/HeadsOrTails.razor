@@ -319,9 +319,19 @@
                     }
                     else
                     {
-                        db.UserGameDatas.Remove(userGamePlayDataFromIndexedDB);
-                        db.UserGameDatas.Add(userGamePlayData);
-                        await db.SaveChanges();
+                        //check which has the most recent data by using TotalFlips
+                        int indexedDBTotalFlips = userGamePlayDataFromIndexedDB.HeadsCount + userGamePlayDataFromIndexedDB.TailsCount;
+                        int firebaseTotalFlips = userGamePlayData.HeadsCount + userGamePlayData.TailsCount;
+                        if(indexedDBTotalFlips > firebaseTotalFlips)
+                        {
+                            userGamePlayData = userGamePlayDataFromIndexedDB;
+                        }
+                        else
+                        {
+                            db.UserGameDatas.Remove(userGamePlayDataFromIndexedDB);
+                            db.UserGameDatas.Add(userGamePlayData);
+                            await db.SaveChanges();
+                        }
                     }
                 }
                 //populate all thats needed
@@ -499,12 +509,12 @@
         if (random.Next(2) == 0)
         {
             CoinImage = "images/kobo_front.png"; // Set to heads
-            HeadsCount += 10;
+            HeadsCount += 5;
         }
         else
         {
             CoinImage = "images/kobo_back.png"; // Set to tails
-            TailsCount += 10;
+            TailsCount += 5;
         }
 
         CheckForWin();
