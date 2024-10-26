@@ -328,7 +328,7 @@
                 startGameUISetup(userGamePlayData, _giveawayData);
 
                 //function which helps with sign out on inactivity
-                await OnLoginSuccess();
+                //await OnLoginSuccess();
             }
         }
         catch(Exception ex)
@@ -1130,7 +1130,7 @@
 
 
         // Unsubscribe when the component is disposed
-        NavigationManager.LocationChanged -= OnLocationChanged;
+        //NavigationManager.LocationChanged -= OnLocationChanged;
         Console.WriteLine("inside dispose function #####################");
         var _ =  CommonFunctions.WriteErrorMessageToFirebase("Inside Dispose()", "inside dispose()", DateTime.Now.ToString());
     }
@@ -1162,6 +1162,7 @@
         ShowDialog = false;
     }
 
+    //TODO : move this to common functions
     private void ShowToast(string message)
     {
         toastMessage = message;
@@ -1178,18 +1179,18 @@
         });
     }
 
-    private async void OnLocationChanged(object sender, LocationChangedEventArgs e)
-    {
-        // Check if saving is in progress to prevent multiple saves
-        if (!isSaving)
-        {
-            isSaving = true;
-            Console.WriteLine("Saving progress due to navigation away from page");
-            //currently buggy
-            //await CommonFunctions.SaveUserProgressOnExit(this.DbFactory, PlayerUID, HeadsCount, TailsCount); 
-            isSaving = false;
-        }
-    }
+    // private async void OnLocationChanged(object sender, LocationChangedEventArgs e)
+    // {
+    //     // Check if saving is in progress to prevent multiple saves
+    //     if (!isSaving)
+    //     {
+    //         isSaving = true;
+    //         Console.WriteLine("Saving progress due to navigation away from page");
+    //         //currently buggy
+    //         //await CommonFunctions.SaveUserProgressOnExit(this.DbFactory, PlayerUID, HeadsCount, TailsCount); 
+    //         isSaving = false;
+    //     }
+    // }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -1200,7 +1201,7 @@
 
             await JSRuntime.InvokeVoidAsync("onPageExit", objRef);
             // Load the JavaScript to track inactivity
-            await JSRuntime.InvokeVoidAsync("inactivityTimer", objRef);
+            //await JSRuntime.InvokeVoidAsync("inactivityTimer", objRef);
 
             await JSRuntime.InvokeVoidAsync("addBackButtonListener", objRef);
         }
@@ -1235,34 +1236,34 @@
         //CommonFunctions.SaveUserProgressOnExit(this.DbFactory, PlayerUID, HeadsCount, TailsCount);
     }
 
-    [JSInvokable]
-    public async Task LogoutUser()
-    {
-        //function to log out user due to inactivity
-        isUserLoggedIn = false;  // Set the flag to false on logout
+    // [JSInvokable]
+    // public async Task LogoutUser()
+    // {
+    //     //function to log out user due to inactivity
+    //     isUserLoggedIn = false;  // Set the flag to false on logout
 
-        // Clear any user session data or tokens
-        await CommonFunctions.SignOutUser(this.DbFactory, PlayerUID);
+    //     // Clear any user session data or tokens
+    //     await CommonFunctions.SignOutUser(this.DbFactory, PlayerUID);
 
-        Console.WriteLine("inside logoutuser - " + isUserLoggedIn);
-        await CommonFunctions.SaveUserProgressOnExit(this.DbFactory, PlayerUID, HeadsCount, TailsCount);
-        // Optionally redirect to the login page
-        NavigationManager.NavigateTo("/");
+    //     Console.WriteLine("inside logoutuser - " + isUserLoggedIn);
+    //     await CommonFunctions.SaveUserProgressOnExit(this.DbFactory, PlayerUID, HeadsCount, TailsCount);
+    //     // Optionally redirect to the login page
+    //     NavigationManager.NavigateTo("/");
 
-        // Clear the inactivity timer after logout
-        await JSRuntime.InvokeVoidAsync("clearInactivityTimer");
-    }
+    //     // Clear the inactivity timer after logout
+    //     await JSRuntime.InvokeVoidAsync("clearInactivityTimer");
+    // }
 
-    private async Task OnLoginSuccess()
-    {
-        // Your existing login logic here...
+    // private async Task OnLoginSuccess()
+    // {
+    //     // Your existing login logic here...
 
-        // Reset the inactivity timer's logged out flag
-        await JSRuntime.InvokeVoidAsync("resetUserLoggedOutFlag");
+    //     // Reset the inactivity timer's logged out flag
+    //     await JSRuntime.InvokeVoidAsync("resetUserLoggedOutFlag");
 
-        // Set up the inactivity timer again after login
-        await JSRuntime.InvokeVoidAsync("inactivityTimer", objRef);
-    }
+    //     // Set up the inactivity timer again after login
+    //     await JSRuntime.InvokeVoidAsync("inactivityTimer", objRef);
+    // }
 
     private bool wonRound;
     private bool lostRound;

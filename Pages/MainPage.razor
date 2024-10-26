@@ -5,6 +5,7 @@
 @inject NavigationManager NavigationManager
 @using static JusGiveawayWebApp.Helpers.CommonFunctions
 @inject IndexedDB.Blazor.IIndexedDbFactory DbFactory
+@inject IJSRuntime JSRuntime
 @using JusGiveawayWebApp.Models
 @inject JusGiveawayWebApp.Helpers.CommonFunctions CommonFunctions
 @inject JusGiveawayWebApp.Services.UserInfoService UserInfoService
@@ -97,6 +98,8 @@
     private string errorMessage;
     private AlertDialogParams alertDialogParams = new AlertDialogParams();
     private HeadsOrTailsInstructionsPage headsOrTailsInstructionsPopup;
+    private DotNetObjectReference<MainPage>? objRef;
+    private bool isUserLoggedIn = true; // Assume user is logged in initially
 
     protected override void OnInitialized()
     {
@@ -167,6 +170,9 @@
             await CommonFunctions.WriteErrorMessageToFirebase(ex.Message, "MainPage - OnInitializedAsync()", DateTime.Now.ToString());
             Console.WriteLine(ex.Message);
         }
+
+        //function which helps with sign out on inactivity
+        await OnLoginSuccess();
     }
 
     // Event handlers
@@ -230,5 +236,57 @@
                 StateHasChanged();
             });
         });
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && isUserLoggedIn)
+        {
+            // Creating a DotNetObjectReference to pass to JavaScript
+            objRef = DotNetObjectReference.Create(this);
+
+            //await JSRuntime.InvokeVoidAsync("onPageExit", objRef);
+            // Load the JavaScript to track inactivity
+            await JSRuntime.InvokeVoidAsync("inactivityTimer", objRef);
+
+            //await JSRuntime.InvokeVoidAsync("addBackButtonListener", objRef);
+        }
+    }
+
+    [JSInvokable]
+    public async Task LogoutUser()
+    {
+        //function to log out user due to inactivity
+        isUserLoggedIn = false;  // Set the flag to false on logout
+
+        // Clear any user session data or tokens
+        await CommonFunctions.SignOutUser(this.DbFactory, PlayerUID);
+
+        Console.WriteLine("inside logoutuser - MainPage" + isUserLoggedIn);
+        // Optionally redirect to the login page
+        NavigationManager.NavigateTo("/");
+
+        // Clear the inactivity timer after logout
+        await JSRuntime.InvokeVoidAsync("clearInactivityTimer");
+    }
+
+    private async Task OnLoginSuccess()
+    {
+        // Your existing login logic here...
+
+        // Reset the inactivity timer's logged out flag
+        await JSRuntime.InvokeVoidAsync("resetUserLoggedOutFlag");
+
+        // Set up the inactivity timer again after login
+        await JSRuntime.InvokeVoidAsync("inactivityTimer", objRef);
+    }
+
+    public void Dispose()
+    {
+        // Dispose the object reference to prevent memory leaks
+        objRef?.Dispose();
+
+        Console.WriteLine("inside dispose function in MainPage");
+        var _ = CommonFunctions.WriteErrorMessageToFirebase("Inside Dispose()", "in MainPage", DateTime.Now.ToString());
     }
 }

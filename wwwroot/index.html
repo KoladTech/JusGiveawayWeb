@@ -100,7 +100,7 @@
         let isUserLoggedOut = false;
         let timeRemaining;
         let logoutAfter = 10 * 60 * 1000; // 10 minutes in milliseconds
-        let startTime = Date.now(); // Log the start time
+        let lastActivityTime = Date.now(); // Track last activity time
 
         window.inactivityTimer = function (dotNetHelper) {
             if (!dotNetHelper || isUserLoggedOut) {
@@ -110,33 +110,25 @@
 
             // Clear any existing timer before starting a new one
             clearInterval(timer);  // Important: clear the interval if one exists
-            clearTimeout(timer);
 
-            // Start the countdown and log time remaining
+            // Start the countdown
             function startCountdown() {
                 timeRemaining = logoutAfter;
-                //console.log(`Timer started. Time remaining: ${timeRemaining / 1000} seconds`);
-                startTime = Date.now();
+                lastActivityTime = Date.now();
+
+                // Check every second for inactivity
                 timer = setInterval(() => {
-                    timeRemaining -= 1000;
-                    //console.log(`Time remaining: ${timeRemaining / 1000} seconds`);
+                    const currentTime = Date.now();
+                    const elapsed = currentTime - lastActivityTime;
 
-                    if (timeRemaining <= 0) {
+                    if (elapsed >= logoutAfter) {
                         clearInterval(timer);
-
-                        console.log(`Start time: ${new Date(startTime).toLocaleTimeString()}`);
-                        let endTime = Date.now(); // Log the end time
-                        console.log(`End time: ${new Date(endTime).toLocaleTimeString()}`);
-
-                        let elapsedTime = endTime - startTime; // Calculate elapsed time in milliseconds
-                        console.log(`Elapsed time: ${elapsedTime / 1000 / 60} minutes`);
-
-                        logoutUser(); // Log the user out when time expires
+                        logoutUser(); // Log the user out due to inactivity
                     }
-                }, 1000); // Update every second
+                }, 1000); // Check every second
             }
 
-            // Log the user out when time expires
+            // Log the user out if inactivity timeout occurs
             function logoutUser() {
                 if (!isUserLoggedOut) {
                     console.log("Logging out user due to inactivity.");
@@ -147,16 +139,15 @@
                 }
             }
 
-            // Reset the inactivity timer and restart countdown
+            // Reset the inactivity timer on any user interaction
             function resetTimer() {
                 if (!isUserLoggedOut) {
-                    clearInterval(timer); // Clear any existing timer
-                    //console.log("User activity detected. Timer reset.");
-                    startCountdown(); // Restart the countdown
+                    lastActivityTime = Date.now(); // Update last activity time
+                    console.log("User activity detected. Timer reset.");
                 }
             }
 
-            // Reset the timer on user activity
+            // Attach resetTimer to various user actions
             window.onload = resetTimer;
             document.onmousemove = resetTimer;
             document.onkeydown = resetTimer;
@@ -165,14 +156,13 @@
             document.ontouchmove = resetTimer;
             document.onscroll = resetTimer;
 
-            // Start countdown on first load
+            // Start the countdown on first load
             startCountdown();
         };
 
         // Clear the inactivity timer and stop it when navigating away
         window.clearInactivityTimer = function () {
             clearInterval(timer);
-            clearTimeout(timer);  // Clear timeout if there is any
             isUserLoggedOut = true; // Set flag to stop further actions
             console.log("Inactivity timer cleared.");
         };
