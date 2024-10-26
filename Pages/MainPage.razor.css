@@ -41,7 +41,11 @@
     height: 25px; /* Set a specific height for the icon */
     cursor: pointer; /* Change cursor to pointer to indicate interactivity */
     animation: bounce 1s ease-in-out 0s 3; /* Animation runs 3 times */
+    transition: transform 0.1s ease; /* Smooth hover effect */
 }
+    .info-icon:active {
+        transform: scale(1.5);
+    }
 
 @keyframes bounce {
     0%, 100% {
@@ -131,6 +135,7 @@
         cursor: pointer;
         font-size: 1rem; /* Responsive font size */
         width: 100%;
+        transition: transform 0.1s ease; /* Smooth hover effect */
     }
 
         .game-card button.play-button:hover {
@@ -140,6 +145,9 @@
         .game-card button.play-button:disabled {
             background-color: #cccccc;
             cursor: not-allowed;
+        }
+        .game-card button.play-button:active {
+            transform: scale(0.85); /* Scale down slightly when clicked */
         }
 
 @keyframes wobble {
@@ -215,23 +223,28 @@
 }
 
 .centered-button {
-    margin-top: 20px; /* Add spacing above the button */
+    margin-top: 20px;
     padding: 10px 20px;
     font-size: 16px;
-    background-color: #468fa2; /* Optional: Button color */
+    background-color: #468fa2;
     color: white;
     border: none;
-    border-radius: 10px; /* Rounded corners for a modern look */
+    border-radius: 10px;
     cursor: pointer;
-    transition: background-color 0.3s ease; /* Smooth hover effect */
+    transition: background-color 0.3s ease, transform 0.1s ease; /* Smooth hover effect */
 }
 
     .centered-button:hover {
-        background-color: #267724; /* Darker shade on hover */
+        background-color: #267724;
     }
 
     .centered-button:disabled {
-        background-color: #d3d3d3; /* Grey background for disabled state */
-        color: #a9a9a9; /* Light grey text for disabled state */
-        cursor: not-allowed; /* Change cursor to indicate disabled state */
+        background-color: #d3d3d3;
+        color: #a9a9a9;
+        cursor: not-allowed;
+    }
+
+    /* Click (active) effect */
+    .centered-button:active {
+        transform: scale(0.85); /* Scale down slightly when clicked */
     }

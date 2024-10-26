@@ -365,7 +365,7 @@
     border: none;
     border-radius: 10px; /* Rounded corners for a modern look */
     cursor: pointer;
-    transition: background-color 0.3s ease; /* Smooth hover effect */
+    transition: background-color 0.3s ease, transform 0.1s ease; /* Smooth hover effect */
 }
 
     .centered-button:hover {
@@ -376,6 +376,34 @@
         background-color: #d3d3d3; /* Grey background for disabled state */
         color: #a9a9a9; /* Light grey text for disabled state */
         cursor: not-allowed; /* Change cursor to indicate disabled state */
+    }
+
+    .centered-button:active {
+        transform: scale(0.85); /* Scale down slightly when clicked */
+    }
+
+/* Back button */
+.back-button {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    margin-top: 20px;
+    align-content: end;
+    transition: background-color 0.3s ease, transform 0.1s ease; /* Smooth hover effect */
+}
+
+    .back-button img.back-icon {
+        width: 60px;
+        height: auto;
+        transition: opacity 0.3s ease;
+    }
+
+        .back-button img.back-icon:hover {
+            content: url('images/back_icon_hover.png'); /* Image on hover */
+            opacity: 0.8; /* Optional: add an effect */
+        }
+    .back-button:active {
+        transform: scale(0.85); /* Scale down slightly when clicked */
     }
 
 /*=========================
@@ -451,26 +479,6 @@
 /*=========================
     Coin Image Shake Ended
 ==========================*/
-
-/* Back button */
-.back-button {
-    background: transparent;
-    border: none;
-    cursor: pointer;
-    margin-top: 20px;
-    align-content: end;
-}
-
-    .back-button img.back-icon {
-        width: 60px;
-        height: auto;
-        transition: opacity 0.3s ease;
-    }
-        .back-button img.back-icon:hover {
-            content: url('images/back_icon_hover.png'); /* Image on hover */
-            opacity: 0.8; /* Optional: add an effect */
-        }
-
 
 @keyframes bounceIn {
     0% {
