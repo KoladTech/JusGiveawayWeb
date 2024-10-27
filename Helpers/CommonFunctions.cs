@@ -39,6 +39,13 @@ namespace JusGiveawayWebApp.Helpers
             return await _firebaseService.ReadDataAsync<int>($"Giveaways/A/LeftoverGiveawayFunds", needsAuthToken: true);
         }
 
+        public async Task<int> GetCoinFlipIncrementFromFirebase()
+        {
+            //if null, display error
+            int coinFlipIncrement = await _firebaseService.ReadDataAsync<int>($"CoinFlipIncrement", needsAuthToken: true);
+            return coinFlipIncrement == 0 ? 1 : coinFlipIncrement;
+        }
+
         public async Task<string> GetTestEmailsFromFirebase()
         {
             //if null, display error

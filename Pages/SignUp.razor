@@ -97,7 +97,7 @@
 
 
         <div class="button-container">
-			<button class="centered-button" @onclick="OnSignUpClicked" disabled="@(!isFormValid)">Sign Up</button>
+			<button class="centered-button" @onclick="OnSignUpClicked" disabled="@(!isFormValid || signingUp)">Sign Up</button>
         </div>
 
         <div class="signup-signin-prompt">
@@ -132,6 +132,7 @@
         !string.IsNullOrEmpty(password) &&
         password == confirmPassword &&
         !showPasswordCriteria;
+    private bool signingUp = false;
 
     // Criteria validation flags
     private bool lengthCriteriaMet = false;
@@ -210,6 +211,10 @@
 
     private async Task OnSignUpClicked()
     {
+        //prevent multiple clicks until sign up is verified
+        signingUp = true;
+        StateHasChanged();
+
         // Handle successful registration and redirect if necessary
         var response = await FirebaseService.SignUpUserAsync(email, password);
         if (response != null)
@@ -285,6 +290,9 @@
         {
             ShowToast("Sign Up failed!");
         }
+
+        signingUp = false;
+        StateHasChanged();
     }
 
     private void NavigateToSignin()

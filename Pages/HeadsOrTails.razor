@@ -29,7 +29,10 @@
             <!-- Second Row -->
             <div class="winning-info">
                 <p>Maximum Win</p>
-                <p class="funds">₦@(animateVarForMaximumWin.ToString("N0"))</p>
+                @if (!isGameOver)
+                {
+                    <p class="funds">₦@(animateVarForMaximumWin.ToString("N0"))</p>
+                }
             </div>
             <div class="giveaway-info">
                 <p>Your Winnings</p>
@@ -197,6 +200,7 @@
     private double TailsBarHeight => TotalFlips > 0 ? (double)TailsCount / TotalFlips * 100 : 0;
     private bool isFlipping = false;
     private string CoinImage = "images/kobo_front.png";
+    private int CoinFlipIncrement = 1;
     private GiveawayData? _giveawayData;
     private UserGamePlayData? userGamePlayData;
     private List<UserGamePlayData> gameDataList = new List<UserGamePlayData>();
@@ -320,8 +324,10 @@
                     else
                     {
                         //check which has the most recent data by using TotalFlips
-                        int indexedDBTotalFlips = userGamePlayDataFromIndexedDB.HeadsCount + userGamePlayDataFromIndexedDB.TailsCount;
-                        int firebaseTotalFlips = userGamePlayData.HeadsCount + userGamePlayData.TailsCount;
+                        int indexedDBTotalFlips = userGamePlayDataFromIndexedDB.HeadsCount + userGamePlayDataFromIndexedDB.TailsCount 
+                        + userGamePlayDataFromIndexedDB.LifetimeHeadsCount + userGamePlayDataFromIndexedDB.LifetimeTailsCount;
+                        int firebaseTotalFlips = userGamePlayData.HeadsCount + userGamePlayData.TailsCount
+                        + userGamePlayData.LifetimeHeadsCount + userGamePlayData.LifetimeTailsCount;
                         if(indexedDBTotalFlips > firebaseTotalFlips)
                         {
                             userGamePlayData = userGamePlayDataFromIndexedDB;
@@ -347,6 +353,7 @@
         }
 
         AddHeartImages();
+        CoinFlipIncrement = await CommonFunctions.GetCoinFlipIncrementFromFirebase();
         await GetLeftoverGiveawayFundsFromFirebase();
     }
 
@@ -493,36 +500,46 @@
         ShowResetBtn = !ShowCashOutBtn && ResetsLeft > 0;
         StateHasChanged();
 
+        int totalSpins = 0;  // Total number of flips
         Random random = new Random();
-        int totalSpins = 15;  // Total number of flips (adjust as needed)
+        if (random.Next(2) == 0)
+        {
+            totalSpins = 6;
+        }
+        else
+        {
+            totalSpins = 5;
+        }
 
-        // Rotate the coin and switch images for a spinning effect
-        for (int i = 0; i < totalSpins; i++)
+        // Rotate the coin for a spinning effect
+        for (int i = 1; i <= totalSpins; i++)
         {
             CoinImage = i % 2 == 0 ? "images/kobo_front.png" : "images/kobo_back.png"; // Alternate front/back
             StateHasChanged();
 
-            await Task.Delay(50); // Adjust this value to control the speed of spinning
+            await Task.Delay(100); // Control speed of spinning
         }
 
-        // Final outcome based on random result (0 = heads, 1 = tails)
-        if (random.Next(2) == 0)
+        // Slight pause to allow spin to settle
+        await Task.Delay(100);
+
+        if(totalSpins == 6)
         {
-            CoinImage = "images/kobo_front.png"; // Set to heads
-            HeadsCount += 5;
+            HeadsCount += CoinFlipIncrement;
         }
         else
         {
-            CoinImage = "images/kobo_back.png"; // Set to tails
-            TailsCount += 5;
+            TailsCount += CoinFlipIncrement;
         }
+
+        StateHasChanged(); // Final render to ensure correct side
 
         CheckForWin();
 
         //save coin flips to indexeddb after every 10 flips
         if (TotalFlips % 10 == 0)
         {
-            SaveGamePlayProgressToIndexedDB();
+            await SaveGamePlayProgressToIndexedDB();
         }
 
         isFlipping = isMaxWinAchieved();
@@ -531,7 +548,7 @@
     }
 
     //in the future, use this everywhere you do saves to IndexedDB to make the code cleaner
-    private async void SaveGamePlayProgressToIndexedDB()
+    private async Task SaveGamePlayProgressToIndexedDB()
     {
         try
         {
@@ -601,16 +618,27 @@
         );
     }
 
-    private void OnCashOutClicked()
+    private async void OnCashOutClicked()
     {
+        ShowCashOutBtn = false;
+        StateHasChanged();
+
+        animateVarForLeftoverGiveawayFunds = LeftoverGiveawayFunds;
+        LeftoverGiveawayFunds = (int)await CommonFunctions.GetLeftoverGiveawayFundsFromFirebase();
+        if (animateVarForLeftoverGiveawayFunds != LeftoverGiveawayFunds)
+        {
+            await AnimateNumberChange(value => animateVarForLeftoverGiveawayFunds = value, animateVarForLeftoverGiveawayFunds, LeftoverGiveawayFunds);
+            await UpdateMonetaryValuesBasedOnLeftverFunds();
+        }
+
         //if user happens to have cashout button, hide cashout button
         if (LeftoverGiveawayFunds < userGamePlayData.MinCashOut)
         {
             ShowCashOutBtn = false;
             StateHasChanged();
+            LockGame();
             return;
         }
-        ShowDialog = true;
 
         if (!isGameOver)
         {
@@ -628,6 +656,9 @@
             alertDialogParams.OnPrimaryButtonClick = EventCallback.Factory.Create(this, AlertDialogPrimaryClicked);
             alertDialogParams.OnSecondaryButtonClick = EventCallback.Factory.Create(this, AlertDialogSecondaryClicked);
         }
+        ShowCashOutBtn = true;
+        ShowDialog = true;
+        StateHasChanged();
     }
 
     private async void OnResetClicked()
@@ -885,8 +916,16 @@
                     await JSRuntime.InvokeVoidAsync("triggerLossEffect");
 
                     animateVarForWinnings = CurrentWinnings;
-                    CurrentWinnings -= loss;
+                    CurrentWinnings = Math.Max(CurrentWinnings - loss, 0);
                     await AnimateNumberChange(value => animateVarForWinnings = value, animateVarForWinnings, CurrentWinnings);
+                }
+                else
+                {
+                    lostRound = true;
+                    lossMsg = $"You lost!";
+                    ShowWinningMessage(wonRound, lostRound, bingoRound, lossMsg);
+                    // Call the JavaScript function to trigger the loss effect
+                    await JSRuntime.InvokeVoidAsync("triggerLossEffect");
                 }
             }
 
@@ -919,7 +958,7 @@
             // alertDialogParams.OnSecondaryButtonClick = EventCallback.Factory.Create(this, AlertDialogSecondaryClicked);
 
             //save usergameplaydata to indexeddb
-            SaveGamePlayProgressToIndexedDB();
+            await SaveGamePlayProgressToIndexedDB();
 
             //save usergameplaydata to firebase
             try
@@ -956,9 +995,10 @@
         //isFlipping = true; //this prevents clicks
         CoinImage = "images/coin_locked.png";
         StateHasChanged();
+        _timer?.Dispose();
 
         //save usergameplaydata to indexeddb
-        SaveGamePlayProgressToIndexedDB();
+        await SaveGamePlayProgressToIndexedDB();
 
         //Write to firebase db signifying end of game
         if (userGamePlayData != null && !userGamePlayData.GameOver)
@@ -1013,7 +1053,7 @@
                 }
             }
             #endregion
-
+            
             // Start polling every 60 * 5 seconds (300,000 milliseconds) - 5 minutes
             _timer = new Timer(async _ =>
             {
@@ -1021,6 +1061,7 @@
                 {
                     // Capture the response from the Firebase service call
                     var response = await FirebaseService.PollFirebaseForLeftoverGiveawayFunds(_lastETag, needsAuthToken: true);
+                    Console.WriteLine("Inside timer Polling function");
 
                     // Store the response in a variable
                     if (response != null)
@@ -1051,6 +1092,10 @@
 
     private async Task UpdateMonetaryValuesBasedOnLeftverFunds()
     {
+        if (userGamePlayData.CashedOut)
+        {
+            return;
+        }
         //adjust users current winnings and maximum win amounts to match leftoverfunds
         if (LeftoverGiveawayFunds < CurrentWinnings || LeftoverGiveawayFunds < MaxPossibleWinnings)
         {
@@ -1211,7 +1256,7 @@
 
             await JSRuntime.InvokeVoidAsync("onPageExit", objRef);
             // Load the JavaScript to track inactivity
-            //await JSRuntime.InvokeVoidAsync("inactivityTimer", objRef);
+            await JSRuntime.InvokeVoidAsync("inactivityTimer", objRef);
 
             await JSRuntime.InvokeVoidAsync("addBackButtonListener", objRef);
         }
@@ -1222,6 +1267,7 @@
     {
         // Logic to save progress goes here
         // e.g., Save to IndexedDB or trigger an API to save progress
+        _timer?.Dispose();
         Console.WriteLine("Saving progress on page exit...");
     }
 
@@ -1230,12 +1276,14 @@
     {
         Console.WriteLine("Browser Back button pressed" + " -> H-" + HeadsCount + "T-" + TailsCount);
         await CommonFunctions.SaveUserProgressOnExit(this.DbFactory, PlayerUID, HeadsCount, TailsCount);
+        _timer?.Dispose();
     }
 
     private async void OnBackBtnClicked()
     {
         Console.WriteLine("Game Back button pressed" + " -> H-" + HeadsCount + "T-" + TailsCount);
         await CommonFunctions.SaveUserProgressOnExit(this.DbFactory, PlayerUID, HeadsCount, TailsCount);
+        _timer?.Dispose();
         NavigationManager.NavigateTo($"/mainpage/{PlayerUID}");
     }
 
@@ -1246,34 +1294,35 @@
         //CommonFunctions.SaveUserProgressOnExit(this.DbFactory, PlayerUID, HeadsCount, TailsCount);
     }
 
-    // [JSInvokable]
-    // public async Task LogoutUser()
-    // {
-    //     //function to log out user due to inactivity
-    //     isUserLoggedIn = false;  // Set the flag to false on logout
+    [JSInvokable]
+    public async Task LogoutUser()
+    {
+        //function to log out user due to inactivity
+        isUserLoggedIn = false;  // Set the flag to false on logout
 
-    //     // Clear any user session data or tokens
-    //     await CommonFunctions.SignOutUser(this.DbFactory, PlayerUID);
+        // Clear any user session data or tokens
+        await CommonFunctions.SignOutUser(this.DbFactory, PlayerUID);
 
-    //     Console.WriteLine("inside logoutuser - " + isUserLoggedIn);
-    //     await CommonFunctions.SaveUserProgressOnExit(this.DbFactory, PlayerUID, HeadsCount, TailsCount);
-    //     // Optionally redirect to the login page
-    //     NavigationManager.NavigateTo("/");
+        Console.WriteLine("inside logoutuser - HeadsOrTails" + isUserLoggedIn);
+        await CommonFunctions.SaveUserProgressOnExit(this.DbFactory, PlayerUID, HeadsCount, TailsCount);
+        _timer?.Dispose();
+        // Optionally redirect to the login page
+        NavigationManager.NavigateTo("/");
 
-    //     // Clear the inactivity timer after logout
-    //     await JSRuntime.InvokeVoidAsync("clearInactivityTimer");
-    // }
+        // Clear the inactivity timer after logout
+        await JSRuntime.InvokeVoidAsync("clearInactivityTimer");
+    }
 
-    // private async Task OnLoginSuccess()
-    // {
-    //     // Your existing login logic here...
+    private async Task OnLoginSuccess()
+    {
+        // Your existing login logic here...
 
-    //     // Reset the inactivity timer's logged out flag
-    //     await JSRuntime.InvokeVoidAsync("resetUserLoggedOutFlag");
+        // Reset the inactivity timer's logged out flag
+        await JSRuntime.InvokeVoidAsync("resetUserLoggedOutFlag");
 
-    //     // Set up the inactivity timer again after login
-    //     await JSRuntime.InvokeVoidAsync("inactivityTimer", objRef);
-    // }
+        // Set up the inactivity timer again after login
+        await JSRuntime.InvokeVoidAsync("inactivityTimer", objRef);
+    }
 
     private bool wonRound;
     private bool lostRound;

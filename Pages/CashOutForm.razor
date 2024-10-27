@@ -11,9 +11,23 @@
 
 <div class="phone-container">
     <div class="phone-screen">
+        <div class="naira-rain-overlay">
+            <div class="naira-symbol">₦</div>
+            <div class="naira-symbol">₦</div>
+            <div class="naira-symbol">₦</div>
+            <div class="naira-symbol">₦</div>
+            <div class="naira-symbol">₦</div>
+            <div class="naira-symbol">₦</div>
+            <div class="naira-symbol">₦</div>
+            <div class="naira-symbol">₦</div>
+            <div class="naira-symbol">₦</div>
+            <div class="naira-symbol">₦</div>
+            <!-- Add more symbols as needed -->
+        </div>
+
         <img src="images/about_us_logo.png" class="jg-logo" alt="Logo" />
 
-        @if(!cashOutInfoSubmitted)
+        @if(!hideCashoutform)
         {
             <h2 class="form-title">Cash Out</h2>
             <p class="small-text">Winner! Please enter details to cash out</p>
@@ -104,6 +118,29 @@
 
         }
 
+        @if (tooLateInsufficientGiveawayFunds)
+        {
+            <div style="text-align: center; margin-top: 50px;">
+                <h2 style="color: #333;">Thanks for playing in this giveaway @userInfo.Name!</h2>
+                <p style="font-size: 1.2rem; color: #555;">
+                    Better luck next time.
+                </p>
+
+                <button @onclick="NavigateToHomePage" style="
+                    background-color: #28a745;
+                    color: white;
+                    padding: 10px 20px;
+                    border: none;
+                    font-size: 1rem;
+                    cursor: pointer;
+                    margin-top: 20px;
+                    border-radius: 5px;">
+                    Go to Games
+                </button>
+            </div>
+
+        }
+
         <div class="form-footer-template">
             <div class="form-footer-text copyright">© 2024 JusGiveaway. All rights reserved.</div>
             <div class="form-footer-text">To Win A Giveaway Today</div>
@@ -111,6 +148,7 @@
         </div>
 
         <Toast Message="@toastMessage" IsVisible="@isToastVisible" IsVisibleChanged="@(val => isToastVisible = val)" />
+        <CustomAlertDialog ShowDialog="@ShowDialog" DialogParams="@alertDialogParams" />
     </div>
 </div>
 
@@ -127,6 +165,8 @@
     private string password; //should I do something like sign in again to make sure its user cashing out?
     private bool isToastVisible;
     private string toastMessage;
+    private bool ShowDialog = false;
+    private AlertDialogParams alertDialogParams = new AlertDialogParams();
     UserInfo? userInfo;
     int userCashOutAmount; 
     private bool isMale
@@ -161,6 +201,8 @@
         !string.IsNullOrEmpty(instagramAccount);
 
     private bool cashOutInfoSubmitted = false;
+    private bool tooLateInsufficientGiveawayFunds = false;
+    private bool hideCashoutform = false;
 
 
     protected override async Task OnInitializedAsync()
@@ -195,6 +237,7 @@
 
                 //get cashout status from firebase and display form or thanks message
                 cashOutInfoSubmitted = await CommonFunctions.GetUserCashOutStatusFromFirebase(PlayerUID);
+                hideCashoutform = cashOutInfoSubmitted;
 
                 if (!cashOutInfoSubmitted)
                 {
@@ -254,7 +297,27 @@
 
     private async Task OnSubmitClicked()
     {
+        //on refreshing, insufficient balance is not stored anywhere, so user keeps getting form. but wont be able to cashout anyway
+        //will revisit this and store a flag for unable to cashout or something like that
+        int LeftoverGiveawayFunds = (int)await CommonFunctions.GetLeftoverGiveawayFundsFromFirebase();
+        if (LeftoverGiveawayFunds < 20000) //hardcoded for now. will read from db later
+        {
+            ShowDialog = true;
+            StateHasChanged();
+            alertDialogParams.AlertTitle = "Ooops!";
+            alertDialogParams.AlertMessage = new MarkupString($"You are too late! Giveaway balance is insufficient for cashout. There is only <strong>₦{LeftoverGiveawayFunds.ToString("N0")}</strong> left!<br/><br/> Thanks for playing!");
+            alertDialogParams.PrimaryBtnText = "Exit";
+            alertDialogParams.ShowSecondaryBtn = false;
+            alertDialogParams.OnPrimaryButtonClick = EventCallback.Factory.Create(this, AlertDialogPrimaryClicked);
+
+            tooLateInsufficientGiveawayFunds = true;
+            ShowToast("Giveaway balance is too low!");
+            hideCashoutform = true;
+            StateHasChanged();
+            return;
+        }
         cashOutInfoSubmitted = true;
+        hideCashoutform = cashOutInfoSubmitted;
         StateHasChanged();
 
         CashOutDetails cashOutDetails = new CashOutDetails()
@@ -272,7 +335,7 @@
             };
 
         // Handle successful cashout and redirect if necessary
-        if(userInfo != null){
+        if(userInfo != null  && !tooLateInsufficientGiveawayFunds){
             //store user cashout info in firebase db
             try
             {
@@ -313,6 +376,12 @@
     private void NavigateToHomePage()
     {
         NavigationManager.NavigateTo($"/mainpage/{PlayerUID}");
+    }
+
+    private void AlertDialogPrimaryClicked()
+    {
+        ShowDialog = false;
+        StateHasChanged();
     }
 
     private void ShowToast(string message)

@@ -248,3 +248,97 @@
     .centered-button:active {
         transform: scale(0.85); /* Scale down slightly when clicked */
     }
+
+.falling-symbols {
+    position: absolute;
+    width: 30px; /* Adjust to fit symbol size */
+    height: auto;
+    top: -50px; /* Start above the viewport */
+    animation: fall 4s linear infinite;
+    opacity: 0.8; /* Slight transparency for effect */
+    z-index: 100;
+}
+    .falling-symbols img {
+        width: 30px; /* Set width for each image */
+        height: auto; /* Maintain aspect ratio */
+        max-width: 100%; /* Prevent scaling beyond container */
+    }
+
+@keyframes fall {
+    0% {
+        top: -50px;
+        opacity: 0;
+        transform: translateX(0);
+    }
+
+    10% {
+        opacity: 1;
+    }
+
+    100% {
+        top: 90vh; /* Falls to bottom of viewport */
+        transform: translateX(15px); /* Increased sideways drift */
+        opacity: 0;
+    }
+}
+
+/* Randomize fall animations with delays */
+.falling-symbols:nth-child(1) {
+    left: 5vw;
+    animation-duration: 4s;
+    animation-delay: 0s;
+}
+
+.falling-symbols:nth-child(2) {
+    left: 15vw;
+    animation-duration: 5s;
+    animation-delay: 1s;
+}
+
+.falling-symbols:nth-child(3) {
+    left: 25vw;
+    animation-duration: 4.5s;
+    animation-delay: 0.5s;
+}
+
+.falling-symbols:nth-child(4) {
+    left: 35vw;
+    animation-duration: 4.8s;
+    animation-delay: 1.2s;
+}
+
+.falling-symbols:nth-child(5) {
+    left: 45vw;
+    animation-duration: 5.5s;
+    animation-delay: 0.8s;
+}
+
+.falling-symbols:nth-child(6) {
+    left: 55vw;
+    animation-duration: 3.8s;
+    animation-delay: 1.5s;
+}
+
+.falling-symbols:nth-child(7) {
+    left: 65vw;
+    animation-duration: 3.2s;
+    animation-delay: 1.9s;
+}
+
+.falling-symbols:nth-child(8) {
+    left: 75vw;
+    animation-duration: 4.1s;
+    animation-delay: 0.9s;
+}
+
+.falling-symbols:nth-child(9) {
+    left: 80vw;
+    animation-duration: 5.1s;
+    animation-delay: 2.1s;
+}
+
+.falling-symbols:nth-child(10) {
+    left: 85vw;
+    animation-duration: 4.7s;
+    animation-delay: 1.3s;
+}
