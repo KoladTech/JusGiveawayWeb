@@ -968,6 +968,12 @@
                 {
                     Console.WriteLine($"Error saving gameplay data to firebase");
                     await CommonFunctions.WriteErrorMessageToFirebase("Error saving gameplay data to firebase", "HeadsOrTails - CheckForWin() - ", DateTime.Now.ToString());
+
+                    //TODO : Revisit this and fix auth renewal
+                    //I will temporarily kick players out to login again, because their authtoken has expired
+                    ShowToast("Network Error. Please sign in");
+                    await CommonFunctions.SignOutUser(this.DbFactory, PlayerUID);
+                    NavigationManager.NavigateTo("/", true);
                 }
             }
             catch(Exception x)
