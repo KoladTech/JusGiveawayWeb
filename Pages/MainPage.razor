@@ -7,7 +7,9 @@
 @inject IndexedDB.Blazor.IIndexedDbFactory DbFactory
 @inject IJSRuntime JSRuntime
 @using JusGiveawayWebApp.Models
+@using System.Text.Json
 @inject JusGiveawayWebApp.Helpers.CommonFunctions CommonFunctions
+@inject JusGiveawayWebApp.Helpers.AdminFunctions AdminFunctions
 @inject JusGiveawayWebApp.Services.UserInfoService UserInfoService
 
 <div class="phone-container">
@@ -100,6 +102,17 @@
             </button>
         </div>
 
+        @if (isAdminEmail)
+        {
+            <!-- Admin button for internal use only. Should only be shown to certain emails -->
+            <div class="button-container">
+                <button @onclick="GoToAdminPage" class="centered-button">
+                    <img src="images/admin_icon.png" alt="Button Image" style="width: 30px; height: 30px; margin-right: 2px;" />
+                    Admin Access
+                </button>
+            </div>
+        }
+
         <!-- Loading indicator (hidden initially) -->
         @if (isLoading)
         {
@@ -134,6 +147,11 @@
     private HeadsOrTailsInstructionsPage headsOrTailsInstructionsPopup;
     private DotNetObjectReference<MainPage>? objRef;
     private bool isUserLoggedIn = true; // Assume user is logged in initially
+    string jsonStringAdminEmails;
+    AdminCredentials adminCredentials = new AdminCredentials();
+    List<string>? adminEmailList = new List<string>();
+    bool isAdminEmail = false;
+    UserInfo? currentActiveUser;
 
     protected override void OnInitialized()
     {
@@ -179,7 +197,7 @@
         {
             using (var db = await this.DbFactory.Create<JusGiveawayDB>())
             {
-                var currentActiveUser = db.UserInfo.FirstOrDefault(u => u.UID == PlayerUID);
+                currentActiveUser = db.UserInfo.FirstOrDefault(u => u.UID == PlayerUID);
 
                 //check if user is logged in
                 if (currentActiveUser == null || CommonFunctions.SendUserBackToLogInPageIfNotLoggedIn(currentActiveUser))
@@ -203,6 +221,19 @@
         {
             await CommonFunctions.WriteErrorMessageToFirebase(ex.Message, "MainPage - OnInitializedAsync()", DateTime.Now.ToString());
             Console.WriteLine(ex.Message);
+        }
+
+        //determime if admin button be shown
+        try
+        {
+            adminCredentials = await AdminFunctions.GetAdminCredentialsFromFirebase();
+            isAdminEmail = (adminCredentials.AdminEmails == null || adminCredentials.AdminEmails.Count == 0 || currentActiveUser == null) 
+            ? false : adminCredentials.AdminEmails.Contains(currentActiveUser.EmailAddress);
+        }
+        catch (Exception ex)
+        {
+            await CommonFunctions.WriteErrorMessageToFirebase(ex.Message, "retrieving admin emails from firebase", DateTime.Now.ToString());
+            Console.WriteLine(ex.Message + "retrieving admin emails from firebase");
         }
 
         //function which helps with sign out on inactivity
@@ -254,6 +285,11 @@
     private void AlertDialogSecondaryClicked()
     {
         ShowDialog = false;
+    }
+
+    private void GoToAdminPage()
+    {
+        NavigationManager.NavigateTo($"/admins-only/{PlayerUID}");
     }
 
     private void ShowToast(string message)

@@ -1,0 +1,260 @@
+﻿@page "/admins-only/{PlayerUID?}"
+@inject NavigationManager NavigationManager
+@inject JusGiveawayWebApp.Services.UserInfoService UserInfoService
+@inject JusGiveawayWebApp.Helpers.AdminFunctions AdminFunctions
+@inject JusGiveawayWebApp.Helpers.CommonFunctions CommonFunctions
+@inject JusGiveawayWebApp.Services.FirebaseService FirebaseService
+@inject IndexedDB.Blazor.IIndexedDbFactory DbFactory
+@using JusGiveawayWebApp.Helpers
+@using JusGiveawayWebApp.Models
+
+
+<div>
+    @if (!isPasswordValid)
+    {
+        <label>Admin Password</label>
+        <div>
+            <InputText @bind-Value="adminPasswordString"
+                       @oninput="UpdatePassword" class="form-control" />
+        </div>
+    }
+
+    @if (isPasswordValid)
+    {
+        <div class="button-container">
+            Welcome to Admin access
+        </div>
+
+        <!-- Button Container -->
+        <div class="button-container">
+            <button class="display-button" @onclick="GetHoTWinners">Show Winners</button>
+            <button class="display-button" @onclick="GetBingoWinners">Show Bingos</button>
+            <button class="display-button" @onclick="GetTotalHoTCounts">Show All H&Ts</button>
+            <button class="display-button" @onclick="AddReferralCodeForUser">Add ref code</button>
+        </div>
+
+        <!-- Data Display Panel -->
+        <div class="data-panel">
+            @if (winners != null)
+            {
+                <div class="winners-container">
+                    <div class="winners-heading">
+                        <h2>Winners</h2>
+                    </div>
+                </div>
+
+
+                <div class="winner-list">
+                    @foreach (var winner in winners)
+                    {
+                        <div class="winner-card">
+                            <h4>@winner.WinnerName</h4>
+                            <p>Winnings</p>
+                            <h5>₦@winner.WinningAmount.ToString("N0")</h5>
+                        </div>
+                    }
+                </div>
+
+            }
+            else
+            {
+                <p>Select a button to display data</p>
+            }
+
+            @if (bingos != null)
+            {
+                <div class="winners-container">
+                    <div class="winners-heading">
+                        <h2>Bingos</h2>
+                    </div>
+                </div>
+                <div class="winner-list">
+                    @foreach (var bingo in bingos)
+                    {
+                        <div class="winner-card">
+                            <h4>@bingo.PlayerName</h4>
+                            <p>Bingos</p>
+                            <h5>@bingo.BingoCount</h5>
+                        </div>
+                    }
+                </div>
+
+            }
+
+            @if (totalHeadsOrTailsData != null)
+            {
+                <div class="winners-container">
+                    <div class="winners-heading">
+                        <h2>Total Heads and Tails</h2>
+                    </div>
+                </div>
+                <div class="winner-list">
+                    <div class="winner-card">
+                        <h4>Heads</h4>
+                        <h5>@totalHeadsOrTailsData.TotalHeads</h5>
+                    </div>
+                    <div class="winner-card">
+                        <h4>Tails</h4>
+                        <h5>@totalHeadsOrTailsData.TotalTails</h5>
+                    </div>
+                </div>
+            }
+            @if (totalHeadsOrTailsData != null)
+            {
+                <div class="winners-container">
+                    <div class="winners-heading">
+                        <h2>Highest Flippers</h2>
+                    </div>
+                </div>
+                <div class="winner-list">
+                    @foreach (var p in totalHeadsOrTailsData.PlayersWithHighestFlips.OrderByDescending(entry => entry.Value))
+                    {
+                        <div class="winner-card">
+                            <h4>@p.Key</h4>
+                            <p>Flips</p>
+                            <h5>@p.Value</h5>
+                        </div>
+                    }
+                </div>
+
+            }
+        </div>
+    }
+
+</div>
+
+@code {
+    [Parameter]
+    public string PlayerUID { get; set; } = "";
+    AdminCredentials adminCredentials = new AdminCredentials();
+    private int adminPassword { get; set; } = 772185;
+    private string adminPasswordString { get; set; } = "";
+    UserInfo? currentActiveUser;
+    // List to hold the data for display
+    private List<string> currentData = new List<string>();
+    private List<WinnerData> winners = new List<WinnerData>();
+    private List<BingoData> bingos = new List<BingoData>();
+    private TotalHeadsOrTailsData totalHeadsOrTailsData = new TotalHeadsOrTailsData();
+
+
+    private bool isPasswordValid =>
+        !int.Equals(adminPassword, 0) &&
+        adminPassword == adminCredentials.AdminPassword;
+
+
+
+    //adminCredentials = await AdminFunctions.GetAdminCredentialsFromFirebase();
+
+    protected override void OnInitialized()
+    {
+        if (string.IsNullOrEmpty(PlayerUID))
+        {
+            // Redirect to the sign-in page
+            NavigationManager.NavigateTo("/");
+            return;
+        }
+
+        //store uid in UserInfoService singleton to use in NavMenu
+        UserInfoService.PlayerUID = PlayerUID;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            using (var db = await this.DbFactory.Create<JusGiveawayDB>())
+            {
+                currentActiveUser = db.UserInfo.FirstOrDefault(u => u.UID == PlayerUID);
+
+                //check if user is logged in
+                if (currentActiveUser == null || CommonFunctions.SendUserBackToLogInPageIfNotLoggedIn(currentActiveUser))
+                {
+                    NavigationManager.NavigateTo("/");
+                    return;
+                }
+
+                //display admins name - or welcome to admin panel
+                //PlayerName = currentActiveUser.Name;
+                //set auth token in case of a refresh of page
+                bool authTokenExpired = await FirebaseService.SetAuthTokenIfNotExpired(currentActiveUser.IdToken);
+                if (authTokenExpired)
+                {
+                    await CommonFunctions.SignOutUser(this.DbFactory, PlayerUID);
+                    NavigationManager.NavigateTo("/");
+                    return;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            await CommonFunctions.WriteErrorMessageToFirebase(ex.Message, "AdminPage - OnInitializedAsync()", DateTime.Now.ToString());
+            Console.WriteLine(ex.Message);
+        }
+
+        //determime if admin button be shown
+        try
+        {
+            adminCredentials = await AdminFunctions.GetAdminCredentialsFromFirebase();
+        }
+        catch (Exception ex)
+        {
+            await CommonFunctions.WriteErrorMessageToFirebase(ex.Message, "retrieving admin emails from firebase", DateTime.Now.ToString());
+            Console.WriteLine(ex.Message + "retrieving admin emails from firebase");
+        }
+
+        //function which helps with sign out on inactivity
+        //await OnLoginSuccess();
+    }
+
+
+    private void UpdatePassword(ChangeEventArgs e)
+    {
+        // Filter out non-numeric characters
+        adminPasswordString = new string(e.Value?.ToString()?.Where(char.IsDigit).ToArray() ?? Array.Empty<char>());
+        adminPassword = int.Parse(adminPasswordString);
+
+        // if (adminPassword == adminCredentials.AdminPassword)
+        // {
+        //     isPasswordValid = true;
+        // }
+        StateHasChanged();
+    }
+
+    // Functions for each button to populate currentData
+    private async void GetHoTWinners()
+    {
+        //Dictionary<string,CashOutDetails> cashoutData = await AdminFunctions.GetCashOutDataFromFirebase("A");
+        //currentData = ExtractFieldToList(cashoutData, obj => obj.InstagramAccount);
+        bingos = null;
+        totalHeadsOrTailsData = null;
+        winners = await AdminFunctions.GetCashoutWinners(amt => amt.CashoutAmount);
+        StateHasChanged();
+    }
+
+    private async void GetBingoWinners()
+    {
+        winners = null;
+        totalHeadsOrTailsData = null;
+        bingos = await AdminFunctions.GetBingoWinners();
+        StateHasChanged();
+    }
+
+    private async void GetTotalHoTCounts()
+    {
+        //currentData = new List<string> { "Data 3 - Item 1", "Data 3 - Item 2", "Data 3 - Item 3" };
+        winners = null;
+        bingos = null;
+        totalHeadsOrTailsData = await AdminFunctions.GetTotalHeadsOrTailsCounts();
+        StateHasChanged();
+    }
+
+    private async void AddReferralCodeForUser()
+    {
+        string refCode = await CommonFunctions.CreateReferralCodeForNewUser(PlayerUID);
+
+        await CommonFunctions.AddReferralCodeForNewUser(refCode, PlayerUID);
+    }
+
+
+
+}

@@ -52,6 +52,12 @@ namespace JusGiveawayWebApp.Helpers
             return await _firebaseService.ReadDataAsync<string>($"TestEmails", needsAuthToken: true);
         }
 
+        public async Task<string> GetAdminEmailsFromFirebase()
+        {
+            //if null, display error
+            return await _firebaseService.ReadDataAsync<string>($"AdminEmails", needsAuthToken: true);
+        }
+
         public async Task<string> GetAppVersionFromFirebase()
         {
             //if null, display error

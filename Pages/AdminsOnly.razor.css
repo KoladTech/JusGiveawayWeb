@@ -1,0 +1,81 @@
+﻿.button-container {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.display-button {
+    padding: 10px 20px;
+    font-size: 16px;
+}
+
+.data-panel {
+    padding: 5px;
+    background-color: transparent;
+}
+
+.winner-list {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.winner-card {
+    border: 2px solid #4CAF50;
+    padding: 5px;
+    border-radius: 10px;
+    text-align: center;
+    width: 150px;
+    background: linear-gradient(135deg, #e0f7fa, #f5f5f5); /* Light blue to light gray gradient */
+}
+
+    /*.winner-card h4 {
+        color: #4CAF50;
+        margin-bottom: 5px;
+    }*/
+
+    .winner-card h4 {
+        color: #4CAF50;
+        margin-bottom: 5px;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .winner-card p {
+        font-weight: bold;
+        margin: 5px 0;
+    }
+
+    .winner-card h5 {
+        color: #FF5722;
+    }
+.winners-container {
+    display: flex; /* Flex layout for centering */
+    justify-content: center; /* Centers child elements horizontally */
+    align-items: center; /* Centers child elements vertically */
+    width: 100%; /* Ensures full width for centering */
+    margin-top: 20px; /* Adds space at the top if needed */
+}
+
+.winners-heading {
+    display: inline-block;
+    padding: 5px 15px;
+    background-color: #f0f0f0;
+    border: 1px solid #d4af37;
+    border-radius: 12px;
+    box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+    .winners-heading h2 {
+        font-size: 1.8em;
+        font-weight: 600;
+        color: #d4af37;
+        margin: 0;
+        text-align: center;
+        text-transform: uppercase;
+    }
