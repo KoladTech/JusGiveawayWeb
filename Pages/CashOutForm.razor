@@ -168,6 +168,7 @@
     private bool ShowDialog = false;
     private AlertDialogParams alertDialogParams = new AlertDialogParams();
     UserInfo? userInfo;
+    private string currentGiveaway = "";
     int userCashOutAmount; 
     private bool isMale
     {
@@ -241,7 +242,7 @@
 
                 if (!cashOutInfoSubmitted)
                 {
-                    userCashOutAmount = await CommonFunctions.GetUserCashOutAmountFromFirebase(PlayerUID);
+                    userCashOutAmount = await CommonFunctions.GetUserCashOutAmountFromFirebase(PlayerUID, currentGiveaway);
                 }
                 email = userInfo.EmailAddress;
             }
@@ -297,9 +298,10 @@
 
     private async Task OnSubmitClicked()
     {
+        currentGiveaway = await CommonFunctions.GetActiveGiveawayNameFromFirebase();
         //on refreshing, insufficient balance is not stored anywhere, so user keeps getting form. but wont be able to cashout anyway
         //will revisit this and store a flag for unable to cashout or something like that
-        int LeftoverGiveawayFunds = (int)await CommonFunctions.GetLeftoverGiveawayFundsFromFirebase();
+        int LeftoverGiveawayFunds = (int)await CommonFunctions.GetLeftoverGiveawayFundsFromFirebase(currentGiveaway);
         if (LeftoverGiveawayFunds < 20000) //hardcoded for now. will read from db later
         {
             ShowDialog = true;
@@ -342,8 +344,8 @@
                 bool cashedOut = await CommonFunctions.SaveUserCashOutDetailsToFirebase(userInfo, cashOutDetails);
                 bool saveUserCashoutStatus = await CommonFunctions.SetUserHasCashedOutToFirebase(userInfo);
 
-                int currentLeftoverFunds = await CommonFunctions.GetLeftoverGiveawayFundsFromFirebase();
-                bool updateLeftoverFunds = await CommonFunctions.UpdateLeftoverGiveawayFundsInFirebase(currentLeftoverFunds - userCashOutAmount);
+                int currentLeftoverFunds = await CommonFunctions.GetLeftoverGiveawayFundsFromFirebase(currentGiveaway);
+                bool updateLeftoverFunds = await CommonFunctions.UpdateLeftoverGiveawayFundsInFirebase(currentLeftoverFunds - userCashOutAmount, currentGiveaway);
 
                 if (!cashedOut)
                 {

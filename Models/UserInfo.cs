@@ -18,6 +18,8 @@ namespace JusGiveawayWebApp.Models
         public string? DeviceInfo { get; set; }
         public bool TookSurvey { get; set; }
         public bool Tester { get; set; }
+        public string ReferralCode { get; set; }
+        public string ReferredBy { get; set; }
 
         public UserInfo()
         {
@@ -30,6 +32,8 @@ namespace JusGiveawayWebApp.Models
             DeviceInfo = null;
             TookSurvey = false;
             Tester = false;
+            ReferralCode = "";
+            ReferredBy = "";
         }
     }
 }

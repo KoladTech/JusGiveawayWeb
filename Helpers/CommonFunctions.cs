@@ -23,20 +23,31 @@ namespace JusGiveawayWebApp.Helpers
         }
 
         #region Firebase functions
-        public async Task<GiveawayData> GetGiveawayDataFromFirebase()
+        public async Task<string> GetActiveGiveawayNameFromFirebase()
         {
             //if null, display error
-            return await _firebaseService.ReadDataAsync<GiveawayData>($"Giveaways/A", needsAuthToken: true);
+            return await _firebaseService.ReadDataAsync<string>($"Giveaways/ActiveGiveaway", needsAuthToken: true);
         }
-        public async Task<string> GetGiveawayStartDateFromFirebase()
+        public async Task<List<string>> GetAllUserUIDsFromFirebase()
         {
-            //if null, display error
-            return await _firebaseService.ReadDataAsync<string>($"Giveaways/A/StartDate", needsAuthToken: false);
+            var allUsersData = await _firebaseService.ReadDataAsync<Dictionary<string, UserGamePlayData>>($"AllUsers", needsAuthToken: true);
+
+            return allUsersData.Select(s => s.Key).ToList();
         }
-        public async Task<int> GetLeftoverGiveawayFundsFromFirebase()
+        public async Task<GiveawayData> GetGiveawayDataFromFirebase(string currentGiveaway)
         {
             //if null, display error
-            return await _firebaseService.ReadDataAsync<int>($"Giveaways/A/LeftoverGiveawayFunds", needsAuthToken: true);
+            return await _firebaseService.ReadDataAsync<GiveawayData>($"Giveaways/{currentGiveaway}", needsAuthToken: true);
+        }
+        public async Task<string> GetGiveawayStartDateFromFirebase(string currentGiveaway)
+        {
+            //if null, display error
+            return await _firebaseService.ReadDataAsync<string>($"Giveaways/{currentGiveaway}/StartDate", needsAuthToken: false);
+        }
+        public async Task<int> GetLeftoverGiveawayFundsFromFirebase(string currentGiveaway)
+        {
+            //if null, display error
+            return await _firebaseService.ReadDataAsync<int>($"Giveaways/{currentGiveaway}/LeftoverGiveawayFunds", needsAuthToken: true);
         }
 
         public async Task<int> GetCoinFlipIncrementFromFirebase()
@@ -70,10 +81,10 @@ namespace JusGiveawayWebApp.Helpers
             return await _firebaseService.WriteDataAsync<UserInfo>($"AllUsers/{newUser.UID}/UserInfo", newUser, needsAuthToken: true);
         }
 
-        public async Task<bool> SaveUserGamePlayDataToFirebase(UserGamePlayData userGamePlayData)
+        public async Task<bool> SaveUserGamePlayDataToFirebase(UserGamePlayData userGamePlayData, string currentGiveaway)
         {
             //if null, display error
-            return await _firebaseService.WriteDataAsync<UserGamePlayData>($"AllUsers/{userGamePlayData.UID}/GamePlayData", userGamePlayData, needsAuthToken: true);
+            return await _firebaseService.WriteDataAsync<UserGamePlayData>($"GamePlayData/{currentGiveaway}/{userGamePlayData.UID}/", userGamePlayData, needsAuthToken: true);
         }
         public async Task<bool> SaveUserSurveyToFirebase(bool interested)
         {
@@ -103,22 +114,27 @@ namespace JusGiveawayWebApp.Helpers
             return false;
         }
 
-        public async Task<string> GetUsersNameFromFirebase(string uid)
+        public async Task<UserInfo> GetUserInfoFromFirebase(string uid)
         {
             //if null, display error
-            return await _firebaseService.ReadDataAsync<string>($"AllUsers/{uid}/UserInfo/name", needsAuthToken: true);
+            return await _firebaseService.ReadDataAsync<UserInfo>($"AllUsers/{uid}/UserInfo/", needsAuthToken: true);
+        }
+        public async Task<string> GetUserReferredByFromFirebase(string uid)
+        {
+            //if null, display error
+            return await _firebaseService.ReadDataAsync<string>($"AllUsers/{uid}/UserInfo/referredBy", needsAuthToken: true);
         }
 
-        public async Task<UserGamePlayData?> GetUserGamePlayDataFromFirebase(string uid)
+        public async Task<UserGamePlayData?> GetUserGamePlayDataFromFirebase(string uid, string currentGiveaway)
         {
             //if null, display error
-            return await _firebaseService.ReadDataAsync<UserGamePlayData>($"AllUsers/{uid}/GamePlayData", needsAuthToken: true);
+            return await _firebaseService.ReadDataAsync<UserGamePlayData>($"GamePlayData/{currentGiveaway}/{uid}", needsAuthToken: true);
         }
 
-        public async Task<int> GetUserCashOutAmountFromFirebase(string uid)
+        public async Task<int> GetUserCashOutAmountFromFirebase(string uid, string currentGiveaway)
         {
             //if null, display error
-            return await _firebaseService.ReadDataAsync<int>($"AllUsers/{uid}/GamePlayData/currentWinnings", needsAuthToken: true);
+            return await _firebaseService.ReadDataAsync<int>($"GamePlayData/{currentGiveaway}/{uid}/currentWinnings", needsAuthToken: true);
         }
 
         public async Task<bool> GetUserCashOutStatusFromFirebase(string uid)
@@ -139,14 +155,70 @@ namespace JusGiveawayWebApp.Helpers
             return await _firebaseService.WriteDataAsync<bool>($"AllUsers/{user.UID}/GamePlayData/cashedOut", true, needsAuthToken: true);
         }
 
-        public async Task<bool> UpdateLeftoverGiveawayFundsInFirebase(int leftoverFunds)
+        public async Task<bool> UpdateLeftoverGiveawayFundsInFirebase(int leftoverFunds, string currentGiveaway)
         {
-            return await _firebaseService.WriteDataAsync<int>("Giveaways/A/LeftoverGiveawayFunds", leftoverFunds, needsAuthToken: true);
+            return await _firebaseService.WriteDataAsync<int>($"Giveaways/{currentGiveaway}/LeftoverGiveawayFunds", leftoverFunds, needsAuthToken: true);
         }
         public async Task<bool> RecordBingoRoundsToFirebase(string uid, string playerName)
         {
             var bingoCounts = await _firebaseService.ReadDataAsync<int>($"BingoRounds/{uid}-{playerName}", needsAuthToken: true);
             return await _firebaseService.WriteDataAsync<int>($"BingoRounds/{uid}-{playerName}", ++bingoCounts, needsAuthToken: true);
+        }
+        public async Task<string> CreateReferralCodeForNewUser(string uid)
+        {
+            try
+            {
+                Random random = new Random();
+                const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+                return new string(Enumerable.Repeat(chars, 6)
+                    .Select(s => s[random.Next(s.Length)]).ToArray());
+            }
+            catch (Exception ex)
+            {
+                await WriteErrorMessageToFirebase(ex.Message, "Error creating ReferralCodeForNewUser - " + uid, DateTime.Now.ToString());
+                Console.WriteLine(ex.Message);
+            }
+            return "";
+        }
+
+        public async Task AddReferralCodeForNewUser(string newReferralCode, string uid)
+        {
+            ReferralCodeOwner referralCodeOwner = new ReferralCodeOwner()
+            {
+                OwnerUID = uid,
+                UsageCount = 0
+            };
+            //UserInfo userInfo = await _firebaseService.ReadDataAsync<UserInfo>($"AllUsers/{uid}/UserInfo/", needsAuthToken: true);
+
+            //if (userInfo == null)
+            //{
+            //    await WriteErrorMessageToFirebase("no User info for this UID", "UID - " + uid, DateTime.Now.ToString());
+            //    return;
+            //}
+
+            await _firebaseService.WriteDataAsync<ReferralCodeOwner>($"ReferralCodes/{newReferralCode}", referralCodeOwner, needsAuthToken: true);
+
+            //userInfo.ReferralCode = newReferralCode;
+            //await SaveNewUserToFirebase(userInfo);
+        }
+        public async Task<string> GetOwnerUIDFromReferralCode(string referralCode)
+        {
+            return await _firebaseService.ReadDataAsync<string>($"ReferralCodes/{referralCode}/OwnerUID/", needsAuthToken: true);
+        }
+        public async Task<string> GetReferralCodeFromOwnerUID(string uid)
+        {
+            return await _firebaseService.ReadDataAsync<string>($"AllUsers/{uid}/UserInfo/referralCode/", needsAuthToken: true);
+        }
+        public async Task<bool> UpdateReferralCodeUsageCount(string referralCode)
+        {
+            int usageCount = await _firebaseService.ReadDataAsync<int>($"ReferralCodes/{referralCode}/usageCount", needsAuthToken: true);
+
+            return await _firebaseService.WriteDataAsync<int>($"ReferralCodes/{referralCode}/usageCount", ++usageCount, needsAuthToken: true);
+        }
+        public async Task<bool> UpdateReferredByUIDInFirebase(string uid, string referredByUID)
+        {
+            //if null, display error
+            return await _firebaseService.WriteDataAsync<string>($"AllUsers/{uid}/UserInfo/referredBy", referredByUID + "-x", needsAuthToken: true);
         }
 
         public async Task WriteErrorMessageToFirebase(string errorMessage, string data, string errorTime)
@@ -214,7 +286,7 @@ namespace JusGiveawayWebApp.Helpers
             return false;
         }
 
-        public async Task SaveUserProgressOnExit(IIndexedDbFactory DbFactory, string playerUID, int headsCount, int tailsCount)
+        public async Task SaveUserProgressOnExit(IIndexedDbFactory DbFactory, string playerUID, int headsCount, int tailsCount, string currentGiveaway)
         {
             var userGamePlayData = new UserGamePlayData();
 
@@ -240,7 +312,7 @@ namespace JusGiveawayWebApp.Helpers
                 userGamePlayData.TailsCount = tailsCount;
                 try
                 {
-                    bool userSaved = await SaveUserGamePlayDataToFirebase(userGamePlayData);
+                    bool userSaved = await SaveUserGamePlayDataToFirebase(userGamePlayData, currentGiveaway);
                     if (!userSaved)
                     {
                         Console.WriteLine($"Error saving gameplay data to firebase"); 
@@ -282,6 +354,11 @@ namespace JusGiveawayWebApp.Helpers
         //    // Return the size in bytes
         //    return byteArray.Length;
         //}
+    }
+    public class ReferralCodeOwner
+    {
+        public string OwnerUID { get; set; }
+        public int UsageCount { get; set; } = 0;
     }
 
     /// <summary>

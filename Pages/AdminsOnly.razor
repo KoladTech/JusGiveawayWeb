@@ -135,7 +135,7 @@
     private List<WinnerData> winners = new List<WinnerData>();
     private List<BingoData> bingos = new List<BingoData>();
     private TotalHeadsOrTailsData totalHeadsOrTailsData = new TotalHeadsOrTailsData();
-
+    private string currentGiveaway = "";
 
     private bool isPasswordValid =>
         !int.Equals(adminPassword, 0) &&
@@ -202,6 +202,7 @@
             Console.WriteLine(ex.Message + "retrieving admin emails from firebase");
         }
 
+        currentGiveaway = await CommonFunctions.GetActiveGiveawayNameFromFirebase();
         //function which helps with sign out on inactivity
         //await OnLoginSuccess();
     }
@@ -250,11 +251,46 @@
 
     private async void AddReferralCodeForUser()
     {
-        string refCode = await CommonFunctions.CreateReferralCodeForNewUser(PlayerUID);
+        // List<string> uids = await CommonFunctions.GetAllUserUIDsFromFirebase();
+        // foreach (string uid in uids)
+        // {
+        //     string refCode = await CommonFunctions.CreateReferralCodeForNewUser(uid);
 
-        await CommonFunctions.AddReferralCodeForNewUser(refCode, PlayerUID);
+        //     await CommonFunctions.AddReferralCodeForNewUser(refCode, uid);
+
+        //     var g = await CommonFunctions.GetOwnerUIDFromReferralCode(refCode);
+        // }
+        
+        //Add bonus for signup referrals and update count for number of referrals
+        // try
+        // {
+        //     string referredByUID = await CommonFunctions.GetUserReferredByFromFirebase("cXx907VkO6QkpttfTWw2sv293IY2");
+        //     if (referredByUID != null && referredByUID != "")
+        //     {
+        //         UserGamePlayData? userGamePlayData = await CommonFunctions.GetUserGamePlayDataFromFirebase(referredByUID, currentGiveaway);
+
+        //         if (userGamePlayData == null)
+        //         {
+        //             userGamePlayData = new UserGamePlayData()
+        //                 {
+        //                     CurrentWinnings = 200 //store this under the giveaways node
+        //                 };
+        //         }
+        //         else
+        //         {
+        //             userGamePlayData.CurrentWinnings += 200;
+        //         }
+        //         await CommonFunctions.SaveUserGamePlayDataToFirebase(userGamePlayData, currentGiveaway);
+
+        //         //update referers code usageCount
+        //         string refCodeUsed = await CommonFunctions.GetReferralCodeFromOwnerUID(referredByUID);
+        //         await CommonFunctions.UpdateReferralCodeUsageCount(refCodeUsed);
+        //     }
+        // }
+        // catch (Exception ex)
+        // {
+        //     await CommonFunctions.WriteErrorMessageToFirebase(ex.Message, "SignIn - Error adding referral bonus", DateTime.Now.ToString());
+        //     Console.WriteLine(ex.Message + " Error adding referral bonus");
+        // }
     }
-
-
-
 }

@@ -56,6 +56,10 @@
                     <p class="player-name">@PlayerName</p>
                 </div>
             </div>
+            <div class="ref-code">
+                <p>Referral Code</p>
+                <p>@(RefCode == "" ? "No RefCode" : RefCode)</p>
+            </div>
         </div>
 
         <!-- Games label -->
@@ -135,6 +139,7 @@
     // [CascadingParameter]
     // private CustomNavigationStack CustomNavStack { get; set; }
     public string PlayerName { get; set; } = "Player";
+    public string RefCode { get; set; } = "";
     [Parameter]
     public string PlayerUID { get; set; } = "";
 
@@ -207,6 +212,7 @@
                 }
 
                 PlayerName = currentActiveUser.Name;
+                RefCode = currentActiveUser.ReferralCode;
                 //set auth token in case of a refresh of page
                 bool authTokenExpired = await FirebaseService.SetAuthTokenIfNotExpired(currentActiveUser.IdToken);
                 if (authTokenExpired)
@@ -248,6 +254,51 @@
 
     private void PlayHeadsOrTailsGame()
     {
+        // #region Check if user is tester
+        // //read tester from indexeddb
+        // try
+        // {
+        //     using (var db = await this.DbFactory.Create<JusGiveawayDB>())
+        //     {
+        //         if (CommonFunctions.GetTesterFromIndexedDb(db))
+        //         {
+        //             isTester = true;
+        //         }
+        //         else
+        //         {
+        //             isTester = false;
+        //         }
+        //     }
+        // }
+        // catch (Exception ex)
+        // {
+        //     await CommonFunctions.WriteErrorMessageToFirebase(ex.Message, "SignIn - OnInitializedAsync()", DateTime.Now.ToString());
+        //     Console.WriteLine(ex.Message);
+        // }
+        // #endregion
+
+        // #region Check if navigate to countdownpage
+        // //check if we should navigate to the countdownpage
+        // var startDate = await CommonFunctions.GetGiveawayStartDateFromFirebase();
+
+        // if (!DateTime.TryParseExact(startDate, "yyyy/MM/dd HH:mm:ss",
+        //     System.Globalization.CultureInfo.InvariantCulture,
+        //     System.Globalization.DateTimeStyles.None, out giveawayStartDate))
+        // {
+        //     Console.WriteLine("Invalid starting date format retrieved from database");
+        //     //should this navigation be here?
+        //     NavigationManager.NavigateTo("/");
+        //     return;
+        // }
+        // TimeSpan remainingTime = giveawayStartDate - DateTime.Now;
+
+        // if (remainingTime.TotalSeconds > 0 && !isTester)
+        // {
+        //     NavigationManager.NavigateTo("/countdownpage");
+        //     return;
+        // }
+        // #endregion
+
         // Handle play button click for Heads or Tails
         //CustomNavStack.AddPage("HeadsOrTails", PlayerUID);
         NavigationManager.NavigateTo($"/heads-or-tails/{PlayerUID}");

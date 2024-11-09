@@ -81,8 +81,8 @@
     [CascadingParameter]
     private CustomNavigationStack CustomNavStack { get; set; }
     private string userName;
-    private string email = "f@f.com";
-    private string password = "Qwerty1!g";
+    private string email = "";
+    private string password = "";
     private string passwordType = "password";
     private bool isLoading = false;
     private bool isToastVisible;
@@ -95,6 +95,8 @@
     bool isEmailVerified = true;
     bool ShowEmailVerificationMessage = false;
     private bool ShowNotificationBanner = false;
+    private UserInfo? userInfo = new UserInfo();
+    private string currentGiveaway = "";
     //private List<string> navigationHistory = new List<string>();
 
     private bool btnEnabled = false;
@@ -107,51 +109,6 @@
 
     protected override async Task OnInitializedAsync()
     {
-        #region Check if user is tester
-        //read tester from indexeddb
-        try
-        {
-            using (var db = await this.DbFactory.Create<JusGiveawayDB>())
-            {
-                if (CommonFunctions.GetTesterFromIndexedDb(db))
-                {
-                    isTester = true;
-                }
-                else
-                {
-                    isTester = false;
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            await CommonFunctions.WriteErrorMessageToFirebase(ex.Message, "SignIn - OnInitializedAsync()", DateTime.Now.ToString());
-            Console.WriteLine(ex.Message);
-        }
-        #endregion
-
-        #region Check if navigate to countdownpage
-        //check if we should navigate to the countdownpage
-        var startDate = await CommonFunctions.GetGiveawayStartDateFromFirebase();
-
-        if (!DateTime.TryParseExact(startDate, "yyyy/MM/dd HH:mm:ss",
-            System.Globalization.CultureInfo.InvariantCulture, 
-            System.Globalization.DateTimeStyles.None, out giveawayStartDate))
-        {
-            Console.WriteLine("Invalid starting date format retrieved from database");
-            //should this navigation be here?
-            NavigationManager.NavigateTo("/");
-            return;
-        }
-        TimeSpan remainingTime = giveawayStartDate - DateTime.Now;
-
-        if (remainingTime.TotalSeconds > 0 && !isTester)
-        {
-            NavigationManager.NavigateTo("/countdownpage");
-            return;
-        }
-        #endregion
-
         if (CustomNavStack.Pages.Count != 0)
         {
             var signInPage = CustomNavStack.FindPageByName("SignInPage");
@@ -163,10 +120,12 @@
                 ShowToast("Signed out");
             }
         }
+        currentGiveaway = await CommonFunctions.GetActiveGiveawayNameFromFirebase();
     }
 
     private async Task OnSignInClicked()
     {
+        //move this to CommonFunctions
         if (await CheckNeedForHardRefresh())
         {
             return;
@@ -240,16 +199,10 @@
                         //if not in indexeddb that means browser data was cleared
                         //or a new computer/phone/machine is being logged into
                         //so we will retrieve data from firebase to now store in indexeddb
-                        userName = await CommonFunctions.GetUsersNameFromFirebase(uid);
+                        userInfo = await CommonFunctions.GetUserInfoFromFirebase(uid);
 
-                        db.UserInfo.Add(new UserInfo()
-                            {
-                                UID = uid,
-                                IdToken = idToken,
-                                Name = userName,
-                                PhoneNumber = null,
-                                EmailAddress = email
-                            });
+                        userInfo.IdToken = idToken;
+                        db.UserInfo.Add(userInfo);
                         await db.SaveChanges();
                     }
                     else
@@ -267,6 +220,51 @@
                 await CommonFunctions.WriteErrorMessageToFirebase(ex.Message, "SignIn - OnSignInClicked()", DateTime.Now.ToString());
                 Console.WriteLine(ex.Message);
             }
+
+            //Add bonus for signup referrals and update count for number of referrals
+            try
+            {
+                string referredByUID = await CommonFunctions.GetUserReferredByFromFirebase(uid);
+
+                var bonusAlreadyAwarded = (referredByUID != null && referredByUID.Split('-').Last() == "x" ) ? true : false;
+
+                if (!bonusAlreadyAwarded)
+                {
+                    if (referredByUID != null && referredByUID != "")
+                    {
+                        UserGamePlayData? userGamePlayDataForReferer = await CommonFunctions.GetUserGamePlayDataFromFirebase(referredByUID, currentGiveaway);
+
+                        if (userGamePlayDataForReferer == null)
+                        {
+                            userGamePlayDataForReferer = new UserGamePlayData()
+                                {
+                                    CurrentWinnings = 200, //store this under the giveaways node
+                                    UID = referredByUID
+                                };
+                        }
+                        else
+                        {
+                            userGamePlayDataForReferer.CurrentWinnings += 200;
+                        }
+                        await CommonFunctions.SaveUserGamePlayDataToFirebase(userGamePlayDataForReferer, currentGiveaway);
+
+                        //update referers code usageCount
+                        string refCodeUsed = await CommonFunctions.GetReferralCodeFromOwnerUID(referredByUID);
+                        if (refCodeUsed != null)
+                        {
+                            await CommonFunctions.UpdateReferralCodeUsageCount(refCodeUsed);
+
+                            await CommonFunctions.UpdateReferredByUIDInFirebase(uid, referredByUID);
+                        }
+                    }
+                }
+            }
+            catch(Exception ex)
+            {
+                await CommonFunctions.WriteErrorMessageToFirebase(ex.Message, "SignIn - Error adding referral bonus", DateTime.Now.ToString());
+                Console.WriteLine(ex.Message + " Error adding referral bonus");
+            }
+
             ShowToast("Logged in");
             // Redirect to the main page or home page after successful sign in
             CustomNavStack.AddPage("SignInPage", uid);

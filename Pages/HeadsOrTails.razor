@@ -201,6 +201,7 @@
     private bool isFlipping = false;
     private string CoinImage = "images/kobo_front.png";
     private int CoinFlipIncrement = 1;
+    private string currentGiveaway = "";
     private GiveawayData? _giveawayData;
     private UserGamePlayData? userGamePlayData;
     private List<UserGamePlayData> gameDataList = new List<UserGamePlayData>();
@@ -269,11 +270,11 @@
                         return;
                     }
 
-
+                    currentGiveaway = await CommonFunctions.GetActiveGiveawayNameFromFirebase();
                     //rethink. this is absolutely necessary. If null, its a problem innit?
-                    _giveawayData = await CommonFunctions.GetGiveawayDataFromFirebase();
+                    _giveawayData = await CommonFunctions.GetGiveawayDataFromFirebase(currentGiveaway);
                     //get latest data from firebase
-                    userGamePlayData = await CommonFunctions.GetUserGamePlayDataFromFirebase(PlayerUID);
+                    userGamePlayData = await CommonFunctions.GetUserGamePlayDataFromFirebase(PlayerUID, currentGiveaway);
                     //check the size of the reads
 
                     PlayerName = user.Name ?? "GameError";
@@ -624,7 +625,7 @@
         StateHasChanged();
 
         animateVarForLeftoverGiveawayFunds = LeftoverGiveawayFunds;
-        LeftoverGiveawayFunds = (int)await CommonFunctions.GetLeftoverGiveawayFundsFromFirebase();
+        LeftoverGiveawayFunds = (int)await CommonFunctions.GetLeftoverGiveawayFundsFromFirebase(currentGiveaway);
         if (animateVarForLeftoverGiveawayFunds != LeftoverGiveawayFunds)
         {
             await AnimateNumberChange(value => animateVarForLeftoverGiveawayFunds = value, animateVarForLeftoverGiveawayFunds, LeftoverGiveawayFunds);
@@ -712,7 +713,7 @@
         //save reset to firebase
         try
         {
-            bool userSaved = await CommonFunctions.SaveUserGamePlayDataToFirebase(userGamePlayData);
+            bool userSaved = await CommonFunctions.SaveUserGamePlayDataToFirebase(userGamePlayData, currentGiveaway);
             if (!userSaved)
             {
                 Console.WriteLine($"Error saving gameplay data to firebase");
@@ -963,7 +964,7 @@
             //save usergameplaydata to firebase
             try
             {
-                bool userSaved = await CommonFunctions.SaveUserGamePlayDataToFirebase(userGamePlayData);
+                bool userSaved = await CommonFunctions.SaveUserGamePlayDataToFirebase(userGamePlayData, currentGiveaway);
                 if (!userSaved)
                 {
                     Console.WriteLine($"Error saving gameplay data to firebase");
@@ -1014,7 +1015,7 @@
             isGameOver = true;
             try
             {
-                bool userSaved = await CommonFunctions.SaveUserGamePlayDataToFirebase(userGamePlayData);
+                bool userSaved = await CommonFunctions.SaveUserGamePlayDataToFirebase(userGamePlayData, currentGiveaway);
                 if (!userSaved)
                 {
                     Console.WriteLine($"Error saving gameplay data to firebase");
@@ -1066,7 +1067,7 @@
                 try
                 {
                     // Capture the response from the Firebase service call
-                    var response = await FirebaseService.PollFirebaseForLeftoverGiveawayFunds(_lastETag, needsAuthToken: true);
+                    var response = await FirebaseService.PollFirebaseForLeftoverGiveawayFunds(_lastETag, currentGiveaway, needsAuthToken: true);
                     Console.WriteLine("Inside timer Polling function");
 
                     // Store the response in a variable
@@ -1153,7 +1154,7 @@
             {
                 try
                 {
-                    bool userSaved = await CommonFunctions.SaveUserGamePlayDataToFirebase(userGamePlayData);
+                    bool userSaved = await CommonFunctions.SaveUserGamePlayDataToFirebase(userGamePlayData, currentGiveaway);
                     if (!userSaved)
                     {
                         Console.WriteLine($"Error saving gameplay data to firebase");
@@ -1281,14 +1282,14 @@
     public async void HandleBackButtonPress()
     {
         Console.WriteLine("Browser Back button pressed" + " -> H-" + HeadsCount + "T-" + TailsCount);
-        await CommonFunctions.SaveUserProgressOnExit(this.DbFactory, PlayerUID, HeadsCount, TailsCount);
+        await CommonFunctions.SaveUserProgressOnExit(this.DbFactory, PlayerUID, HeadsCount, TailsCount, currentGiveaway);
         _timer?.Dispose();
     }
 
     private async void OnBackBtnClicked()
     {
         Console.WriteLine("Game Back button pressed" + " -> H-" + HeadsCount + "T-" + TailsCount);
-        await CommonFunctions.SaveUserProgressOnExit(this.DbFactory, PlayerUID, HeadsCount, TailsCount);
+        await CommonFunctions.SaveUserProgressOnExit(this.DbFactory, PlayerUID, HeadsCount, TailsCount, currentGiveaway);
         _timer?.Dispose();
         NavigationManager.NavigateTo($"/mainpage/{PlayerUID}");
     }
@@ -1310,7 +1311,7 @@
         await CommonFunctions.SignOutUser(this.DbFactory, PlayerUID);
 
         Console.WriteLine("inside logoutuser - HeadsOrTails" + isUserLoggedIn);
-        await CommonFunctions.SaveUserProgressOnExit(this.DbFactory, PlayerUID, HeadsCount, TailsCount);
+        await CommonFunctions.SaveUserProgressOnExit(this.DbFactory, PlayerUID, HeadsCount, TailsCount, currentGiveaway);
         _timer?.Dispose();
         // Optionally redirect to the login page
         NavigationManager.NavigateTo("/");

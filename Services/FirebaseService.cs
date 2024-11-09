@@ -392,11 +392,11 @@ namespace JusGiveawayWebApp.Services
             }
         }
 
-        public async Task<HttpResponseMessage?> PollFirebaseForLeftoverGiveawayFunds(string lastETag, bool needsAuthToken)
+        public async Task<HttpResponseMessage?> PollFirebaseForLeftoverGiveawayFunds(string lastETag, string currentGiveaway, bool needsAuthToken)
         {
             try
             {
-                var url = $"{_firebaseBaseUrl}/Giveaways/A/LeftoverGiveawayFunds.json";
+                var url = $"{_firebaseBaseUrl}/Giveaways/{currentGiveaway}/LeftoverGiveawayFunds.json";
 
                 if (!string.IsNullOrEmpty(_authToken) && needsAuthToken)
                 {

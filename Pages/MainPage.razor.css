@@ -33,6 +33,15 @@
     border-radius: 50%; /* Circular image */
 }
 
+.ref-code {
+    text-align: right; /* Align text to the right */
+}
+
+    .ref-code p {
+        margin: 0px; /* Reduce the margin for paragraph elements */
+        line-height: 1.2; /* Tighter line spacing */
+    }
+
 .info-icon {
     position: absolute; /* Position the info icon absolutely */
     top: 5px; /* Adjust the vertical offset from the top */

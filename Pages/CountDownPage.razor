@@ -94,6 +94,7 @@
     private bool ShowDialog = false;
     private AlertDialogParams alertDialogParams = new AlertDialogParams();
     private bool ShowSurvey = true;
+    private string currentGiveaway = "";
 
     protected override async Task OnInitializedAsync()
     {
@@ -120,9 +121,10 @@
             Console.WriteLine(ex.Message);
         }
 
+        currentGiveaway = await CommonFunctions.GetActiveGiveawayNameFromFirebase();
         //change this to only get the startdate. Limiting how much we get from db
         //_giveawayData = await CommonFunctions.GetGiveawayDataFromFirebase();//CheckDataSize(); I want to check the difference btw retrieving all vs just the data
-        var startDate = await CommonFunctions.GetGiveawayStartDateFromFirebase();
+        var startDate = await CommonFunctions.GetGiveawayStartDateFromFirebase(currentGiveaway);
 
         // Trigger the countdown when the page is loaded
         await StartCountdown(startDate);

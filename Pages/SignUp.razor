@@ -120,6 +120,8 @@
     private string email;
     private string password;
     private string confirmPassword;
+    private string refCodeEntry;
+    private string refCodeOwnerUID = "";
     private bool showPasswordCriteria = false;
     private string passwordType = "password";
     private string confirmPasswordType = "password";
@@ -215,6 +217,18 @@
         signingUp = true;
         StateHasChanged();
 
+        //check if referralcode exists and if its valid. If none provided, we move on
+        if (refCodeEntry != "")
+        {
+            refCodeOwnerUID = await CommonFunctions.GetOwnerUIDFromReferralCode(refCodeEntry);
+            if (refCodeOwnerUID == null || refCodeOwnerUID == "")
+            {
+                //I think I should show pop up here, but for now toast
+                ShowToast("Invalid Referral Code");
+                return;
+            }
+        }
+
         // Handle successful registration and redirect if necessary
         var response = await FirebaseService.SignUpUserAsync(email, password);
         if (response != null)
@@ -248,7 +262,9 @@
                                 IdToken = idToken,
                                 Name = username,
                                 PhoneNumber = null,
-                                EmailAddress = email
+                                EmailAddress = email,
+                                ReferralCode = await CommonFunctions.CreateReferralCodeForNewUser(uid),
+                                ReferredBy = refCodeOwnerUID,
                             };
                         db.UserInfo.Add(newUserInfo);
                         await db.SaveChanges();
@@ -265,6 +281,7 @@
             try
             {
                 bool userSaved = await CommonFunctions.SaveNewUserToFirebase(newUserInfo);
+                await CommonFunctions.AddReferralCodeForNewUser(newUserInfo.ReferralCode, newUserInfo.UID);
 
                 if (!userSaved)
                 {
