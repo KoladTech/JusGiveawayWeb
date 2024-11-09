@@ -228,6 +228,18 @@
         invalidReferralCode = false;
     }
 
+    protected override void OnInitialized()
+    {
+        // Manually parse the query string to find the "refcode" parameter
+        var uri = new Uri(NavigationManager.Uri);
+        var queryParams = System.Web.HttpUtility.ParseQueryString(uri.Query);
+        var refCode = queryParams["refcode"];
+        if (!string.IsNullOrEmpty(refCode))
+        {
+            refCodeEntry = refCode;
+        }
+    }
+
     private async Task OnSignUpClicked()
     {
         //prevent multiple clicks until sign up is verified

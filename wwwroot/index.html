@@ -331,6 +331,34 @@
             }, 5000);
         }
     </script>
+    <script>
+        window.copyToClipboard = (text) => {
+            return new Promise((resolve) => {
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(text)
+                        .then(() => resolve(true))
+                        .catch((err) => {
+                            console.error("Failed to copy: ", err);
+                            resolve(false);
+                        });
+                } else {
+                    // Fallback for browsers without clipboard API support
+                    const tempInput = document.createElement("input");
+                    tempInput.value = text;
+                    document.body.appendChild(tempInput);
+                    tempInput.select();
+                    try {
+                        document.execCommand("copy");
+                        resolve(true);
+                    } catch (err) {
+                        console.error("Failed to copy: ", err);
+                        resolve(false);
+                    }
+                    document.body.removeChild(tempInput);
+                }
+            });
+        };
+    </script>
 </body>
 
 </html>

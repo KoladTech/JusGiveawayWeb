@@ -59,6 +59,7 @@
             <div class="ref-code">
                 <p>Referral Code</p>
                 <p>@(RefCode == "" ? "No RefCode" : RefCode)</p>
+                <button class="copy-button" @onclick="CopyReferralLink">Copy Link</button>
             </div>
         </div>
 
@@ -336,6 +337,22 @@
     private void AlertDialogSecondaryClicked()
     {
         ShowDialog = false;
+    }
+
+    private async Task CopyReferralLink()
+    {
+        var signupUrl = $"{NavigationManager.BaseUri}signup?refcode={RefCode}";
+        bool copySuccess = await JSRuntime.InvokeAsync<bool>("copyToClipboard", signupUrl);
+
+        // Show toasts based on the result
+        if (copySuccess)
+        {
+            ShowToast("Referral link copied!");
+        }
+        else
+        {
+            ShowToast("Failed to copy referral link.");
+        }
     }
 
     private void GoToAdminPage()
