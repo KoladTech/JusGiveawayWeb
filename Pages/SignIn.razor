@@ -191,28 +191,21 @@
             {
                 using (var db = await this.DbFactory.Create<JusGiveawayDB>())
                 {
+                    //always retrieve userinfo from firebase on sign in
+                    //delete userinfo from indexeddb and add the one from firebase
                     var existingUser = CommonFunctions.GetUserInfoFromIndexedDb(db, uid);
+
+                    if(existingUser != null)
+                    {
+                        db.UserInfo.Remove(existingUser);
+                    }
+                    userInfo = await CommonFunctions.GetUserInfoFromFirebase(uid);
+
+                    userInfo.IdToken = idToken;
+                    db.UserInfo.Add(userInfo);
+                    await db.SaveChanges();
+
                     userName = existingUser?.Name ?? "GameError";
-
-                    if (existingUser == null)
-                    {
-                        //if not in indexeddb that means browser data was cleared
-                        //or a new computer/phone/machine is being logged into
-                        //so we will retrieve data from firebase to now store in indexeddb
-                        userInfo = await CommonFunctions.GetUserInfoFromFirebase(uid);
-
-                        userInfo.IdToken = idToken;
-                        db.UserInfo.Add(userInfo);
-                        await db.SaveChanges();
-                    }
-                    else
-                    {
-                        // Update the existing user's information
-                        existingUser.IdToken = idToken;
-
-                        // Save changes
-                        await db.SaveChanges();
-                    }
                 }
             }
             catch (Exception ex)

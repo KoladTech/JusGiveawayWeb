@@ -183,7 +183,7 @@ namespace JusGiveawayWebApp.Services
             }
             else
             {
-                await WriteErrorMessagesAsync("Sign in failed. Possibly wrong credentials", content?.ToString() ?? "", DateTime.Now.ToString(), needsAuthToken: false);
+                //await WriteErrorMessagesAsync("Sign in failed. Possibly wrong credentials", content?.ToString() ?? "", DateTime.Now.ToString(), needsAuthToken: false);
                 Console.WriteLine("Sign in failed. Possibly wrong credentials");
                 return null;
             }
