@@ -95,6 +95,16 @@
             </div>
         </div>
 
+        <label>Referral Code</label>
+        <div class="entry-frame">
+            <InputText @bind-Value="refCodeEntry" placeholder="Enter referral code" class="entry" @oninput="e => RemoveInvalidRefCodeSpan(e)" />
+        </div>
+        @if (invalidReferralCode)
+        {
+            <div class="password-criteria">
+                <span class="error-text">Invalid referral code</span>
+            </div>
+        }
 
         <div class="button-container">
 			<button class="centered-button" @onclick="OnSignUpClicked" disabled="@(!isFormValid || signingUp)">Sign Up</button>
@@ -116,11 +126,12 @@
 </div>
 
 @code {
-    private string username;
-    private string email;
-    private string password;
-    private string confirmPassword;
-    private string refCodeEntry;
+    private string username = "";
+    private string email = "";
+    private string password = "";
+    private string confirmPassword= "";
+    private string refCodeEntry = "";
+    private bool invalidReferralCode = false;
     private string refCodeOwnerUID = "";
     private bool showPasswordCriteria = false;
     private string passwordType = "password";
@@ -211,6 +222,12 @@
         ValidateForm();
     }
 
+    private void RemoveInvalidRefCodeSpan(ChangeEventArgs e)
+    {
+        refCodeEntry = e.Value?.ToString()?.ToUpper() ?? "";
+        invalidReferralCode = false;
+    }
+
     private async Task OnSignUpClicked()
     {
         //prevent multiple clicks until sign up is verified
@@ -225,6 +242,9 @@
             {
                 //I think I should show pop up here, but for now toast
                 ShowToast("Invalid Referral Code");
+                invalidReferralCode = true;
+                signingUp = false;
+                StateHasChanged();
                 return;
             }
         }

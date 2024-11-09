@@ -214,49 +214,7 @@
                 Console.WriteLine(ex.Message);
             }
 
-            //Add bonus for signup referrals and update count for number of referrals
-            try
-            {
-                string referredByUID = await CommonFunctions.GetUserReferredByFromFirebase(uid);
-
-                var bonusAlreadyAwarded = (referredByUID != null && referredByUID.Split('-').Last() == "x" ) ? true : false;
-
-                if (!bonusAlreadyAwarded)
-                {
-                    if (referredByUID != null && referredByUID != "")
-                    {
-                        UserGamePlayData? userGamePlayDataForReferer = await CommonFunctions.GetUserGamePlayDataFromFirebase(referredByUID, currentGiveaway);
-
-                        if (userGamePlayDataForReferer == null)
-                        {
-                            userGamePlayDataForReferer = new UserGamePlayData()
-                                {
-                                    CurrentWinnings = 200, //store this under the giveaways node
-                                    UID = referredByUID
-                                };
-                        }
-                        else
-                        {
-                            userGamePlayDataForReferer.CurrentWinnings += 200;
-                        }
-                        await CommonFunctions.SaveUserGamePlayDataToFirebase(userGamePlayDataForReferer, currentGiveaway);
-
-                        //update referers code usageCount
-                        string refCodeUsed = await CommonFunctions.GetReferralCodeFromOwnerUID(referredByUID);
-                        if (refCodeUsed != null)
-                        {
-                            await CommonFunctions.UpdateReferralCodeUsageCount(refCodeUsed);
-
-                            await CommonFunctions.UpdateReferredByUIDInFirebase(uid, referredByUID);
-                        }
-                    }
-                }
-            }
-            catch(Exception ex)
-            {
-                await CommonFunctions.WriteErrorMessageToFirebase(ex.Message, "SignIn - Error adding referral bonus", DateTime.Now.ToString());
-                Console.WriteLine(ex.Message + " Error adding referral bonus");
-            }
+            await AddReferralBonusToReferee(uid);
 
             ShowToast("Logged in");
             // Redirect to the main page or home page after successful sign in
@@ -267,6 +225,53 @@
         else
         {
             ShowToast("Invalid email or password");
+        }
+    }
+
+    private async Task AddReferralBonusToReferee(string uid)
+    {
+        //Add bonus for signup referrals and update count for number of referrals
+        try
+        {
+            string referredByUID = await CommonFunctions.GetUserReferredByFromFirebase(uid);
+
+            var bonusAlreadyAwarded = (referredByUID != null && referredByUID.Split('-').Last() == "x") ? true : false;
+
+            if (!bonusAlreadyAwarded)
+            {
+                if (referredByUID != null && referredByUID != "")
+                {
+                    UserGamePlayData? userGamePlayDataForReferer = await CommonFunctions.GetUserGamePlayDataFromFirebase(referredByUID, currentGiveaway);
+
+                    if (userGamePlayDataForReferer == null)
+                    {
+                        userGamePlayDataForReferer = new UserGamePlayData()
+                            {
+                                CurrentWinnings = 500, //store this under the giveaways node
+                                UID = referredByUID
+                            };
+                    }
+                    else
+                    {
+                        userGamePlayDataForReferer.CurrentWinnings += 200;
+                    }
+                    await CommonFunctions.SaveUserGamePlayDataToFirebase(userGamePlayDataForReferer, currentGiveaway);
+
+                    //update referers code usageCount
+                    string refCodeUsed = await CommonFunctions.GetReferralCodeFromOwnerUID(referredByUID);
+                    if (refCodeUsed != null)
+                    {
+                        await CommonFunctions.UpdateReferralCodeUsageCount(refCodeUsed);
+
+                        await CommonFunctions.UpdateReferredByUIDInFirebase(uid, referredByUID);
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            await CommonFunctions.WriteErrorMessageToFirebase(ex.Message, "SignIn - Error adding referral bonus", DateTime.Now.ToString());
+            Console.WriteLine(ex.Message + " Error adding referral bonus");
         }
     }
 

@@ -203,7 +203,7 @@ namespace JusGiveawayWebApp.Helpers
         }
         public async Task<string> GetOwnerUIDFromReferralCode(string referralCode)
         {
-            return await _firebaseService.ReadDataAsync<string>($"ReferralCodes/{referralCode}/OwnerUID/", needsAuthToken: true);
+            return await _firebaseService.ReadDataAsync<string>($"ReferralCodes/{referralCode}/ownerUID/", needsAuthToken: false);
         }
         public async Task<string> GetReferralCodeFromOwnerUID(string uid)
         {
