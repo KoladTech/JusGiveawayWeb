@@ -26,7 +26,7 @@ namespace JusGiveawayWebApp.Helpers
         public async Task<string> GetActiveGiveawayNameFromFirebase()
         {
             //if null, display error
-            return await _firebaseService.ReadDataAsync<string>($"Giveaways/ActiveGiveaway", needsAuthToken: true);
+            return await _firebaseService.ReadDataAsync<string>($"Giveaways/ActiveGiveaway", needsAuthToken: false);
         }
         public async Task<List<string>> GetAllUserUIDsFromFirebase()
         {

@@ -78,8 +78,8 @@
 
             <div class="game-card">
                 <img src="images/info_icon.png" class="info-icon" alt="Info Icon" @onclick="ShowComingSoonInstructions" style="cursor: pointer;" />
-                <img src="images/question_mark.png" class="game-image" />
-                <span class="game-label">Coming Soon</span>
+                <img src="images/daily_giveaway_image.png" class="game-image" />
+                <span class="game-label">Daily Giveaway</span>
                 <button class="play-button" disabled>Play</button>
             </div>
 
@@ -158,6 +158,7 @@
     List<string>? adminEmailList = new List<string>();
     bool isAdminEmail = false;
     UserInfo? currentActiveUser;
+    private string currentGiveaway = "";
 
     protected override void OnInitialized()
     {
@@ -253,7 +254,7 @@
         headsOrTailsInstructionsPopup.ShowPopup();
     }
 
-    private void PlayHeadsOrTailsGame()
+    private async Task PlayHeadsOrTailsGame()
     {
         // #region Check if user is tester
         // //read tester from indexeddb
@@ -278,27 +279,29 @@
         // }
         // #endregion
 
-        // #region Check if navigate to countdownpage
-        // //check if we should navigate to the countdownpage
-        // var startDate = await CommonFunctions.GetGiveawayStartDateFromFirebase();
+        #region Check if navigate to countdownpage
+        //check if we should navigate to the countdownpage
+        currentGiveaway = await CommonFunctions.GetActiveGiveawayNameFromFirebase();
+        var startDate = await CommonFunctions.GetGiveawayStartDateFromFirebase(currentGiveaway);
+        DateTime giveawayStartDate;
 
-        // if (!DateTime.TryParseExact(startDate, "yyyy/MM/dd HH:mm:ss",
-        //     System.Globalization.CultureInfo.InvariantCulture,
-        //     System.Globalization.DateTimeStyles.None, out giveawayStartDate))
-        // {
-        //     Console.WriteLine("Invalid starting date format retrieved from database");
-        //     //should this navigation be here?
-        //     NavigationManager.NavigateTo("/");
-        //     return;
-        // }
-        // TimeSpan remainingTime = giveawayStartDate - DateTime.Now;
+        if (!DateTime.TryParseExact(startDate, "yyyy/MM/dd HH:mm:ss",
+            System.Globalization.CultureInfo.InvariantCulture,
+            System.Globalization.DateTimeStyles.None, out giveawayStartDate))
+        {
+            Console.WriteLine("Invalid starting date format retrieved from database");
+            //should this navigation be here?
+            NavigationManager.NavigateTo("/");
+            return;
+        }
+        TimeSpan remainingTime = giveawayStartDate - DateTime.Now;
 
-        // if (remainingTime.TotalSeconds > 0 && !isTester)
-        // {
-        //     NavigationManager.NavigateTo("/countdownpage");
-        //     return;
-        // }
-        // #endregion
+        if (remainingTime.TotalSeconds > 0)
+        {
+            NavigationManager.NavigateTo("/countdownpage");
+            return;
+        }
+        #endregion
 
         // Handle play button click for Heads or Tails
         //CustomNavStack.AddPage("HeadsOrTails", PlayerUID);
