@@ -198,6 +198,7 @@
                     if(existingUser != null)
                     {
                         db.UserInfo.Remove(existingUser);
+                        await db.SaveChanges();
                     }
                     userInfo = await CommonFunctions.GetUserInfoFromFirebase(uid);
 

@@ -54,7 +54,8 @@
                 <img src="images/avatar_green.png" class="avatar-image" />
                 <div class="player-info">
                     <p class="player-name">@PlayerName</p>
-                </div>
+                    <p class="player-bonus">Ref bonus ₦@(refBonus.ToString("N0"))</p>
+				</div>
             </div>
             <div class="ref-code">
                 <p>Referral Code</p>
@@ -141,6 +142,7 @@
     // private CustomNavigationStack CustomNavStack { get; set; }
     public string PlayerName { get; set; } = "Player";
     public string RefCode { get; set; } = "";
+    private int refBonus { get; set; } = 0;
     [Parameter]
     public string PlayerUID { get; set; } = "";
 
@@ -231,6 +233,9 @@
             Console.WriteLine(ex.Message);
         }
 
+        currentGiveaway = await CommonFunctions.GetActiveGiveawayNameFromFirebase();
+        refBonus = await CommonFunctions.GetUserCashOutAmountFromFirebase(PlayerUID, currentGiveaway);
+
         //determime if admin button be shown
         try
         {
@@ -281,7 +286,6 @@
 
         #region Check if navigate to countdownpage
         //check if we should navigate to the countdownpage
-        currentGiveaway = await CommonFunctions.GetActiveGiveawayNameFromFirebase();
         var startDate = await CommonFunctions.GetGiveawayStartDateFromFirebase(currentGiveaway);
         DateTime giveawayStartDate;
 
