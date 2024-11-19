@@ -349,6 +349,7 @@
         ShowToast("Signed out");
 
         NavigationManager.NavigateTo("/");
+        UserInfoService.UserSignedIn = false;
     }
 
     private void AlertDialogSecondaryClicked()
@@ -420,6 +421,7 @@
         Console.WriteLine("inside logoutuser - MainPage" + isUserLoggedIn);
         // Optionally redirect to the login page
         NavigationManager.NavigateTo("/");
+        UserInfoService.UserSignedIn = false;
 
         // Clear the inactivity timer after logout
         await JSRuntime.InvokeVoidAsync("clearInactivityTimer");

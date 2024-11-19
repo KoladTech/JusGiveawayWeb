@@ -117,6 +117,7 @@
             {
                 var playerUID = signInPage["PlayerUID"];
                 await CommonFunctions.SignOutUser(this.DbFactory, playerUID);
+                UserInfoService.UserSignedIn = false;
                 ShowToast("Signed out");
             }
         }
@@ -223,6 +224,7 @@
             CustomNavStack.AddPage("SignInPage", uid);
             CustomNavStack.AddPage("MainPage", uid);
             NavigationManager.NavigateTo($"/mainpage/{uid}");
+            UserInfoService.UserSignedIn = true;
         }
         else
         {

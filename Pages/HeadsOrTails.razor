@@ -1344,6 +1344,7 @@
         _timer?.Dispose();
         // Optionally redirect to the login page
         NavigationManager.NavigateTo("/");
+        UserInfoService.UserSignedIn = false;
 
         // Clear the inactivity timer after logout
         await JSRuntime.InvokeVoidAsync("clearInactivityTimer");
