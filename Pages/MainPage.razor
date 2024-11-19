@@ -54,7 +54,7 @@
                 <img src="images/avatar_green.png" class="avatar-image" />
                 <div class="player-info">
                     <p class="player-name">@PlayerName</p>
-                    <p class="player-bonus">Ref bonus ₦@(refBonus.ToString("N0"))</p>
+                    <p class="player-bonus">Winnings ₦@(refBonus.ToString("N0"))</p>
 				</div>
             </div>
             <div class="ref-code">
@@ -131,7 +131,8 @@
     </div>
 </div>
 
-<CustomAlertDialog ShowDialog ="@ShowDialog" DialogParams ="@alertDialogParams"/>
+<CustomAlertDialog ShowDialog="@ShowDialog" DialogParams="@alertDialogParams" />
+<NotifyBanner ShowVersionBanner="ShowNotificationBanner" />
 
 <!-- Import the instruction pop-up component -->
 <HeadsOrTailsInstructionsPage @ref="headsOrTailsInstructionsPopup" />
@@ -151,6 +152,7 @@
     private bool isToastVisible;
     private string toastMessage;
     private string errorMessage;
+    private bool ShowNotificationBanner = false;
     private AlertDialogParams alertDialogParams = new AlertDialogParams();
     private HeadsOrTailsInstructionsPage headsOrTailsInstructionsPopup;
     private DotNetObjectReference<MainPage>? objRef;
@@ -202,6 +204,14 @@
         //         ShowToast("Signed out");
         //     }
         // }
+
+        ShowNotificationBanner = await CommonFunctions.CheckNeedForHardRefresh(FirebaseService);
+
+        if (ShowNotificationBanner)
+        {
+            return;
+        }
+
         try
         {
             using (var db = await this.DbFactory.Create<JusGiveawayDB>())
@@ -300,7 +310,7 @@
         }
         TimeSpan remainingTime = giveawayStartDate - DateTime.Now;
 
-        if (remainingTime.TotalSeconds > 0)
+        if (remainingTime.TotalSeconds > 0 && !currentActiveUser.Tester)
         {
             NavigationManager.NavigateTo("/countdownpage");
             return;

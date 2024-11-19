@@ -125,8 +125,9 @@
 
     private async Task OnSignInClicked()
     {
-        //move this to CommonFunctions
-        if (await CheckNeedForHardRefresh())
+        ShowNotificationBanner = await CommonFunctions.CheckNeedForHardRefresh(FirebaseService);
+
+        if (ShowNotificationBanner)
         {
             return;
         }
@@ -301,28 +302,6 @@
                 StateHasChanged();
             });
         });
-    }
-
-    private async Task<bool> CheckNeedForHardRefresh()
-    {
-        try
-        {
-            //first check if there is a new version of the app
-            string versionFromFirebase = await CommonFunctions.GetAppVersionFromFirebase();
-            var versionFromClient = await FirebaseService.GetLocalVersionAsync();
-
-            if (versionFromFirebase != null && versionFromClient != null && versionFromClient.version != versionFromFirebase)
-            {
-                //show banner
-                ShowNotificationBanner = true;
-            }
-        }
-        catch (Exception ex)
-        {
-            await CommonFunctions.WriteErrorMessageToFirebase(ex.Message, "error comparing versions of app", DateTime.Now.ToString());
-            Console.WriteLine(ex.Message + " error comparing versions of app");
-        }
-        return ShowNotificationBanner;
     }
 
     // private void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)

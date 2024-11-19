@@ -188,18 +188,8 @@ namespace JusGiveawayWebApp.Helpers
                 OwnerUID = uid,
                 UsageCount = 0
             };
-            //UserInfo userInfo = await _firebaseService.ReadDataAsync<UserInfo>($"AllUsers/{uid}/UserInfo/", needsAuthToken: true);
-
-            //if (userInfo == null)
-            //{
-            //    await WriteErrorMessageToFirebase("no User info for this UID", "UID - " + uid, DateTime.Now.ToString());
-            //    return;
-            //}
 
             await _firebaseService.WriteDataAsync<ReferralCodeOwner>($"ReferralCodes/{newReferralCode}", referralCodeOwner, needsAuthToken: true);
-
-            //userInfo.ReferralCode = newReferralCode;
-            //await SaveNewUserToFirebase(userInfo);
         }
         public async Task<string> GetOwnerUIDFromReferralCode(string referralCode)
         {
@@ -324,6 +314,29 @@ namespace JusGiveawayWebApp.Helpers
                     Console.WriteLine($"Error saving gameplay data to firebase - {x.Message}");
                 }
             }
+        }
+
+        public async Task<bool> CheckNeedForHardRefresh(FirebaseService firebaseService)
+        {
+            bool showNotificationBanner = false;
+            try
+            {
+                //first check if there is a new version of the app
+                string versionFromFirebase = await GetAppVersionFromFirebase();
+                var versionFromClient = await firebaseService.GetLocalVersionAsync();
+
+                if (versionFromFirebase != null && versionFromClient != null && versionFromClient.version != versionFromFirebase)
+                {
+                    //show banner
+                    showNotificationBanner = true;
+                }
+            }
+            catch (Exception ex)
+            {
+                await WriteErrorMessageToFirebase(ex.Message, "error comparing versions of app", DateTime.Now.ToString());
+                Console.WriteLine(ex.Message + " error comparing versions of app");
+            }
+            return showNotificationBanner;
         }
 
         // Add more common methods as needed.

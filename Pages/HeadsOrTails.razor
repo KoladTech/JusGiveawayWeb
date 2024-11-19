@@ -172,6 +172,7 @@
 <Toast Message="@toastMessage" IsVisible="@isToastVisible" IsVisibleChanged="@(val => isToastVisible = val)" />
 
 <CustomAlertDialog ShowDialog="@ShowDialog" DialogParams="@alertDialogParams" />
+<NotifyBanner ShowVersionBanner="ShowNotificationBanner" />
 
 @code {
     private string PlayerName { get; set; } = "whoRu?";
@@ -211,11 +212,13 @@
     private List<HeartImage> HeartImages { get; set; } = new List<HeartImage>();
     private string[] heartClass;  // Store classes for each heart for animation
     private Timer _timer;
+    private Timer _hardRefreshTimer;
     private string _lastETag = null;
     private FirebaseAuthResponse _firebaseResponse;
     private HttpResponseMessage httpResponseMessage;
     private bool isToastVisible;
     private string toastMessage;
+    private bool ShowNotificationBanner = false;
     private bool ShowDialog = false;
     private AlertDialogParams alertDialogParams = new AlertDialogParams(); 
     private bool isShaking = false;
@@ -356,6 +359,7 @@
         AddHeartImages();
         CoinFlipIncrement = await CommonFunctions.GetCoinFlipIncrementFromFirebase();
         await GetLeftoverGiveawayFundsFromFirebase();
+        await CheckNeedForHardRefreshInsideHeadsOrTailsPage();
     }
 
     private async Task LoadGameDataFromDb()
@@ -1002,6 +1006,7 @@
         //isFlipping = true; //this prevents clicks
         CoinImage = "images/coin_locked.png";
         StateHasChanged();
+        _hardRefreshTimer?.Dispose();
         _timer?.Dispose();
 
         //save usergameplaydata to indexeddb
@@ -1060,7 +1065,7 @@
                 }
             }
             #endregion
-            
+
             // Start polling every 60 * 5 seconds (300,000 milliseconds) - 5 minutes
             _timer = new Timer(async _ =>
             {
@@ -1183,8 +1188,28 @@
         StateHasChanged(); // Update the UI again
     }
 
+
+
+    private async Task CheckNeedForHardRefreshInsideHeadsOrTailsPage()
+    {
+        // Start polling every 20 * 60 seconds (1,200,000 milliseconds) - 20 minutes
+        _hardRefreshTimer = new Timer(async _ =>
+        {
+            try
+            {
+                ShowNotificationBanner = await CommonFunctions.CheckNeedForHardRefresh(FirebaseService);
+            }
+            catch (Exception ex)
+            {
+                await CommonFunctions.WriteErrorMessageToFirebase(ex.Message, "HeadsOrTails - CheckNeedForHardRefreshInsideHeadsOrTailsPage()", DateTime.Now.ToString());
+                Console.WriteLine($"Error during check for hard refresh: {ex.Message}");
+            }
+        }, null, 0, 1200000);
+    }
+
     public void Dispose()
     {
+        _hardRefreshTimer?.Dispose();
         _timer?.Dispose();  // Dispose the timer when the component is destroyed
                             // Dispose the object reference to prevent memory leaks
         objRef?.Dispose();
@@ -1274,6 +1299,7 @@
     {
         // Logic to save progress goes here
         // e.g., Save to IndexedDB or trigger an API to save progress
+        _hardRefreshTimer?.Dispose();
         _timer?.Dispose();
         Console.WriteLine("Saving progress on page exit...");
     }
@@ -1283,6 +1309,7 @@
     {
         Console.WriteLine("Browser Back button pressed" + " -> H-" + HeadsCount + "T-" + TailsCount);
         await CommonFunctions.SaveUserProgressOnExit(this.DbFactory, PlayerUID, HeadsCount, TailsCount, currentGiveaway);
+        _hardRefreshTimer?.Dispose();
         _timer?.Dispose();
     }
 
@@ -1290,6 +1317,7 @@
     {
         Console.WriteLine("Game Back button pressed" + " -> H-" + HeadsCount + "T-" + TailsCount);
         await CommonFunctions.SaveUserProgressOnExit(this.DbFactory, PlayerUID, HeadsCount, TailsCount, currentGiveaway);
+        _hardRefreshTimer?.Dispose();
         _timer?.Dispose();
         NavigationManager.NavigateTo($"/mainpage/{PlayerUID}");
     }
@@ -1312,6 +1340,7 @@
 
         Console.WriteLine("inside logoutuser - HeadsOrTails" + isUserLoggedIn);
         await CommonFunctions.SaveUserProgressOnExit(this.DbFactory, PlayerUID, HeadsCount, TailsCount, currentGiveaway);
+        _hardRefreshTimer?.Dispose();
         _timer?.Dispose();
         // Optionally redirect to the login page
         NavigationManager.NavigateTo("/");

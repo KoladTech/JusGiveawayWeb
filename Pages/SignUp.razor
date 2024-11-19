@@ -121,7 +121,7 @@
         </div>
 
         <Toast Message="@toastMessage" IsVisible="@isToastVisible" IsVisibleChanged="@(val => isToastVisible = val)" />
-
+        <NotifyBanner ShowVersionBanner="ShowNotificationBanner" />
     </div>
 </div>
 
@@ -138,6 +138,7 @@
     private string confirmPasswordType = "password";
     private bool isToastVisible;
     private string toastMessage;
+    private bool ShowNotificationBanner = false;
 
     private bool isFormValid =>
         !string.IsNullOrEmpty(username) &&
@@ -242,6 +243,13 @@
 
     private async Task OnSignUpClicked()
     {
+        ShowNotificationBanner = await CommonFunctions.CheckNeedForHardRefresh(FirebaseService);
+
+        if (ShowNotificationBanner)
+        {
+            return;
+        }
+
         //prevent multiple clicks until sign up is verified
         signingUp = true;
         StateHasChanged();
