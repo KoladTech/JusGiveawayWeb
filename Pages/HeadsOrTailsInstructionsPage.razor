@@ -1,5 +1,7 @@
 ﻿@page "/game-instructions"
 @using Microsoft.AspNetCore.Components.Web
+@using JusGiveawayWebApp.Models
+@inject JusGiveawayWebApp.Helpers.CommonFunctions CommonFunctions
 
 @if (IsPopupVisible)
 {
@@ -24,12 +26,12 @@
                     <h4>How to Win/Lose Money</h4>
                     <p>
                         Each round you win comes with monetary wins. <strong>
-                            Score of 10 or more, win N2,000.
-                            Score 1-9 win N1,000.
+                            Score of 10 or more, win ₦@giveawayData.RoundBigWinMonetaryValue.ToString("N0").
+                            Score 1-9, win ₦@giveawayData.RoundSmallWinMonetaryValue.ToString("N0").
                         </strong> Rounds you lose will cost you.
-                        <strong>Score -10 or less lose N1,000. score between -1 & -9 lose N500.</strong>
-                        <strong>Draw a round and it is a BINGO!!!</strong> Bingos win you <strong>N5,000</strong>.
-                        Maximum possible winnings is <strong>N50,000.</strong>
+                        <strong>Score -10 or less, lose ₦@giveawayData.RoundBigLossMonetaryValue.ToString("N0"). score between -1 & -9, lose ₦@giveawayData.RoundSmallLossMonetaryValue.ToString("N0").</strong>
+                        <strong>Draw a round and it is a BINGO!!!</strong> Bingos win you <strong>₦@giveawayData.RoundDrawMonetaryValue.ToString("N0")</strong>.
+                        Maximum possible winnings is <strong>₦@giveawayData.MaxPossibleWinningsPerPerson.ToString("N0").</strong>
                     </p>
                 </div>
 
@@ -37,8 +39,8 @@
                     <h4>How to Switch Sides</h4>
                     <p>
                         Switching coin sides means you will reset the game, click the <strong>‘Switch to’</strong> button.
-                        This will reset your score and progress. Each reset will drop your max possible winnings by 
-                        <strong>N2,000.</strong> You have only <strong>20 resets</strong> allowed. Tap the hearts
+                        This will reset your score and progress. Each reset will drop your max possible winnings by
+                        <strong>₦@giveawayData.MonetaryResetPenalty.ToString("N0").</strong> You have only <strong>@giveawayData.TotalResetsAllowed resets</strong> allowed. Tap the hearts
                         at the top of the screen.
                     </p>
                 </div>
@@ -47,7 +49,7 @@
                     <h4>How to Cashout</h4>
                     <p>
                         Cashout your winnings <strong>ONLY</strong> at the end of a round. Minimum cashout is
-                        <strong>N20,000.</strong> Fill the form to complete cashout. Once you cashout, it's Gameover!
+                        <strong>₦@giveawayData.MinCashoutPerPerson.ToString("N0").</strong> Fill the form to complete cashout. Once you cashout, it's Gameover!
                         Until the next giveaway.
                     </p>
                 </div>
@@ -80,6 +82,14 @@
     // Example data binding for instructions title
     public MarkupString GameInstructionsTitle { get; set; } = new MarkupString("Heads or Tails<br/>Quick Guide");//"Heads or Tails Quick Guide";
     private bool IsPopupVisible { get; set; }
+    private string currentGiveaway = "";
+    private GiveawayData? giveawayData;
+
+    protected override async Task OnInitializedAsync()
+    {
+        currentGiveaway = await CommonFunctions.GetActiveGiveawayNameFromFirebase();
+        giveawayData = await CommonFunctions.GetGiveawayDataFromFirebase(currentGiveaway);
+    }
 
     // Handle closing the popup
     private void ClosePopup()
