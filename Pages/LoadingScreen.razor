@@ -1,0 +1,12 @@
+﻿<div class="loading-overlay" style="display: @(IsLoading ? "flex" : "none")">
+    <p class="loading-text">Jus loading...</p>
+    <div class="game-spinner">
+        <div class="spinner-part part-1"></div>
+        <div class="spinner-part part-2"></div>
+        <div class="spinner-part part-3"></div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public bool IsLoading { get; set; }
+}

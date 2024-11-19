@@ -173,6 +173,7 @@
 
 <CustomAlertDialog ShowDialog="@ShowDialog" DialogParams="@alertDialogParams" />
 <NotifyBanner ShowVersionBanner="ShowNotificationBanner" />
+<LoadingScreen IsLoading="@isLoading" />
 
 @code {
     private string PlayerName { get; set; } = "whoRu?";
@@ -229,6 +230,7 @@
     private bool ShowModal { get; set; } = false;
     private string SponsorName { get; set; } = "Sponsor_placeholder";
     private string SponsorInstagramAcct { get; set; } = "Sponsor_instagram_acct";
+    private bool isLoading = true;
     //private bool navigationManagerForceReload { get; set; } = true;
 
 
@@ -349,6 +351,7 @@
 
                 //function which helps with sign out on inactivity
                 //await OnLoginSuccess();
+                isLoading = false;
             }
         }
         catch(Exception ex)
@@ -360,6 +363,7 @@
         CoinFlipIncrement = await CommonFunctions.GetCoinFlipIncrementFromFirebase();
         await GetLeftoverGiveawayFundsFromFirebase();
         await CheckNeedForHardRefreshInsideHeadsOrTailsPage();
+        OnSponsoredByTapped();
     }
 
     private async Task LoadGameDataFromDb()

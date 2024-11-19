@@ -73,6 +73,7 @@
 
         <Toast Message="@toastMessage" IsVisible="@isToastVisible" IsVisibleChanged="@(val => isToastVisible = val)" />
         <NotifyBanner ShowVersionBanner="ShowNotificationBanner" />
+        <LoadingScreen IsLoading="@isLoading" />
     </div>
 </div>
 
@@ -84,7 +85,7 @@
     private string email = "";
     private string password = "";
     private string passwordType = "password";
-    private bool isLoading = false;
+    private bool isLoading = true;
     private bool isToastVisible;
     private string toastMessage;    
     private DateTime giveawayStartDate;
@@ -122,6 +123,8 @@
             }
         }
         currentGiveaway = await CommonFunctions.GetActiveGiveawayNameFromFirebase();
+
+        isLoading = false;
     }
 
     private async Task OnSignInClicked()
@@ -132,6 +135,8 @@
         {
             return;
         }
+
+        isLoading = true;
 
         var response = await FirebaseService.SignInEmailPassword(email, password);
         if (response != null)
@@ -178,6 +183,7 @@
             }
             else
             {
+                isLoading = false;
                 Console.WriteLine("Email not verified. Please verify your email.");
                 ShowToast("Please verify email to proceed");
                 // send another verification email
@@ -230,6 +236,7 @@
         {
             ShowToast("Invalid email or password");
         }
+        isLoading = false;
     }
 
     private async Task AddReferralBonusToReferee(string uid)
