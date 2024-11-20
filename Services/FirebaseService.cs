@@ -355,7 +355,9 @@ namespace JusGiveawayWebApp.Services
                     url += $"?auth={_authToken}";
                 }
 
-                var errorMessageData = new { ErrorMessage = errorMessage , Data = data, Time = errorTime};
+                var versionFromClient = await GetLocalVersionAsync();
+
+                var errorMessageData = new { ErrorMessage = errorMessage , Data = data, Time = errorTime, JGVersion = versionFromClient?.version ?? "null"};
                 
                 string errorMessageJson = JsonSerializer.Serialize(errorMessageData);
 
