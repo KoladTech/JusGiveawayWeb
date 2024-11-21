@@ -255,13 +255,25 @@
                 if (referredByUID != null && referredByUID != "")
                 {
                     UserGamePlayData? userGamePlayDataForReferer = await CommonFunctions.GetUserGamePlayDataFromFirebase(referredByUID, currentGiveaway);
+                    GiveawayData giveawayData = await CommonFunctions.GetGiveawayDataFromFirebase(currentGiveaway);
 
                     if (userGamePlayDataForReferer == null)
                     {
                         userGamePlayDataForReferer = new UserGamePlayData()
                             {
                                 CurrentWinnings = 500, //store this under the giveaways node
-                                UID = referredByUID
+                                UID = referredByUID,
+                                SelectedSides = false,
+                                PlayingHeads = false,
+                                HeadsCount = 0,
+                                TailsCount = 0,
+                                MaxPossibleWinnings = giveawayData.MaxPossibleWinningsPerPerson,
+                                MinCashOut = giveawayData.MinCashoutPerPerson,
+                                TotalResetsLeft = giveawayData.TotalResetsAllowed,
+                                LifetimeHeadsCount = 0,
+                                LifetimeTailsCount = 0,
+                                GameOver = false,
+                                CashedOut = false
                             };
                     }
                     else
