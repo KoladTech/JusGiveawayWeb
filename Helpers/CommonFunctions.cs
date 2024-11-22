@@ -137,22 +137,21 @@ namespace JusGiveawayWebApp.Helpers
             return await _firebaseService.ReadDataAsync<int>($"GamePlayData/{currentGiveaway}/{uid}/currentWinnings", needsAuthToken: true);
         }
 
-        public async Task<bool> GetUserCashOutStatusFromFirebase(string uid)
+        public async Task<bool> GetUserCashOutStatusFromFirebase(string uid, string currentGiveaway)
         {
             //if null, display error
-            return await _firebaseService.ReadDataAsync<bool>($"AllUsers/{uid}/GamePlayData/cashedOut", needsAuthToken: true);
+            return await _firebaseService.ReadDataAsync<bool>($"GamePlayData/{currentGiveaway}/{uid}/cashedOut", needsAuthToken: true);
         }
 
-        public async Task<bool> SaveUserCashOutDetailsToFirebase(UserInfo user, CashOutDetails userCashOutDetails)
+        public async Task<bool> SaveUserCashOutDetailsToFirebase(UserInfo user, CashOutDetails userCashOutDetails, string currentGiveaway)
         {
-            //if null, display error
-            return await _firebaseService.WriteDataAsync<CashOutDetails>($"CashOuts/{user.UID}-{user.Name}", userCashOutDetails, needsAuthToken: true);
+            return await _firebaseService.WriteDataAsync<CashOutDetails>($"CashOuts/{currentGiveaway}/{user.UID}-{user.Name}", userCashOutDetails, needsAuthToken: true);
         }
 
-        public async Task<bool> SetUserHasCashedOutToFirebase(UserInfo user)
+        public async Task<bool> SetUserHasCashedOutToFirebase(UserInfo user, string currentGiveaway)
         {
             //if null, display error
-            return await _firebaseService.WriteDataAsync<bool>($"AllUsers/{user.UID}/GamePlayData/cashedOut", true, needsAuthToken: true);
+            return await _firebaseService.WriteDataAsync<bool>($"GamePlayData/{currentGiveaway}/{user.UID}/cashedOut", true, needsAuthToken: true);
         }
 
         public async Task<bool> UpdateLeftoverGiveawayFundsInFirebase(int leftoverFunds, string currentGiveaway)

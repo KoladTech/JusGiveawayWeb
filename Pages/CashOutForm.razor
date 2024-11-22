@@ -236,8 +236,10 @@
                     return;
                 }
 
+                currentGiveaway = await CommonFunctions.GetActiveGiveawayNameFromFirebase();
+
                 //get cashout status from firebase and display form or thanks message
-                cashOutInfoSubmitted = await CommonFunctions.GetUserCashOutStatusFromFirebase(PlayerUID);
+                cashOutInfoSubmitted = await CommonFunctions.GetUserCashOutStatusFromFirebase(PlayerUID, currentGiveaway);
                 hideCashoutform = cashOutInfoSubmitted;
 
                 if (!cashOutInfoSubmitted)
@@ -334,6 +336,7 @@
                 BankAccountNumber = acctNum,
                 InstagramAccount = instagramAccount,
                 CashoutAmount = userCashOutAmount,
+                CashoutTime = DateTime.Now.ToString(),
             };
 
         // Handle successful cashout and redirect if necessary
@@ -341,8 +344,8 @@
             //store user cashout info in firebase db
             try
             {
-                bool cashedOut = await CommonFunctions.SaveUserCashOutDetailsToFirebase(userInfo, cashOutDetails);
-                bool saveUserCashoutStatus = await CommonFunctions.SetUserHasCashedOutToFirebase(userInfo);
+                bool cashedOut = await CommonFunctions.SaveUserCashOutDetailsToFirebase(userInfo, cashOutDetails, currentGiveaway);
+                bool saveUserCashoutStatus = await CommonFunctions.SetUserHasCashedOutToFirebase(userInfo, currentGiveaway);
 
                 int currentLeftoverFunds = await CommonFunctions.GetLeftoverGiveawayFundsFromFirebase(currentGiveaway);
                 bool updateLeftoverFunds = await CommonFunctions.UpdateLeftoverGiveawayFundsInFirebase(currentLeftoverFunds - userCashOutAmount, currentGiveaway);
