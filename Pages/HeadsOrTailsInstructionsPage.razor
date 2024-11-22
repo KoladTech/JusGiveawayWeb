@@ -85,12 +85,6 @@
     private string currentGiveaway = "";
     private GiveawayData? giveawayData;
 
-    protected override async Task OnInitializedAsync()
-    {
-        currentGiveaway = await CommonFunctions.GetActiveGiveawayNameFromFirebase();
-        giveawayData = await CommonFunctions.GetGiveawayDataFromFirebase(currentGiveaway);
-    }
-
     // Handle closing the popup
     private void ClosePopup()
     {
@@ -99,8 +93,10 @@
     }
 
     // Method to open the popup
-    public void ShowPopup()
+    public async void ShowPopup()
     {
+        currentGiveaway = await CommonFunctions.GetActiveGiveawayNameFromFirebase();
+        giveawayData = await CommonFunctions.GetGiveawayDataFromFirebase(currentGiveaway);
         IsPopupVisible = true;
         StateHasChanged();
     }
