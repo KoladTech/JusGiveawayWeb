@@ -158,10 +158,10 @@ namespace JusGiveawayWebApp.Helpers
         {
             return await _firebaseService.WriteDataAsync<int>($"Giveaways/{currentGiveaway}/LeftoverGiveawayFunds", leftoverFunds, needsAuthToken: true);
         }
-        public async Task<bool> RecordBingoRoundsToFirebase(string uid, string playerName)
+        public async Task<bool> RecordBingoRoundsToFirebase(string uid, string playerName, string currentGiveaway)
         {
-            var bingoCounts = await _firebaseService.ReadDataAsync<int>($"BingoRounds/{uid}-{playerName}", needsAuthToken: true);
-            return await _firebaseService.WriteDataAsync<int>($"BingoRounds/{uid}-{playerName}", ++bingoCounts, needsAuthToken: true);
+            var bingoCounts = await _firebaseService.ReadDataAsync<int>($"BingoRounds/{currentGiveaway}/{uid}-{playerName}", needsAuthToken: true);
+            return await _firebaseService.WriteDataAsync<int>($"BingoRounds/{currentGiveaway}/{uid}-{playerName}", ++bingoCounts, needsAuthToken: true);
         }
         public async Task<string> CreateReferralCodeForNewUser(string uid)
         {

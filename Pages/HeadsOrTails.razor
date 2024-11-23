@@ -852,7 +852,7 @@
                     winning = _giveawayData.RoundDrawMonetaryValue;
                     bingoRound = true;
 
-                    var bingoRecorded = await CommonFunctions.RecordBingoRoundsToFirebase(PlayerUID, PlayerName);
+                    var bingoRecorded = await CommonFunctions.RecordBingoRoundsToFirebase(PlayerUID, PlayerName, currentGiveaway);
                     if (!bingoRecorded)
                     {
                         Console.WriteLine($"Error writing bingo to firebase");
