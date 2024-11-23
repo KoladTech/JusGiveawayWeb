@@ -115,6 +115,13 @@ namespace JusGiveawayWebApp.Services
             else
             {
                 var errorContent = await response.Content.ReadAsStringAsync();
+
+                if (errorContent != null && errorContent.Contains("EMAIL_EXISTS")) {
+                    var errorJsonResponse = new FirebaseAuthResponse();
+                    errorJsonResponse.SignUpError = "Email already exists, please login";
+                    Console.WriteLine("Signup failed: EMAIL_EXISTS!");
+                    return errorJsonResponse;
+                }
                 await WriteErrorMessagesAsync($"Signup failed: {errorContent}", payload?.ToString() ?? "", DateTime.Now.ToString(), needsAuthToken: false);
                 Console.WriteLine($"Signup failed: {errorContent}");
                 return null;
@@ -485,6 +492,9 @@ namespace JusGiveawayWebApp.Services
 
         [JsonPropertyName("registered")]
         public bool Registered { get; set; }
+
+        [JsonPropertyName("signuperror")]
+        public string SignUpError { get; set; } = "NULL";
     }
     public class LookupResponse
     {

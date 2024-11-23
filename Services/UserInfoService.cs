@@ -4,6 +4,7 @@
     {
         private string _uid;
         private bool _userSignedIn;
+        private string appVersion = "0.0.0";
         public string? PlayerUID
         {
             get => _uid;
@@ -19,6 +20,15 @@
             set
             {
                 _userSignedIn = value;
+                NotifyStateChanged(); // Notify when sign in changes
+            }
+        }
+        public string AppVersion
+        {
+            get => appVersion;
+            set
+            {
+                appVersion = value;
                 NotifyStateChanged(); // Notify when sign in changes
             }
         }

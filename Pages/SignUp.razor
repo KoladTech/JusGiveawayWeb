@@ -249,6 +249,10 @@
 
     private async Task OnSignUpClicked()
     {
+        //prevent multiple clicks until sign up is completed
+        signingUp = true;
+        StateHasChanged();
+
         ShowNotificationBanner = await CommonFunctions.CheckNeedForHardRefresh(FirebaseService);
 
         if (ShowNotificationBanner)
@@ -257,9 +261,6 @@
         }
 
         isLoading = true;
-
-        //prevent multiple clicks until sign up is verified
-        signingUp = true;
         StateHasChanged();
 
         //check if referralcode exists and if its valid. If none provided, we move on
@@ -280,7 +281,7 @@
 
         // Handle successful registration and redirect if necessary
         var response = await FirebaseService.SignUpUserAsync(email, password);
-        if (response != null)
+        if (response != null && response.SignUpError == "NULL")
         {
             string uid = response.LocalId;
             string idToken = response.IdToken;
@@ -353,6 +354,10 @@
 
             CustomNavStack.AddPage("SignUpPage", uid);
             NavigationManager.NavigateTo("/");
+        }
+         else if (response != null && response.SignUpError != "NULL")
+        {
+            ShowToast(response.SignUpError);
         }
         else
         {
