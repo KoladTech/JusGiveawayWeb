@@ -34,6 +34,14 @@ namespace JusGiveawayWebApp.Helpers
 
             return allUsersData.Select(s => s.Key).ToList();
         }
+        public async Task<int> GetAllUsersCountFromFirebase()
+        {
+            return await _firebaseService.ReadDataAsync<int>($"AllUsersCount", needsAuthToken: false);
+        }
+        public async Task<int> GetAllUsersCountMinimumToStartGameFromFirebase()
+        {
+            return await _firebaseService.ReadDataAsync<int>($"AllUsersCountMinimumToStartGame", needsAuthToken: false);
+        }
         public async Task<GiveawayData> GetGiveawayDataFromFirebase(string currentGiveaway)
         {
             //if null, display error

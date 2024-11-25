@@ -994,7 +994,7 @@
 
     private bool isMaxWinAchieved()
     {
-        if (CurrentWinnings == MaxPossibleWinnings)
+        if (CurrentWinnings == MaxPossibleWinnings || MaxPossibleWinnings < userGamePlayData.MinCashOut)
         {
             if (CoinImage != "images/coin_locked.png")
                 LockGame();

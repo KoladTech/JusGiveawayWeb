@@ -12,7 +12,7 @@
         <div class="vertical-stack-layout center-content">
             <div class="countdown-container">
                 <!-- Logo -->
-                <img src="images/logo_green.png" alt="Logo" class="countdown-logo" />
+                <img src="images/about_us_logo.png" alt="Logo" class="countdown-logo" />
                 <h2 class="countdown-title">Countdown</h2>
 
                 <!-- Countdown Timer -->
@@ -50,7 +50,22 @@
             <button class="centered-button" @onclick="OnTesterBtnClicked" disabled="@(!isCodeValid)">Tester Login</button>
         </div> *@
 
-        <div style="text-align: center; margin-top: 30px;">
+        <div style="display: flex; flex-direction: column; align-items: center; margin-top: 0px; font-family: 'Arial', sans-serif;">
+            <div style="padding: 10px; border: 3px solid #4CAF50; border-radius: 15px; background-color: #f9f9f9; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1); text-align: center; max-width: 350px;">
+                <h4 style="color: #4CAF50; font-size: 1.8rem; margin: 0;">Registered Players</h4>
+                <p style="font-size: 2.5rem; font-weight: bold; color: #333; margin: 0px 0;">
+                    @userCount
+                </p>
+                <p style="font-size: 1.2rem; color: #555; margin-top: 0px;">
+                    <span style="color: #E53935; font-weight: bold;">@(userCountMinimumToStartGame - @userCount)</span> players to go!!!
+                </p>
+                <p style="font-size: 1rem; color: #777; margin-top: 5px; font-style: italic;">
+                    Help us reach <span style="font-weight: bold;">@userCountMinimumToStartGame</span> players to kick off the game!
+                </p>
+            </div>
+        </div>
+
+        <div style="text-align: center; margin-top: 20px;">
             <h4 style="color: #333;">While you wait</h4>
             <p style="font-size: 1.2rem; color: #555;">
                 Try out "Heads or Tails" below
@@ -78,6 +93,7 @@
         <HeadsOrTailsInstructionsPage @ref="headsOrTailsInstructionsPopup" />
 
         <CustomAlertDialog ShowDialog="@ShowDialog" DialogParams="@alertDialogParams" />
+        <LoadingScreen IsLoading="@isLoading" />
     </div>
 </div>
 
@@ -95,9 +111,13 @@
     private AlertDialogParams alertDialogParams = new AlertDialogParams();
     private bool ShowSurvey = true;
     private string currentGiveaway = "";
+    private int userCount = 0;
+    private int userCountMinimumToStartGame = 0;
+    private bool isLoading = false;
 
     protected override async Task OnInitializedAsync()
     {
+        isLoading = true;
         //read survey from indexeddb
         try
         {
@@ -122,12 +142,18 @@
         }
 
         currentGiveaway = await CommonFunctions.GetActiveGiveawayNameFromFirebase();
+
+        userCount = await CommonFunctions.GetAllUsersCountFromFirebase();
+        userCountMinimumToStartGame = await CommonFunctions.GetAllUsersCountMinimumToStartGameFromFirebase();
         //change this to only get the startdate. Limiting how much we get from db
         //_giveawayData = await CommonFunctions.GetGiveawayDataFromFirebase();//CheckDataSize(); I want to check the difference btw retrieving all vs just the data
         var startDate = await CommonFunctions.GetGiveawayStartDateFromFirebase(currentGiveaway);
 
+        isLoading = false;
+
         // Trigger the countdown when the page is loaded
         await StartCountdown(startDate);
+        StateHasChanged();
     }
 
     private async Task StartCountdown(string startDate)
@@ -185,7 +211,11 @@
     {
         // Navigate to another page or show a message (example)
         Console.WriteLine("Countdown Completed!");
-        NavigationManager.NavigateTo("/");
+
+        if (userCount >= userCountMinimumToStartGame)
+        {
+            NavigationManager.NavigateTo("/");
+        }
     }
 
     private void UpdateTestCode(ChangeEventArgs e)

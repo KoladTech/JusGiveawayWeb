@@ -311,8 +311,10 @@
             return;
         }
         TimeSpan remainingTime = giveawayStartDate - DateTime.Now;
+        var userCount = await CommonFunctions.GetAllUsersCountFromFirebase();
+        var userCountMinimumToStartGame = await CommonFunctions.GetAllUsersCountMinimumToStartGameFromFirebase();
 
-        if (remainingTime.TotalSeconds > 0 && !currentActiveUser.Tester)
+        if ((remainingTime.TotalSeconds > 0 && !currentActiveUser.Tester) || (userCount < userCountMinimumToStartGame && !currentActiveUser.Tester))
         {
             NavigationManager.NavigateTo("/countdownpage");
             return;
