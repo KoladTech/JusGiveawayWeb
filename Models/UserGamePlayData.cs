@@ -19,6 +19,7 @@ namespace JusGiveawayWebApp.Models
         public int LifetimeTailsCount { get; set; }
         public bool GameOver { get; set; }
         public bool CashedOut { get; set; }
+        public string CurrentGiveaway {  get; set; }
 
         public UserGamePlayData()
         {
@@ -36,6 +37,7 @@ namespace JusGiveawayWebApp.Models
             LifetimeTailsCount = 0;
             GameOver = false;
             CashedOut = false;
+            CurrentGiveaway = "";
         }
     }
 }

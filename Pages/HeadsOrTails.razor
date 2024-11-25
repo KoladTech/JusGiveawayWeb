@@ -44,11 +44,11 @@
                 @foreach (var heart in HeartImages)
                 {
                     <img src="@heart.Source"
-                         @onclick="ToggleResetCountVisibility"
-                         id="@heart.Id"
-                         class="hearts @heartClass[@heart.Id-1]"
-                         alt="Heart"
-                         style="cursor: pointer;" />
+                    @onclick="ToggleResetCountVisibility"
+                    id="@heart.Id"
+                    class="hearts @heartClass[@heart.Id-1]"
+                    alt="Heart"
+                    style="cursor: pointer;" />
                 }
                 @if (isResetCountVisible)
                 {
@@ -63,15 +63,15 @@
             <p>@PlayerChoice</p>
             <div class="coin-images">
                 <img src="images/kobo_front.png" alt="Coin Front"
-                     class="@((PlayerChoice == "Heads") ? "coin selected" : "coin")"
-                     style="width: 100px; height: 100px;" @onclick="OnChooseHeadsTapped" />
+                class="@((PlayerChoice == "Heads") ? "coin selected" : "coin")"
+                style="width: 100px; height: 100px;" @onclick="OnChooseHeadsTapped" />
                 <img src="images/kobo_back.png" alt="Coin Back"
-                     class="@((PlayerChoice == "Tails") ? "coin selected" : "coin")"
-                     style="width: 100px; height: 100px;" @onclick="OnChooseTailsTapped" />
+                class="@((PlayerChoice == "Tails") ? "coin selected" : "coin")"
+                style="width: 100px; height: 100px;" @onclick="OnChooseTailsTapped" />
             </div>
             <button class="centered-button" @onclick="OnLockInSelectionClicked" disabled="@(!IsUserMakingChoice)">Start Game</button>
         </div>
-        
+
         <!--Game play section -->
         <div class="transition-fade @(SideSelected ? "show" : "hidden")">
             @if (isGameOver)
@@ -81,7 +81,7 @@
                 </div>
             }
 
-             @if (!isGameOver)
+            @if (!isGameOver)
             {
                 <div id="tap-prompt" class="prompt-message show">Tap the coin to flip!</div>
             }
@@ -98,7 +98,7 @@
             </div>
 
             <!-- Coin Image -->
-			<div class="gameplay-content-centered">
+            <div class="gameplay-content-centered">
                 <img class="coin-image  @(isFlipping ? "flipping" : "") @(isShaking ? "shake-effect" : "")" src="@CoinImage" alt="Coin" @onclick="OnCoinTapped" />
             </div>
 
@@ -291,7 +291,7 @@
                 {
                     //no data in firebase, so lets check local as well. they might have a game going which hasn't been pushed to firebase
                     Console.WriteLine("no game play data in firebase");
-                    userGamePlayData = CommonFunctions.GetUserGamePlayDataFromIndexedDb(db, PlayerUID);
+                    userGamePlayData = CommonFunctions.GetUserGamePlayDataFromIndexedDb(db, PlayerUID, currentGiveaway);
 
                     if (userGamePlayData == null)
                     {
@@ -311,7 +311,8 @@
                                 LifetimeHeadsCount = 0,
                                 LifetimeTailsCount = 0,
                                 GameOver = false,
-                                CashedOut = false
+                                CashedOut = false,
+                                CurrentGiveaway = currentGiveaway
                             };
                     }
                     db.UserGameDatas.Add(userGamePlayData);
@@ -321,7 +322,7 @@
                 {
                     Console.WriteLine("game play data EXISTS");
                     //store gameplaydata in indexeddb
-                    var userGamePlayDataFromIndexedDB = CommonFunctions.GetUserGamePlayDataFromIndexedDb(db, PlayerUID);
+                    var userGamePlayDataFromIndexedDB = CommonFunctions.GetUserGamePlayDataFromIndexedDb(db, PlayerUID, currentGiveaway);
                     if (userGamePlayDataFromIndexedDB == null)
                     {
                         db.UserGameDatas.Add(userGamePlayData);
@@ -477,7 +478,7 @@
         {
             using (var db = await this.DbFactory.Create<JusGiveawayDB>())
             {
-                var userGamePlayData = CommonFunctions.GetUserGamePlayDataFromIndexedDb(db, PlayerUID);
+                var userGamePlayData = CommonFunctions.GetUserGamePlayDataFromIndexedDb(db, PlayerUID, currentGiveaway);
                 if (userGamePlayData != null)
                 {
                     userGamePlayData.SelectedSides = true;
@@ -563,7 +564,7 @@
         {
             using (var db = await this.DbFactory.Create<JusGiveawayDB>())
             {
-                userGamePlayData = CommonFunctions.GetUserGamePlayDataFromIndexedDb(db, PlayerUID);
+                userGamePlayData = CommonFunctions.GetUserGamePlayDataFromIndexedDb(db, PlayerUID, currentGiveaway);
                 if (userGamePlayData != null)
                 {
                     userGamePlayData.HeadsCount = HeadsCount;
@@ -694,7 +695,7 @@
         {
             using (var db = await this.DbFactory.Create<JusGiveawayDB>())
             {
-                userGamePlayData = CommonFunctions.GetUserGamePlayDataFromIndexedDb(db, PlayerUID);
+                userGamePlayData = CommonFunctions.GetUserGamePlayDataFromIndexedDb(db, PlayerUID, currentGiveaway);
 
                 if (userGamePlayData != null)
                 {
@@ -1141,7 +1142,7 @@
             {
                 using (var db = await this.DbFactory.Create<JusGiveawayDB>())
                 {
-                    userGamePlayData = CommonFunctions.GetUserGamePlayDataFromIndexedDb(db, PlayerUID);
+                    userGamePlayData = CommonFunctions.GetUserGamePlayDataFromIndexedDb(db, PlayerUID, currentGiveaway);
 
                     if (userGamePlayData != null)
                     {

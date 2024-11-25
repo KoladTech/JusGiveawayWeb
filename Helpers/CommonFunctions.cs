@@ -240,9 +240,9 @@ namespace JusGiveawayWebApp.Helpers
             return user?.Tester ?? false;
         }
 
-        public UserGamePlayData? GetUserGamePlayDataFromIndexedDb(JusGiveawayDB db, string uid)
+        public UserGamePlayData? GetUserGamePlayDataFromIndexedDb(JusGiveawayDB db, string uid, string currentGiveaway)
         {
-            return db.UserGameDatas.FirstOrDefault(u => u.UID == uid);
+            return db.UserGameDatas.FirstOrDefault(u => u.UID == uid && u.CurrentGiveaway == currentGiveaway);
         }
 
         public async Task SignOutUser(IIndexedDbFactory DbFactory, string uid)
@@ -292,7 +292,7 @@ namespace JusGiveawayWebApp.Helpers
             {
                 using (var db = await DbFactory.Create<JusGiveawayDB>())
                 {
-                    userGamePlayData = GetUserGamePlayDataFromIndexedDb(db, playerUID);
+                    userGamePlayData = GetUserGamePlayDataFromIndexedDb(db, playerUID, currentGiveaway);
                 }
             }
             catch (Exception ex)
