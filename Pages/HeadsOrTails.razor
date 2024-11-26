@@ -292,6 +292,8 @@
                     //no data in firebase, so lets check local as well. they might have a game going which hasn't been pushed to firebase
                     Console.WriteLine("no game play data in firebase");
                     userGamePlayData = CommonFunctions.GetUserGamePlayDataFromIndexedDb(db, PlayerUID, currentGiveaway);
+                    //this gets any old giveawaydatas and deletes them as they are no longer needed
+                    var oldUserGamePlayDataFromIndexedDB = db.UserGameDatas.FirstOrDefault(u => u.UID == PlayerUID && u.CurrentGiveaway != currentGiveaway);
 
                     if (userGamePlayData == null)
                     {
@@ -315,6 +317,10 @@
                                 CurrentGiveaway = currentGiveaway
                             };
                     }
+                    if (oldUserGamePlayDataFromIndexedDB != null)
+                    {
+                        db.UserGameDatas.Remove(oldUserGamePlayDataFromIndexedDB);
+                    }
                     db.UserGameDatas.Add(userGamePlayData);
                     await db.SaveChanges();
                 }
@@ -323,8 +329,15 @@
                     Console.WriteLine("game play data EXISTS");
                     //store gameplaydata in indexeddb
                     var userGamePlayDataFromIndexedDB = CommonFunctions.GetUserGamePlayDataFromIndexedDb(db, PlayerUID, currentGiveaway);
+                    //this gets any old giveawaydatas and deletes them as they are no longer needed
+                    var oldUserGamePlayDataFromIndexedDB = db.UserGameDatas.FirstOrDefault(u => u.UID == PlayerUID && u.CurrentGiveaway != currentGiveaway);
+
                     if (userGamePlayDataFromIndexedDB == null)
                     {
+                        if (oldUserGamePlayDataFromIndexedDB != null)
+                        {
+                            db.UserGameDatas.Remove(oldUserGamePlayDataFromIndexedDB);
+                        }
                         db.UserGameDatas.Add(userGamePlayData);
                         await db.SaveChanges();
                     }
