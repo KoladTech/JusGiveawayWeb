@@ -81,7 +81,7 @@
                 <img src="images/info_icon.png" class="info-icon" alt="Info Icon" @onclick="ShowComingSoonInstructions" style="cursor: pointer;" />
                 <img src="images/daily_giveaway_image.png" class="game-image" />
                 <span class="game-label">Daily Giveaway</span>
-                <button class="play-button" disabled>Play</button>
+                <button @onclick="PlayDailyGiveawayGame" class="play-button">Play</button>
             </div>
 
             <!-- Second row -->
@@ -324,6 +324,11 @@
         // Handle play button click for Heads or Tails
         //CustomNavStack.AddPage("HeadsOrTails", PlayerUID);
         NavigationManager.NavigateTo($"/heads-or-tails/{PlayerUID}");
+    }
+
+    private void PlayDailyGiveawayGame()
+    {
+        NavigationManager.NavigateTo($"/dailygiveaway/{PlayerUID}");
     }
 
     private void ShowComingSoonInstructions()

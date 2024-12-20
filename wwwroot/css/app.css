@@ -255,6 +255,90 @@ code {
         text-align: center;
     }
 
+/* Back button */
+.back-button {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    margin-top: 20px;
+    align-content: end;
+    transition: background-color 0.3s ease, transform 0.1s ease; /* Smooth hover effect */
+}
+
+    .back-button img.back-icon {
+        width: 60px;
+        height: auto;
+        transition: opacity 0.3s ease;
+    }
+
+        .back-button img.back-icon:hover {
+            content: url('images/back_icon_hover.png'); /* Image on hover */
+            opacity: 0.8; /* Optional: add an effect */
+        }
+
+    .back-button:active {
+        transform: scale(0.85); /* Scale down slightly when clicked */
+    }
+
+.end-round-message {
+    position: fixed; /* Stay fixed on the screen */
+    bottom: -100px; /* Start below the viewport */
+    left: 50%; /* Center horizontally */
+    transform: translateX(-50%); /* Center alignment */
+    padding: 10px 20px; /* Extra padding for a better appearance */
+    border-radius: 8px; /* Slightly more rounded corners */
+    font-size: 1.2rem; /* Adjust font size as needed */
+    color: white; /* White text for contrast */
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2); /* Add a subtle shadow */
+    z-index: 1000; /* Ensure it appears above other elements */
+    display: none; /* Hidden by default */
+}
+
+    .end-round-message.animate {
+        display: block; /* Make it visible */
+        animation: slideInUp 0.6s forwards, fadeOut 0.5s 5s forwards; /* Slide in from below, fade out after 5s */
+    }
+    /* Green background for win */
+    .end-round-message.win {
+        background-color: rgba(0, 128, 0, 0.9); /* Dark green for win */
+    }
+
+    /* Red background for loss */
+    .end-round-message.loss {
+        background-color: rgba(255, 0, 0, 0.8); /* Red for loss */
+    }
+
+    /* Grayish-blue background for bingo */
+    .end-round-message.bingo {
+        background-color: rgba(70, 130, 180, 0.9); /* Steel blue for draw */
+    }
+
+/* Slide up from the bottom */
+@keyframes slideInUp {
+    0% {
+        bottom: -100px;
+        opacity: 0;
+    }
+
+    100% {
+        bottom: 20px;
+        opacity: 1;
+    }
+}
+
+/* Fade out after showing */
+@keyframes fadeOut {
+    0% {
+        bottom: 20px;
+        opacity: 1;
+    }
+
+    100% {
+        bottom: -100px;
+        opacity: 0;
+    }
+}
+
 /* Style for smaller devices like phones */
 @media (max-width: 600px) {
     .phone-screen {

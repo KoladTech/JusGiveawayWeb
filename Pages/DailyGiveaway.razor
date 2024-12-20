@@ -1,0 +1,391 @@
+﻿@page "/dailygiveaway/{PlayerUID?}"
+@inject NavigationManager NavigationManager
+@inject IJSRuntime JSRuntime
+@inject JusGiveawayWebApp.Services.FirebaseService FirebaseService
+@inject JusGiveawayWebApp.Helpers.CommonFunctions CommonFunctions
+@inject IndexedDB.Blazor.IIndexedDbFactory DbFactory
+@inject JusGiveawayWebApp.Services.UserInfoService UserInfoService
+
+@using System
+@using JusGiveawayWebApp.Models
+
+<div class="phone-container">
+    <div class="phone-screen">
+        <div class="game-info">
+            <!-- First Row -->
+            <div class="player-info">
+                <img src="images/avatar_green.png" alt="Player Avatar" />
+                <div>
+                    <p class="player-name">@PlayerName</p>
+                    <p class="player-choice">@PlayerChoice@AttemptsCount</p>
+                </div>
+            </div>
+            <div class="giveaway-info">
+                <p @onclick="OnSponsoredByTapped" class="sponsored-link">Sponsored by...</p>
+            </div>
+
+            <!-- Third Row -->
+            <div class="giveaway-items" style="grid-column: 1 / -1;">
+                <div class="image-container">
+                    @foreach (var image in Images)
+                    {
+                        <div class="image-wrapper @(image.Count == 0 ? "gray-scale" : "")">
+                            <img src="@image.Path" alt="@image.AltText" class="game-image" />
+                            <span class="image-count">@image.Count</span>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+        <div class="game-container">
+            @foreach (var square in Squares)
+            {
+                <div class="square" @onclick="() => FlipSquare(square)">
+                    <div class="inner @(square.Flipped ? "flipped" : "")">
+                        <div class="front"></div>
+                        <div class="back@(square.IsWinner ? "-winner" : "")"></div>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <!-- Button container with Flexbox layout -->
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top:5px;">
+
+            <!-- Back button (left-aligned) -->
+            <button @onclick="OnBackBtnClicked" class="back-button">
+                <img src="images/back_icon.png" class="back-icon" />
+            </button>
+
+            <!-- Spacer to ensure the right button stays aligned on the right -->
+            <div style="flex-grow: 1;"></div>
+
+            @if(setPrizeImage){
+                <img src="@winningImageSource" class="winning-image" />
+            }
+            else{
+                <!--Timer-->
+                <div class="timer-wrapper">
+                    <div class="timer-circle" style="background: conic-gradient(#ff6347 @ProgressPercentage%, #ddd @ProgressPercentage%)">
+                        <div class="timer-text">
+                            @TimeLeft
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <div class="end-round-message @(wonRound ? "win animate" : "") @(lostRound ? "loss animate" : "")">
+            @(flipResultMessage)
+        </div>
+    </div>
+</div>
+
+<!-- Sponsors Modal -->
+<SponsorsModal ShowModal="ShowModal" ShowModalChanged="OnModalStateChanged" SponsorName=@SponsorName SponsorInstagramAcct=@SponsorInstagramAcct />
+
+@code {
+    private string PlayerName { get; set; } = "whoRu?";
+    private string PlayerChoice { get; set; } = "Attempts: ";
+    private int AttemptsCount { get; set; } = 0;
+    [Parameter]
+    public string PlayerUID { get; set; } = "";
+    private List<Square> Squares { get; set; } = new();
+    Dictionary<int,string> winningSquares = new Dictionary<int,string>();
+    private int flippingInterval = 7200; // 2 hour in seconds (default)
+    private int flipCooldown = 0; 
+    private string TimeLeft { get; set; } = "Play";
+    private bool canFlip { get; set; } = true; // Disabled state of flip button
+    private System.Timers.Timer _timer;
+    //private double ProgressPercentage => (3600 - flipCooldown) / 36.0; // Calculate the progress percentage
+    private double ProgressPercentage => (double)(flipCooldown) / (flippingInterval / 100); // Calculate the progress percentage
+    private DateTime lastAttemptDateTime;
+    private Dictionary<string, string> giveawayDailyPrizes = new Dictionary<string, string>();
+    private bool setPrizeImage = false;
+    private GiveawaysDailyData giveawayDailyData = new GiveawaysDailyData();
+    private List<ImageItem> Images = new();
+    private UserGamePlayDataDaily userGamePlayDataDaily;
+    UserInfo? currentActiveUser;
+    HashSet<int> choicesSet = new();
+    private string todayString = DateTime.Today.ToString("yyyyMMdd"); 
+    private string winningImageSource = "images/question_mark.png";
+    private bool ShowModal { get; set; } = false;
+    private string SponsorName { get; set; } = "Sponsor_placeholder";
+    private string SponsorInstagramAcct { get; set; } = "Sponsor_instagram_acct";
+    private bool wonRound;
+    private bool lostRound;
+    private string flipResultMessage = "";
+
+    protected override void OnInitialized()
+    {
+        if (string.IsNullOrEmpty(PlayerUID))
+        {
+            // Redirect to the sign-in page
+            NavigationManager.NavigateTo("/");
+            return;
+        }
+
+        //store uid in UserInfoService singleton to use in NavMenu
+        UserInfoService.PlayerUID = PlayerUID;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            using (var db = await this.DbFactory.Create<JusGiveawayDB>())
+            {
+                currentActiveUser = db.UserInfo.FirstOrDefault(u => u.UID == PlayerUID);
+
+                //check if user is logged in
+                if (currentActiveUser == null || CommonFunctions.SendUserBackToLogInPageIfNotLoggedIn(currentActiveUser))
+                {
+                    NavigationManager.NavigateTo("/");
+                    return;
+                }
+
+                PlayerName = currentActiveUser.Name;
+                //set auth token in case of a refresh of page
+                bool authTokenExpired = await FirebaseService.SetAuthTokenIfNotExpired(currentActiveUser.IdToken);
+                if (authTokenExpired)
+                {
+                    await CommonFunctions.SignOutUser(this.DbFactory, PlayerUID);
+                    NavigationManager.NavigateTo("/");
+                    return;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            await CommonFunctions.WriteErrorMessageToFirebase(ex.Message, "DailyGiveawayPage - OnInitializedAsync()", DateTime.Now.ToString());
+            Console.WriteLine(ex.Message);
+        }
+
+        giveawayDailyPrizes = await CommonFunctions.GetGiveawaysDailyPrizes();
+        giveawayDailyData = await CommonFunctions.GetGiveawaysDailyData(todayString);
+        userGamePlayDataDaily = await CommonFunctions.GetUserGamePlayDataDaily(PlayerUID, todayString);
+        flippingInterval = await CommonFunctions.GetGiveawaysDailyTimer();
+
+        SponsorName = giveawayDailyData.Sponsors.FirstOrDefault().Key;
+        SponsorInstagramAcct = giveawayDailyData.Sponsors.FirstOrDefault().Value;
+
+        // Initialize the timer and start countdown
+        LoadTimer(userGamePlayDataDaily?.LastAttempt ?? "firstTimePlayingToday");
+        choicesSet = (userGamePlayDataDaily?.Choices ?? "0").Split(',').Select(int.Parse).ToHashSet();
+
+        SetPrizes(giveawayDailyData);
+        SetSquares();
+        SetWinningSquares(winningSquares);
+
+        if(userGamePlayDataDaily?.Winner ?? false){
+            setPrizeImage = true;
+            UpdateWinningImageSource(giveawayDailyPrizes[userGamePlayDataDaily.ItemWon]);
+        }
+    }
+
+    private void SetSquares(){
+        for (int i = 1; i <= 30; i++)
+        {
+            Square square = new Square { Id = i, Flipped = false, Prize = "", IsWinner = false };
+            Squares.Add(square);
+            if (choicesSet.Contains(i))
+            {
+                square.Flipped = true;
+                AttemptsCount++;
+            }
+        }            
+    }
+
+    private void SetWinningSquares(Dictionary<int,string> winningSquares)
+    {
+        foreach(Square square in Squares){
+            if(winningSquares.ContainsKey(square.Id)){
+                square.IsWinner = true;
+                square.Prize = winningSquares[square.Id];
+            }
+        }
+    }
+
+    private void SetPrizes(GiveawaysDailyData dailyData)
+    {
+        //set the prizes(images and counts) for today
+        foreach (var prize in dailyData.Prizes)
+        {
+            int prizeCount = 0;
+            foreach(var loc in prize.Value.Locations){
+                if(!loc.Value){
+                    prizeCount++;
+                    winningSquares.Add(loc.Key, prize.Key);
+                }
+
+                //This code is a tad bit confusing. It adds the winners square to the squares on screen, so the winning square is always displayed for the winner
+                if (choicesSet.Contains(loc.Key) && !winningSquares.ContainsKey(loc.Key) && userGamePlayDataDaily.Winner)
+                    winningSquares.Add(loc.Key, prize.Key);
+            }
+
+            var item = new ImageItem { Path = $"images/{giveawayDailyPrizes[prize.Key]}", AltText = $"{prize.Key}", Count = prizeCount };
+            Images.Add(item);
+        }
+    }
+
+    private async void UpdatePrizes(Square square)
+    {
+        giveawayDailyData.Prizes[square.Prize].Locations[square.Id] = true;
+        await CommonFunctions.UpdateGiveawaysDailyDataPrizeStatus(todayString, square.Prize, square.Id);
+        await CommonFunctions.AddGiveawaysDailyDataPrizeWinner(PlayerUID, todayString, square.Prize, square.Id);
+    }
+
+    private async void LoadTimer(string playerLastAttempt)
+    {
+        //this means that the player has not played daily giveaway today
+        if (playerLastAttempt == "firstTimePlayingToday")
+        {
+            //add player to firebase db
+            await CommonFunctions.SetUserGamePlayDataDaily(PlayerUID, new UserGamePlayDataDaily(), todayString);
+            userGamePlayDataDaily = await CommonFunctions.GetUserGamePlayDataDaily(PlayerUID, todayString);
+            return;
+        }
+
+        // Get the saved countdown time from firebase (if any)
+        CommonFunctions.GetDateTimeFromStringDate(playerLastAttempt, out lastAttemptDateTime);
+        flipCooldown = (int)flippingInterval - ((int)(DateTime.Now - lastAttemptDateTime).TotalSeconds);
+
+        if (flipCooldown > 0)
+        {
+            StartTimer();
+            canFlip = false;
+        }
+    }
+
+    private void StartTimer()
+    {
+        // Start a timer to update the remaining time every second
+        _timer = new System.Timers.Timer(1000);
+        _timer.Elapsed += (sender, e) =>
+        {
+            if (flipCooldown > 0)
+            {
+                flipCooldown--;
+                TimeLeft = FormatTime(flipCooldown);
+                InvokeAsync(StateHasChanged); // Refresh UI
+            }
+            else
+            {
+                _timer.Stop();
+                canFlip = true; // Enable flip button after cooldown
+            }
+        };
+        _timer.Start();
+    }
+
+    private string FormatTime(int seconds)
+    {
+        var hours = seconds / 3600;
+        var minutes = (seconds % 3600) / 60;
+        var remainingSeconds = seconds % 60;
+        return $"{hours:D2}:{minutes:D2}:{remainingSeconds:D2}";
+    }
+
+
+    private class Square
+    {
+        public int Id { get; set; }
+        public bool Flipped { get; set; }
+        public string Prize { get; set; }
+        public bool IsWinner { get; set; }
+    }
+
+    public class ImageItem
+    {
+        public string Path { get; set; }
+        public string AltText { get; set; }
+        public int Count { get; set; }
+    }
+
+    private async void FlipSquare(Square square)
+    {
+        if(!canFlip || square.Flipped || userGamePlayDataDaily.Winner){
+            Console.WriteLine("Stop eeeet");
+            return;
+        }
+        canFlip = false;
+        square.Flipped = !square.Flipped;
+        AttemptsCount++;
+
+        if(square.IsWinner){
+            //we have a winner, save to db
+            userGamePlayDataDaily.Winner = true;
+            userGamePlayDataDaily.ItemWon = square.Prize;
+
+            //change prize to true
+            UpdatePrizes(square);
+            setPrizeImage = true;
+            UpdateWinningImageSource(giveawayDailyPrizes[square.Prize]);
+
+            flipResultMessage = $"You won a {square.Prize}! ";
+            ShowResultMessage(true, false, flipResultMessage);
+            
+            // Call the JS function to trigger confetti
+            await JSRuntime.InvokeVoidAsync("triggerConfetti");
+        }
+        else{
+            flipResultMessage = $"Ooops...sorry";
+            ShowResultMessage(false, true, flipResultMessage);
+
+            // Call the JS function to trigger confetti
+            await JSRuntime.InvokeVoidAsync("triggerLossEffect");
+        }
+
+        string mostRecentAttempt = DateTime.Now.ToString("yyyy/MM/dd HH:mm:ss");
+        LoadTimer(mostRecentAttempt);
+        
+        userGamePlayDataDaily.LastAttempt = mostRecentAttempt;
+        userGamePlayDataDaily.Choices += $",{square.Id}";
+
+        await CommonFunctions.SetUserGamePlayDataDaily(PlayerUID, userGamePlayDataDaily, todayString);
+    }
+
+    private void UpdateWinningImageSource(string newImage)
+    {
+        winningImageSource = $"images/{newImage}";
+    }
+
+    private async void OnBackBtnClicked()
+    {
+        Console.WriteLine("Daily giveaway Game Back button pressed");
+        
+        NavigationManager.NavigateTo($"/mainpage/{PlayerUID}");
+    }
+
+    private void OnSponsoredByTapped()
+    {
+        ShowModal = true;
+    }
+
+    private Task OnModalStateChanged(bool isVisible)
+    {
+        ShowModal = isVisible;
+        return Task.CompletedTask;
+    }
+
+    //this function exists in the heads or tails game page as well
+    //should be moved to CommonFunctions instead of repeating code
+    private void ShowResultMessage(bool win, bool loss, string msg)
+    {
+        flipResultMessage = msg;
+        wonRound = win; // Show the winning message
+        lostRound = loss; // Show the losing message
+        StateHasChanged(); // Trigger a UI update
+
+        // Start the animation
+        Task.Delay(3000).ContinueWith(_ =>
+        {
+            InvokeAsync(() =>
+            {
+                wonRound = false; // Hide the winning message
+                lostRound = false; // Hide the losing message
+                StateHasChanged(); // Trigger a UI update
+            });
+        });
+    }
+}

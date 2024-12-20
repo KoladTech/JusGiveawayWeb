@@ -5,6 +5,7 @@ using JusGiveawayWebApp.Services;
 using Microsoft.AspNetCore.Components;
 using System.Text.Json;
 using System.Threading.Tasks;
+using System.Web;
 using static JusGiveawayWebApp.Pages.CustomAlertDialog;
 
 namespace JusGiveawayWebApp.Helpers
@@ -217,7 +218,34 @@ namespace JusGiveawayWebApp.Helpers
             //if null, display error
             return await _firebaseService.WriteDataAsync<string>($"AllUsers/{uid}/UserInfo/referredBy", referredByUID + "-x", needsAuthToken: true);
         }
-
+        public async Task<Dictionary<string, string>> GetGiveawaysDailyPrizes()
+        {
+            return await _firebaseService.ReadDataAsync<Dictionary<string,string>>($"GiveawaysDailyPrizes", needsAuthToken: false);
+        }
+        public async Task<GiveawaysDailyData> GetGiveawaysDailyData(string today)
+        {
+            return await _firebaseService.ReadDataAsync<GiveawaysDailyData>($"GiveawaysDaily/{HttpUtility.UrlEncode(today)}", needsAuthToken: false);
+        }
+        public async Task<int> GetGiveawaysDailyTimer()
+        {
+            return await _firebaseService.ReadDataAsync<int>($"GiveawaysDailyTimer", needsAuthToken: false);
+        }
+        public async Task<bool> UpdateGiveawaysDailyDataPrizeStatus(string today, string prize, int prizeLocation)
+        {
+            return await _firebaseService.WriteDataAsync<bool>($"GiveawaysDaily/{HttpUtility.UrlEncode(today)}/prizes/{prize}/locations/{prizeLocation}", true, needsAuthToken: true);
+        }
+        public async Task<bool> AddGiveawaysDailyDataPrizeWinner(string uid, string today, string prize, int prizeLocation)
+        {
+            return await _firebaseService.WriteDataAsync<string>($"GiveawaysDaily/{HttpUtility.UrlEncode(today)}/winners/{uid}", $"{prize}-{prizeLocation}", needsAuthToken: true);
+        }
+        public async Task<UserGamePlayDataDaily> GetUserGamePlayDataDaily(string uid, string today)
+        {
+            return await _firebaseService.ReadDataAsync<UserGamePlayDataDaily>($"GamePlayDataDaily/{uid}/{today}", needsAuthToken: true);
+        }
+        public async Task<bool> SetUserGamePlayDataDaily(string uid, UserGamePlayDataDaily userGamePlayDataDaily, string today)
+        {
+            return await _firebaseService.WriteDataAsync<UserGamePlayDataDaily>($"GamePlayDataDaily/{uid}/{today}", userGamePlayDataDaily, needsAuthToken: true);
+        }
         public async Task WriteErrorMessageToFirebase(string errorMessage, string data, string errorTime)
         {
             await _firebaseService.WriteErrorMessagesAsync(errorMessage, data, errorTime, needsAuthToken: false);
@@ -344,6 +372,18 @@ namespace JusGiveawayWebApp.Helpers
                 Console.WriteLine(ex.Message + " error comparing versions of app");
             }
             return showNotificationBanner;
+        }
+
+        public void GetDateTimeFromStringDate(string? date, out DateTime formattedDate)
+        {
+            //2024/10/11 00:55:33
+            //Date 12:55:33 (this is the target date time. Use this for future testing)
+            if (!DateTime.TryParseExact(date, "yyyy/MM/dd HH:mm:ss",
+                System.Globalization.CultureInfo.InvariantCulture,
+                System.Globalization.DateTimeStyles.None, out formattedDate))
+            {
+                Console.WriteLine("Invalid date format");
+            }
         }
 
         // Add more common methods as needed.

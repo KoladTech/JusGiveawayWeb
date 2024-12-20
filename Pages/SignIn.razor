@@ -32,7 +32,8 @@
                                type=@passwordType
                                class="entry"
                                maxlength="20"
-                               @oninput="e => ToggleBtn(e)" />
+                    @oninput="e => ToggleBtn(e)"
+                    @onkeydown="HandleKeyPress" />
                     <i class="password-toggle-icon" @onclick="TogglePasswordVisibility">
                         @if (passwordType == "password")
                         {
@@ -305,6 +306,14 @@
     {
         password = e.Value?.ToString() ?? string.Empty;
         btnEnabled = password == "" ? false : true;
+    }
+
+    private async void HandleKeyPress(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await OnSignInClicked();
+        }
     }
 
     private void NavigateToSignUp()
