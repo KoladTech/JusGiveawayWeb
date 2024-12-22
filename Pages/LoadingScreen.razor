@@ -1,6 +1,6 @@
-﻿<div class="loading-overlay" style="display: @(IsLoading ? "flex" : "none")">
-    <p class="loading-text">Jus loading...</p>
-    <div class="game-spinner">
+﻿<div class="loading-overlay @(IsFullScreen ? "full-screen" : "center-rectangle")" style="display: @(IsLoading ? "flex" : "none");">
+    <p class="loading-text @(IsFullScreen ? "" : "center-rectangle-text")">Jus loading...</p>
+    <div class="game-spinner @(IsFullScreen ? "" : "center-rectangle-spinner")">
         <div class="spinner-part part-1"></div>
         <div class="spinner-part part-2"></div>
         <div class="spinner-part part-3"></div>
@@ -8,5 +8,6 @@
 </div>
 
 @code {
+    [Parameter] public bool IsFullScreen { get; set; }
     [Parameter] public bool IsLoading { get; set; }
 }

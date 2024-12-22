@@ -24,7 +24,7 @@
                 <p @onclick="OnSponsoredByTapped" class="sponsored-link">Sponsored by...</p>
             </div>
 
-            <!-- Third Row -->
+            <!-- Second Row - Prizes -->
             <div class="giveaway-items" style="grid-column: 1 / -1;">
                 <div class="image-container">
                     @foreach (var image in Images)
@@ -84,6 +84,8 @@
 <!-- Sponsors Modal -->
 <SponsorsModal ShowModal="ShowModal" ShowModalChanged="OnModalStateChanged" SponsorName=@SponsorName SponsorInstagramAcct=@SponsorInstagramAcct />
 
+<LoadingScreen IsLoading="@isLoading" IsFullScreen="@isFullScreen"/>
+
 @code {
     private string PlayerName { get; set; } = "whoRu?";
     private string PlayerChoice { get; set; } = "Attempts: ";
@@ -115,6 +117,8 @@
     private bool wonRound;
     private bool lostRound;
     private string flipResultMessage = "";
+    private bool isLoading = false;
+    private bool isFullScreen = true;
 
     protected override void OnInitialized()
     {
@@ -133,6 +137,8 @@
     {
         try
         {
+            isLoading = true;
+            isFullScreen = true;
             using (var db = await this.DbFactory.Create<JusGiveawayDB>())
             {
                 currentActiveUser = db.UserInfo.FirstOrDefault(u => u.UID == PlayerUID);
@@ -173,17 +179,20 @@
         LoadTimer(userGamePlayDataDaily?.LastAttempt ?? "firstTimePlayingToday");
         choicesSet = (userGamePlayDataDaily?.Choices ?? "0").Split(',').Select(int.Parse).ToHashSet();
 
-        SetPrizes(giveawayDailyData);
-        SetSquares();
-        SetWinningSquares(winningSquares);
+        RefreshSquares(giveawayDailyData);
 
         if(userGamePlayDataDaily?.Winner ?? false){
             setPrizeImage = true;
             UpdateWinningImageSource(giveawayDailyPrizes[userGamePlayDataDaily.ItemWon]);
         }
+
+        isLoading = false;
     }
 
     private void SetSquares(){
+        Squares.Clear();
+        AttemptsCount = 0;
+
         for (int i = 1; i <= 30; i++)
         {
             Square square = new Square { Id = i, Flipped = false, Prize = "", IsWinner = false };
@@ -208,6 +217,9 @@
 
     private void SetPrizes(GiveawaysDailyData dailyData)
     {
+        winningSquares.Clear();
+        Images.Clear();
+
         //set the prizes(images and counts) for today
         foreach (var prize in dailyData.Prizes)
         {
@@ -226,6 +238,13 @@
             var item = new ImageItem { Path = $"images/{giveawayDailyPrizes[prize.Key]}", AltText = $"{prize.Key}", Count = prizeCount };
             Images.Add(item);
         }
+    }
+
+    private void RefreshSquares(GiveawaysDailyData giveawayDailyData)
+    {
+        SetPrizes(giveawayDailyData);
+        SetSquares();
+        SetWinningSquares(winningSquares);
     }
 
     private async void UpdatePrizes(Square square)
@@ -306,9 +325,51 @@
     {
         if(!canFlip || square.Flipped || userGamePlayDataDaily.Winner){
             Console.WriteLine("Stop eeeet");
+
+            bool winMsg = false;
+            bool lossMsg = false;
+            if (userGamePlayDataDaily.Winner)
+            {
+                flipResultMessage = $"You won a {userGamePlayDataDaily.ItemWon}";
+                winMsg = true;
+            }
+            else
+            {
+                flipResultMessage = $"Try again in {TimeLeft}";
+                lossMsg = true;
+            }
+            ShowResultMessage(winMsg, lossMsg, flipResultMessage);
             return;
         }
+
+        isLoading = true;
+        isFullScreen = false;
+        //this delay is supposed to help prevent race conditions where 2 people try to select the same square at the same time 
+        Random random = new Random();
+        await Task.Delay(random.Next(0, 1001));
+
+        //check db to see if the dailygiveaway data has changed
+        var giveawayDailyDataMostRecent = await CommonFunctions.GetGiveawaysDailyData(todayString);
+        if((giveawayDailyDataMostRecent.Winners?.Count ?? 0) != (giveawayDailyData.Winners?.Count ?? 0)){
+            giveawayDailyData = giveawayDailyDataMostRecent;
+
+            if (giveawayDailyData == null){
+                //display error message here
+                return;
+            }
+
+            RefreshSquares(giveawayDailyData);
+
+            //write to db when this condition happens. want to know how many times it indeed happened
+            //although, it might not even be relating to the same square. other squares won could still trigger this
+            //await CommonFunctions.WriteLogMessageToFirebase("Users potentially clicked same square", $"oldSquare-{square} - newSquare{Squares[square.Id - 1]}", DateTime.Now.ToString());
+            //await CommonFunctions.WriteErrorMessageToFirebase("Users potentially clicked same square", $"oldSquare-{square.IsWinner} - newSquare{Squares[square.Id - 1].IsWinner}", DateTime.Now.ToString());
+
+            square = Squares[square.Id - 1];
+        }
+
         canFlip = false;
+        isLoading = false;
         square.Flipped = !square.Flipped;
         AttemptsCount++;
 

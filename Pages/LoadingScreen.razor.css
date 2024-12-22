@@ -1,11 +1,5 @@
-﻿/* Overlay Styling */
+﻿/* Common Overlay Styling */
 .loading-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: radial-gradient(circle, rgba(143, 188, 143, 1), rgba(60, 100, 60, 1));
     display: none;
     justify-content: center;
     align-items: center;
@@ -15,12 +9,39 @@
     text-align: center;
 }
 
+    /* Full-Screen Overlay */
+    .loading-overlay.full-screen {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: radial-gradient(circle, rgba(143, 188, 143, 1), rgba(60, 100, 60, 1));
+    }
+
+    /* Centered Rectangle Overlay */
+    .loading-overlay.center-rectangle {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        width: 75%;
+        height: 15%;
+        transform: translate(-50%, -50%);
+        background: radial-gradient(circle, rgba(143, 188, 143, 1), rgba(60, 100, 60, 1));
+        border-radius: 10px; /* Optional: Rounded corners */
+    }
+
 /* Loading Text */
 .loading-text {
     font-size: 1.5rem;
     margin-bottom: 20px;
     animation: fade 1.5s ease-in-out infinite;
 }
+    .loading-text.center-rectangle-text {
+        font-size: 1rem;
+        margin-bottom: 10px;
+        animation: fade 1.5s ease-in-out infinite;
+    }
 
 /* Spinner Styling */
 .game-spinner {
@@ -28,6 +49,11 @@
     width: 80px;
     height: 80px;
 }
+    .game-spinner.center-rectangle-spinner {
+        position: relative;
+        width: 55px;
+        height: 55px;
+    }
 
 .spinner-part {
     position: absolute;

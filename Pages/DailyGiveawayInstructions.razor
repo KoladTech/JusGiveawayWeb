@@ -1,0 +1,81 @@
+﻿@page "/dailygiveaway-instructions"
+@using Microsoft.AspNetCore.Components.Web
+@using JusGiveawayWebApp.Models
+@inject JusGiveawayWebApp.Helpers.CommonFunctions CommonFunctions
+
+@if (IsPopupVisible)
+{
+    <div class="popup-container">
+        <!-- Container Frame for the Pop-up -->
+        <div class="popup-frame">
+            <!-- Header Section: Title -->
+            <h3 class="popup-title">@GameInstructionsTitle</h3>
+
+            <!-- Scrollable Content Section: Instructions -->
+            <div class="popup-content">
+                <div class="instructions-section">
+                    <h4>How to Play</h4>
+                    <p>
+                        All you have to do is select a square.
+                        Your selected square could be a <strong>winning square</strong> or a <strong>losing square</strong>.
+                        After every selection, there is a <strong>cool down</strong> period before you can make another selection.
+                    </p>
+                </div>
+
+                <div class="instructions-section">
+                    <h4>How to Win Prizes</h4>
+                    <p>
+                        At the top of the screen, you can find the <strong>list of prizes</strong> available to be won. Notice that the <strong>quantity</strong> of each prize is also shown.
+                        Once an item has been won, it will be <strong>greyed out</strong> with a quantity of <strong>0</strong>!
+                        Once you win an item, you are <strong>ineligible</strong> to win another.
+                    </p>
+                </div>
+
+                <div class="instructions-section">
+                    <h4>How to Claim your Prize</h4>
+                    <p>
+                        Take a screenshot, showing your win and send it to us in a DM on <a href="https://www.instagram.com/jus_giveaway/" target="_blank">instagram</a>.
+                        We will give you further instructions on how to claim your prize.
+                    </p>
+                </div>
+
+                <div class="instructions-section">
+                    <h4>Remember</h4>
+                    <p>
+                        You must be following <a href="https://www.instagram.com/jus_giveaway/" target="_blank">JusGiveaway</a> and
+                        <a href="https://www.instagram.com/davidbukola_foundation/" target="_blank">DavidBukola</a> on instagram to claim your prize.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Footer Section: Fixed Close Button -->
+            <div class="fixed-footer">
+                <button class="centered-button" @onclick="ClosePopup">Close</button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    // Example data binding for instructions title
+    public MarkupString GameInstructionsTitle { get; set; } = new MarkupString("Daily Giveaway<br/>Quick Guide");
+    private bool IsPopupVisible { get; set; }
+    private string currentGiveaway = "";
+    private GiveawayData? giveawayData;
+
+    // Handle closing the popup
+    private void ClosePopup()
+    {
+        IsPopupVisible = false;
+        StateHasChanged();
+    }
+
+    // Method to open the popup
+    public async void ShowPopup()
+    {
+        //currentGiveaway = await CommonFunctions.GetActiveGiveawayNameFromFirebase();
+        //giveawayData = await CommonFunctions.GetGiveawayDataFromFirebase(currentGiveaway);
+        IsPopupVisible = true;
+        StateHasChanged();
+    }
+}
