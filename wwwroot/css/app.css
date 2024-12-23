@@ -296,7 +296,7 @@ code {
 
     .end-round-message.animate {
         display: block; /* Make it visible */
-        animation: slideInUp 0.6s forwards, fadeOut 0.5s 5s forwards; /* Slide in from below, fade out after 5s */
+        animation: slideInUp 0.6s forwards, fadeOut 0.5s 10s forwards; /* Slide in from below, fade out after 5s */
     }
     /* Green background for win */
     .end-round-message.win {

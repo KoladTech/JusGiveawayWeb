@@ -32,6 +32,10 @@
                         <div class="image-wrapper @(image.Count == 0 ? "gray-scale" : "")">
                             <img src="@image.Path" alt="@image.AltText" class="game-image" />
                             <span class="image-count">@image.Count</span>
+                            @if (image.Count == 0)
+                            {
+                                <div class="red-x-overlay">X</div>
+                            }
                         </div>
                     }
                 </div>
@@ -76,6 +80,7 @@
         </div>
 
         <div class="end-round-message @(wonRound ? "win animate" : "") @(lostRound ? "loss animate" : "")">
+            <img src="@winningImageSource" class="winning-image" />
             @(flipResultMessage)
         </div>
     </div>
@@ -110,7 +115,7 @@
     UserInfo? currentActiveUser;
     HashSet<int> choicesSet = new();
     private string todayString = DateTime.Today.ToString("yyyyMMdd"); 
-    private string winningImageSource = "images/question_mark.png";
+    private string winningImageSource = "";
     private bool ShowModal { get; set; } = false;
     private string SponsorName { get; set; } = "Sponsor_placeholder";
     private string SponsorInstagramAcct { get; set; } = "Sponsor_instagram_acct";
@@ -187,6 +192,8 @@
         }
 
         isLoading = false;
+
+        OnSponsoredByTapped();
     }
 
     private void SetSquares(){
@@ -231,7 +238,7 @@
                 }
 
                 //This code is a tad bit confusing. It adds the winners square to the squares on screen, so the winning square is always displayed for the winner
-                if (choicesSet.Contains(loc.Key) && !winningSquares.ContainsKey(loc.Key) && userGamePlayDataDaily.Winner)
+                if (choicesSet.Contains(loc.Key) && !winningSquares.ContainsKey(loc.Key) && userGamePlayDataDaily.Winner && userGamePlayDataDaily.ItemWon == prize.Key)
                     winningSquares.Add(loc.Key, prize.Key);
             }
 
@@ -324,13 +331,11 @@
     private async void FlipSquare(Square square)
     {
         if(!canFlip || square.Flipped || userGamePlayDataDaily.Winner){
-            Console.WriteLine("Stop eeeet");
-
             bool winMsg = false;
             bool lossMsg = false;
             if (userGamePlayDataDaily.Winner)
             {
-                flipResultMessage = $"You won a {userGamePlayDataDaily.ItemWon}";
+                flipResultMessage = $"You won a {userGamePlayDataDaily.ItemWon} 😊";
                 winMsg = true;
             }
             else
@@ -383,7 +388,7 @@
             setPrizeImage = true;
             UpdateWinningImageSource(giveawayDailyPrizes[square.Prize]);
 
-            flipResultMessage = $"You won a {square.Prize}! ";
+            flipResultMessage = $"You won a {square.Prize}! 😊";
             ShowResultMessage(true, false, flipResultMessage);
             
             // Call the JS function to trigger confetti
