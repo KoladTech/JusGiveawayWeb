@@ -361,6 +361,3 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
-
-# Ignore the launchSettings file (Due to applicationUrl change)
-launchSettings.json
