@@ -14,7 +14,8 @@
             "dotnetRunMessages": true,
             "launchBrowser": true,
             "inspectUri": "{wsProtocol}://{url.hostname}:{url.port}/_framework/debug/ws-proxy?browser={browserInspectUri}",
-            "applicationUrl": "http://localhost:5000",
+            "applicationUrl": "http://192.168.1.146:5000", // Kayodes ip network
+            //"applicationUrl": "http://192.168.1.208:5000", //Demis ip network
             "environmentVariables": {
                 "ASPNETCORE_ENVIRONMENT": "Development"
             }
@@ -24,7 +25,8 @@
             "dotnetRunMessages": true,
             "launchBrowser": true,
             "inspectUri": "{wsProtocol}://{url.hostname}:{url.port}/_framework/debug/ws-proxy?browser={browserInspectUri}",
-            "applicationUrl": "http://localhost:5000",
+            "applicationUrl": "http://192.168.1.146:5000",
+            //"applicationUrl": "https://192.168.1.208:5001",
             "environmentVariables": {
                 "ASPNETCORE_ENVIRONMENT": "Development"
             }
